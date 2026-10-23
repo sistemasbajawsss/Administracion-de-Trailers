@@ -16,7 +16,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
         {children}
       </main>
-      <NavigationTracker />
+      {/* usePathname es dato de la petición: va dentro de Suspense para no bloquear el prerender. */}
+      <Suspense fallback={null}>
+        <NavigationTracker />
+      </Suspense>
     </div>
   );
 }
