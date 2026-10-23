@@ -39,6 +39,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      categorias: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      choferes: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nombre: string
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre?: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       perfiles: {
         Row: {
           activo: boolean
@@ -69,19 +126,127 @@ export type Database = {
         }
         Relationships: []
       }
+      proveedores: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nombre: string
+          notas: string | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre: string
+          notas?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre?: string
+          notas?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      unidades: {
+        Row: {
+          anio: number | null
+          chofer_id: string | null
+          created_at: string
+          created_by: string | null
+          estatus: Database["public"]["Enums"]["estatus_unidad"]
+          id: string
+          longitud_pies: number | null
+          marca: string | null
+          modelo: string | null
+          notas: string | null
+          numero_economico: string
+          numero_orden: number | null
+          operacion: Database["public"]["Enums"]["operacion_unidad"] | null
+          placas: string | null
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          updated_at: string
+          vin: string | null
+        }
+        Insert: {
+          anio?: number | null
+          chofer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estatus?: Database["public"]["Enums"]["estatus_unidad"]
+          id?: string
+          longitud_pies?: number | null
+          marca?: string | null
+          modelo?: string | null
+          notas?: string | null
+          numero_economico: string
+          numero_orden?: number | null
+          operacion?: Database["public"]["Enums"]["operacion_unidad"] | null
+          placas?: string | null
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          updated_at?: string
+          vin?: string | null
+        }
+        Update: {
+          anio?: number | null
+          chofer_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estatus?: Database["public"]["Enums"]["estatus_unidad"]
+          id?: string
+          longitud_pies?: number | null
+          marca?: string | null
+          modelo?: string | null
+          notas?: string | null
+          numero_economico?: string
+          numero_orden?: number | null
+          operacion?: Database["public"]["Enums"]["operacion_unidad"] | null
+          placas?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          updated_at?: string
+          vin?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unidades_chofer_id_fkey"
+            columns: ["chofer_id"]
+            isOneToOne: false
+            referencedRelation: "choferes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       es_admin: { Args: never; Returns: boolean }
+      prefijo_tipo_unidad: {
+        Args: { tipo: Database["public"]["Enums"]["tipo_unidad"] }
+        Returns: string
+      }
       rol_actual: {
         Args: never
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
     }
     Enums: {
+      estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja"
+      operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista"
+      tipo_unidad: "trailer" | "caja" | "camion_rabon" | "pipa" | "camioneta"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -212,7 +377,10 @@ export const Constants = {
   },
   public: {
     Enums: {
+      estatus_unidad: ["activo", "en_taller", "por_llegar", "baja"],
+      operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista"],
+      tipo_unidad: ["trailer", "caja", "camion_rabon", "pipa", "camioneta"],
     },
   },
 } as const

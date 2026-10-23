@@ -6,6 +6,7 @@ export type NavIcon =
   | "servicios"
   | "registrar"
   | "reportes"
+  | "catalogos"
   | "usuarios";
 
 export type NavItem = {
@@ -20,6 +21,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { href: "/unidades", label: "Unidades", icon: "unidades" },
     { href: "/servicios", label: "Servicios", icon: "servicios" },
     { href: "/dashboard", label: "Reportes", icon: "reportes" },
+    { href: "/admin/catalogos", label: "Catálogos", icon: "catalogos" },
     { href: "/admin/usuarios", label: "Usuarios", icon: "usuarios" },
   ],
   capturista: [

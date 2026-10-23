@@ -59,7 +59,8 @@ src/
 
 supabase/
 ├── migrations/                  # Una migración por cambio, nunca editar aplicadas
-└── seed.sql                     # Datos iniciales (categorías)
+└── seed.sql                     # Solo para entornos locales: `db push` NO lo aplica.
+                                 # Datos iniciales de producción (categorías) van dentro de una migración.
 ```
 
 ## Reglas de dependencia
@@ -79,7 +80,7 @@ La dirección permitida es: `app → features → components/shared → lib`.
 
 **Lecturas (`features/*/queries.ts`)**
 - Empiezan con `import 'server-only'`.
-- Única capa que hace `select` a Supabase.
+- Única capa que hace `select` a Supabase. Excepción: `lib/auth/get-current-user.ts` lee `perfiles` para la sesión.
 - Seleccionan columnas explícitas, nunca `select('*')` en código final.
 
 **Escrituras (`features/*/actions.ts`)**
@@ -110,6 +111,88 @@ Flujo:
 2. Una Server Action valida el rol y genera una URL firmada de subida.
 3. El cliente sube directo a Supabase Storage con esa URL.
 4. Una Server Action registra el comprobante en la tabla.
+
+## Datos y rendimiento
+
+### Cómo viajan las peticiones
+| Necesidad | Dónde | Cómo |
+|---|---|---|
+| Leer datos | `features/*/queries.ts` | Server Component → Supabase. La página llega armada; el navegador no hace peticiones extra. |
+| Escribir datos | `features/*/actions.ts` | Server Action llamada desde el formulario. |
+| Endpoints HTTP (`route.ts`) | `app/**/route.ts` | Solo cuando no hay alternativa: descargas (Excel), webhooks o integraciones externas. |
+| Archivos | Navegador → Supabase Storage | Ver "Excepción: subida de comprobantes". |
+
+- NO crear endpoints `/api/*` para que la propia app lea o escriba datos.
+- NO consultar Supabase desde el navegador (`lib/supabase/client.ts`) salvo para Storage o algo que realmente lo requiera.
+
+### Reglas
+1. **Región**: las funciones de Vercel corren en `pdx1` (Oregon), la misma región que Supabase (`vercel.json`). No cambiarla sin mover también la base de datos.
+2. **Una consulta por necesidad**: traer los datos relacionados con selects anidados de PostgREST (`servicios` con `unidades(...)`, `gastos(...)`), nunca un `select` por renglón (N+1).
+3. **Sin cascadas**: si una página necesita dos lecturas independientes, se piden en paralelo con `Promise.all`, o en componentes hermanos, cada uno con su `<Suspense>`.
+4. **Totales en SQL**: sumas y agrupaciones (por unidad, categoría, mes) en vistas o funciones de Postgres, no sumando en JavaScript.
+5. **Índices** en toda llave foránea y en cada columna usada para filtrar u ordenar (`unidad_id`, `fecha`, `created_by`, `numero_economico`). Se crean en la misma migración que la tabla.
+6. **RLS eficiente**: `(select auth.uid())` y `(select public.es_admin())` envueltos en `select` para que Postgres los evalúe una vez por consulta, no por fila.
+7. **Listas paginadas**: siempre `.range()` o `limit`. Nunca traer una tabla completa a la UI. Filtros y página viven en la URL (`?q=&tipo=&pagina=`) para que se puedan compartir y el botón "atrás" funcione.
+8. **Streaming**: toda lectura de sesión o datos va dentro de `<Suspense>` con un skeleton del mismo tamaño que el contenido (sin saltos de layout). `loading.tsx` solo cuando toda la ruta depende de los datos.
+9. **Respuesta inmediata en formularios**: botón con estado de carga, `useOptimistic` en listas donde se agrega o edita, y `toast` de éxito o error.
+10. **JavaScript mínimo**: `'use client'` solo en la hoja interactiva; librerías pesadas (Recharts, compresión de imágenes) con `next/dynamic` solo en la pantalla que las usa.
+11. **Caché medida, no supuesta**: no usar `'use cache'` por defecto. Si una lectura resulta lenta, se cachea con `cacheTag` y la action que la modifica llama `updateTag`. Ojo: dentro de `'use cache'` no hay cookies, así que no hay sesión ni RLS por usuario.
+
+### Ejemplo
+
+```ts
+// features/unidades/queries.ts
+import "server-only";
+import { createClient } from "@/lib/supabase/server";
+
+const PAGE_SIZE = 20;
+
+export async function listUnits({ search, type, page }: ListUnitsParams) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("unidades")
+    .select("id, numero_economico, tipo, placas, estatus", { count: "exact" })
+    .order("numero_economico")
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+  if (search) query = query.ilike("numero_economico", `%${search}%`);
+  if (type) query = query.eq("tipo", type);
+
+  const { data, count, error } = await query;
+  if (error) throw new Error("No se pudieron cargar las unidades");
+  return { units: data, total: count ?? 0 };
+}
+```
+
+```ts
+// features/unidades/actions.ts
+"use server";
+export async function createUnit(input: unknown): Promise<ActionResult<{ id: string }>> {
+  const parsed = unitSchema.safeParse(input);          // 1. validar
+  if (!parsed.success) return fail("Revisa los datos de la unidad.");
+  await requireRole("admin");                          // 2. permiso
+  const supabase = await createClient();               // 3. operación
+  const { data, error } = await supabase.from("unidades").insert(parsed.data).select("id").single();
+  if (error?.code === "23505") return fail("Ya existe una unidad con ese número económico.");
+  if (error) return fail("No se pudo guardar la unidad.");
+  revalidatePath("/unidades");                         // 4. revalidar
+  return ok({ id: data.id });                          // 5. resultado
+}
+```
+
+```tsx
+// app/(app)/unidades/page.tsx — página delgada con streaming
+export default function UnitsPage({ searchParams }: PageProps<"/unidades">) {
+  return (
+    <>
+      <PageHeader title="Unidades" />
+      <Suspense fallback={<UnitsTableSkeleton />}>
+        <UnitsTable searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
+}
+```
 
 ## Convenciones de nombres
 - Archivos y carpetas: `kebab-case` (`service-form.tsx`).

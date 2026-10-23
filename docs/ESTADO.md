@@ -3,7 +3,7 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 1 — Catálogos** · Estado: por iniciar · Rama: `seccion-1-catalogos` (crear desde `main`)
+**Sección 2 — Servicios y gastos** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-2-servicios` (por crear)
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -14,7 +14,7 @@
 - Desarrollo directo contra Supabase en la nube (sin Docker). Proyecto `administracion-trailers-dev` aparte cuando haya datos reales.
 - D1: el capturista edita sus propios registros sin aprobación; cada edición pide motivo y queda en `historial_cambios` con su línea de cambios. Solo admin elimina.
 - D2: dominio final `flotilla.bajaws.com.mx`; mientras tanto, dominio gratuito de Vercel.
-- D3: `unidades` con tipo `trailer` / `caja` / `camion_rabon` / `camioneta`; las cajas de los trailers son unidades individuales, sin relación con el trailer que las jala. En la interfaz, "Unidades".
+- D3: `unidades` con tipo `trailer` (T-) / `caja` (R-) / `camion_rabon` (F-) / `pipa` (P-) / `camioneta` (C-), operación `local` / `foraneo`, chofer opcional (catálogo `choferes`) y longitud en pies para cajas. Las cajas son unidades individuales, sin relación con el trailer que las jala. Detalle en `docs/PLAN.md`.
 
 ## Decisiones pendientes
 - Ninguna.
@@ -31,14 +31,32 @@
 - Windows: la política de ejecución de PowerShell del usuario es `RemoteSigned` (para `npm` / `npx`). El CLI de Supabase detecta a Claude Code como agente: los comandos interactivos (`login`, `link`) se ejecutan en una ventana de CMD aparte con `--agent no`.
 
 ## Existe actualmente
-- Tablas: `perfiles` (RLS: cada usuario lee el suyo; admin lee y edita todos; nadie inserta ni borra directamente).
-- Enums: `rol_usuario`.
-- Funciones: `es_admin()`, `rol_actual()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`).
-- Rutas: `/login`, `/` (Inicio), `/unidades`, `/servicios`, `/dashboard`, `/admin/usuarios` (solo admin, placeholders), `/servicios/nuevo` (ambos roles, placeholder).
-- Código: `features/auth` (schemas, actions `signIn` / `signOut`, login-form, require-role), `components/layout`, `components/shared`, `lib/auth/get-current-user.ts`, `lib/action-result.ts`.
+- Tablas:
+  - `perfiles` (RLS: cada usuario lee el suyo; admin lee y edita todos; nadie inserta ni borra directamente).
+  - `choferes`, `unidades`, `categorias`, `proveedores` (RLS: capturista lee activos / unidades que no están de baja; solo admin crea y edita; ambos roles crean proveedores activos; nadie borra).
+  - `unidades.numero_orden`: columna generada con el número del económico, para ordenar `T-2` antes de `T-10`.
+- Enums: `rol_usuario`, `tipo_unidad`, `operacion_unidad`, `estatus_unidad`.
+- Funciones: `es_admin()`, `rol_actual()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()` (trigger).
+- Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones.
+- Rutas: `/login`, `/` (Inicio), `/unidades`, `/unidades/nueva`, `/unidades/[id]/editar`, `/admin/catalogos` (solo admin); `/servicios`, `/dashboard`, `/admin/usuarios` (solo admin, placeholders); `/servicios/nuevo` (ambos roles, placeholder).
+- Código: `features/auth`, `features/unidades` (types, schemas, queries, actions, componentes de lista / filtros / formulario), `features/catalogos` (incluye `supplier-quick-add` listo para la Sección 2), `components/layout`, `components/shared` (page-header, empty-state, list-pagination), `lib/auth/get-current-user.ts`, `lib/action-result.ts`, `lib/env.ts`.
 - Buckets: —
 
 ## Historial de secciones
+
+### Sección 1 — Catálogos (cerrada 2026-10-23)
+- Hecho:
+  - Unidades: lista separada en Locales / Foráneos / Camionetas con conteos, búsqueda por número económico, filtros por tipo, estatus y "sin chofer" (en la URL), paginación de 25, alta y edición solo admin.
+  - Catálogos (`/admin/catalogos`): choferes, categorías y proveedores con alta, edición y activar / desactivar.
+  - Componentes shadcn agregados: table, dialog, alert-dialog, select, badge, textarea, tabs, skeleton, switch, pagination. En dialog y sheet se tradujo "Close" → "Cerrar".
+  - Reglas de "Datos y rendimiento" en `docs/ARQUITECTURA.md`; `vercel.json` con región `pdx1`.
+- Tablas / migraciones nuevas: `20261023195238_catalogos.sql`, `20261023200156_unidades_orden_numerico.sql`, `20261023223053_categorias_ampliadas.sql`.
+- Rutas nuevas: `/unidades/nueva`, `/unidades/[id]/editar`, `/admin/catalogos`; `/unidades` dejó de ser placeholder.
+- Verificado: build y lint sin errores; tipos regenerados; RLS de las cuatro tablas probado con admin y capturista (incluye intentos de escritura rechazados); pantallas revisadas por el usuario.
+- Pendientes que pasan a la siguiente sección:
+  - El capturista no tiene pantalla de Unidades: verá las unidades al elegirlas en el formulario de servicio.
+  - "Otros (especificar)" exige concepto en el gasto (anotado en la Sección 2 de `docs/PLAN.md`).
+  - Aviso `auth_leaked_password_protection` de `supabase db advisors`: activar la protección contra contraseñas filtradas en Supabase Auth (requiere plan Pro; evaluar).
 
 ### Sección 0 — Fundación (cerrada 2026-10-23)
 - Hecho:
@@ -54,4 +72,3 @@
 - Verificado: build y lint sin errores; sin sesión todas las rutas → 307 `/login`; RLS de `perfiles` probado con admin, capturista y anon; login con ambos usuarios probado en el navegador.
 - Pendientes que pasan a la siguiente sección:
   - Avisos de `supabase db advisors` (aceptados): `es_admin()` y `rol_actual()` son llamables por RPC (intencional, solo devuelven el rol propio); dos políticas SELECT en `perfiles` (rendimiento menor; se pueden unir en una migración futura).
-  - Propuesta pendiente de aprobar: sección "Datos y rendimiento" en `docs/ARQUITECTURA.md` y `vercel.json` con región `pdx1`.
