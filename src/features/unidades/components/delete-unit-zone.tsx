@@ -42,7 +42,8 @@ export function DeleteUnitZone({
         if (!result.ok) return void toast.error(result.error);
         toast.success(`${economicNumber} y todo su historial se eliminaron`);
         setOpen(false);
-        router.push(afterDeleteHref);
+        // replace: "Volver" ya no puede regresar a la ficha de una unidad que no existe.
+        router.replace(afterDeleteHref);
       } catch {
         toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
       }

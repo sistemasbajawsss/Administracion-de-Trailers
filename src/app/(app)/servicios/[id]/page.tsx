@@ -1,10 +1,11 @@
-import { ChevronLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { BackButton } from "@/components/shared/back-button";
 import { buttonVariants } from "@/components/ui/button";
 import { ChangeHistory, ChangeHistorySkeleton } from "@/features/servicios/components/change-history";
 import { DeleteServiceDialog } from "@/features/servicios/components/delete-service-dialog";
@@ -24,18 +25,11 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
   if (!service) notFound();
 
   const isAdmin = user.role === "admin";
-  const seesAll = user.role !== "capturista";
 
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={seesAll ? `/unidades/${service.unit.id}` : "/servicios"}
-          className={buttonVariants({ variant: "ghost", size: "touch" })}
-        >
-          <ChevronLeft aria-hidden="true" />
-          {seesAll ? `Ficha de ${service.unit.economicNumber}` : "Mis servicios"}
-        </Link>
+        <BackButton fallback="/servicios" />
         <div className="flex gap-2">
           {user.role !== "gerente" && (
             <Link href={`/servicios/${service.id}/editar`} className={buttonVariants({ variant: "outline", size: "touch" })}>

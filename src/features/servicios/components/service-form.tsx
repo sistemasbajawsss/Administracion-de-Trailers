@@ -2,13 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { useGoBack } from "@/components/shared/go-back";
+import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -81,6 +81,7 @@ export function ServiceForm({
   initialUnitId?: string;
 }) {
   const router = useRouter();
+  const goBack = useGoBack();
   const isEdit = Boolean(service);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
 
@@ -139,12 +140,14 @@ export function ServiceForm({
         const result = await updateService(service.id, service.unit.id, clean);
         if (!result.ok) return void toast.error(result.error);
         toast.success(`Cambios guardados en el servicio de ${number}`);
-        router.push(`/servicios/${service.id}`);
+        // Regresa al detalle de donde se vino, ya con los cambios.
+        goBack(`/servicios/${service.id}`, { refresh: true });
       } else {
         const result = await createService(clean);
         if (!result.ok) return void toast.error(result.error);
         toast.success(`Servicio de ${number} guardado por ${formatCents(totalCents)}`);
-        router.push(`/servicios/${result.data.id}`);
+        // replace: "Volver" desde el detalle no regresa al formulario ya guardado.
+        router.replace(`/servicios/${result.data.id}`);
       }
     } catch {
       toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
@@ -414,12 +417,15 @@ export function ServiceForm({
               {formatCents(totalCents)}
             </p>
           </div>
-          <Link
-            href={service ? `/servicios/${service.id}` : "/servicios"}
-            className={`${buttonVariants({ variant: "ghost", size: "touch" })} hidden sm:inline-flex`}
+          <Button
+            type="button"
+            variant="ghost"
+            size="touch"
+            onClick={() => goBack(service ? `/servicios/${service.id}` : "/servicios")}
+            className="hidden sm:inline-flex"
           >
             Cancelar
-          </Link>
+          </Button>
           <Button type="submit" size="touch" disabled={isSubmitting} className="min-w-36">
             {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden="true" />}
             {isSubmitting ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar servicio"}

@@ -1,7 +1,6 @@
 "use client";
 
 import { LoaderCircle, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -14,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useGoBack } from "@/components/shared/go-back";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +32,7 @@ export function DeleteServiceDialog({
   /** "el servicio de T-17 del 23/10/2026". */
   label: string;
 }) {
-  const router = useRouter();
+  const goBack = useGoBack();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +50,8 @@ export function DeleteServiceDialog({
         if (!result.ok) return void toast.error(result.error);
         toast.success("Servicio eliminado. Puedes restaurarlo desde Servicios › Eliminados.");
         setOpen(false);
-        router.push("/servicios");
+        // Regresa a la pantalla anterior (lista, ficha…), que ya no lo muestra.
+        goBack("/servicios", { refresh: true });
       } catch {
         toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
       }

@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { IN_APP_HISTORY_KEY } from "@/components/shared/go-back";
 import type { ActionResult } from "@/lib/action-result";
 import { ROLE_LABELS, type CurrentUser } from "@/lib/auth/types";
 
@@ -48,6 +49,9 @@ export function UserMenu({
           return;
         }
         // Navegación completa: limpia la memoria del navegador de la sesión anterior.
+        try {
+          window.sessionStorage.removeItem(IN_APP_HISTORY_KEY);
+        } catch {}
         window.location.replace("/login");
       } catch {
         toast.error("No se pudo cerrar la sesión. Inténtalo de nuevo.", { id: toastId });

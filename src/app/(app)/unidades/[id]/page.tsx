@@ -1,10 +1,11 @@
-import { ChevronLeft, ClipboardPlus, Pencil } from "lucide-react";
+import { ClipboardPlus, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { BackButton } from "@/components/shared/back-button";
 import { buttonVariants } from "@/components/ui/button";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ServiceList, ServiceListSkeleton } from "@/features/servicios/components/service-list";
@@ -42,13 +43,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
 
   return (
     <>
-      <Link
-        href={group === "local" ? "/unidades" : `/unidades?grupo=${group}`}
-        className={`${buttonVariants({ variant: "ghost", size: "touch" })} mb-4 -ml-3`}
-      >
-        <ChevronLeft aria-hidden="true" />
-        Unidades
-      </Link>
+      <BackButton fallback={group === "local" ? "/unidades" : `/unidades?grupo=${group}`} className="mb-4" />
 
       <header className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
