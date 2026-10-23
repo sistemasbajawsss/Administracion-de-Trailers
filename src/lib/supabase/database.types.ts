@@ -516,6 +516,10 @@ export type Database = {
         }
         Returns: string
       }
+      restaurar_servicio: {
+        Args: { p_historial_id: number; p_motivo: string }
+        Returns: string
+      }
       rol_actual: {
         Args: never
         Returns: Database["public"]["Enums"]["rol_usuario"]
