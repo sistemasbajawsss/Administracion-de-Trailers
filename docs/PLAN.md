@@ -20,7 +20,7 @@
 ## Decisiones tomadas
 - **D1 — Edición de registros** (resuelta 2026-10-23): el capturista puede editar sus propios servicios y gastos sin aprobación de un admin. Cada edición exige un motivo y queda en un historial de cambios (quién, cuándo, qué valores cambiaron y por qué). Los registros editados se marcan como "Editado" y muestran su línea de cambios. No hay estados `pendiente` / `aprobado`.
 - **D2 — Dominio** (resuelta 2026-10-23): dominio final `flotilla.bajaws.com.mx` (Cloudflare → Vercel). Mientras tanto se usa el dominio gratuito `*.vercel.app`.
-- **D3 — Unidades** (resuelta 2026-10-23): la tabla, el feature y la ruta se llaman `unidades`; en la interfaz, "Unidades". Cada unidad tiene un tipo: `trailer`, `caja`, `camion_rabon` o `camioneta` (enum `tipo_unidad`). Las cajas de los trailers se registran como unidades individuales, con su propio número económico y su propio historial de gastos. Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
+- **D3 — Unidades** (resuelta 2026-10-23): la tabla, el feature y la ruta se llaman `unidades`; en la interfaz, "Unidades". Cada unidad tiene un tipo: `trailer`, `caja`, `camion_rabon` o `camioneta` (enum `tipo_unidad`). Las cajas de los trailers se registran como unidades individuales, con su propio número económico y su propio historial de gastos. No se registra qué caja lleva cada trailer: cada unidad es independiente. Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
 
 ---
 
