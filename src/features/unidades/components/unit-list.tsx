@@ -46,7 +46,7 @@ function DriverName({ name }: { name: string | null }) {
   return name ? <span>{name}</span> : <span className="text-muted-foreground">Sin chofer</span>;
 }
 
-export async function UnitList({ filters }: { filters: UnitFilters }) {
+export async function UnitList({ filters, canEdit }: { filters: UnitFilters; canEdit: boolean }) {
   const { units, total } = await listUnits(filters);
 
   if (units.length === 0) {
@@ -57,7 +57,9 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
         description={
           filtered
             ? "Cambia la búsqueda o quita los filtros para ver más unidades."
-            : "Da de alta una unidad con el botón Nueva unidad."
+            : canEdit
+              ? "Da de alta una unidad con el botón Nueva unidad."
+              : "Todavía no hay unidades en este grupo."
         }
       />
     );
@@ -107,13 +109,15 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
                   <UnitStatusBadge status={unit.status} />
                 </TableCell>
                 <TableCell className="pr-5 text-right">
-                  <Link
-                    href={editHref(unit.id)}
-                    className={buttonVariants({ variant: "ghost", size: "icon-touch" })}
-                    aria-label={`Editar ${unit.economicNumber}`}
-                  >
-                    <Pencil />
-                  </Link>
+                  {canEdit && (
+                    <Link
+                      href={editHref(unit.id)}
+                      className={buttonVariants({ variant: "ghost", size: "icon-touch" })}
+                      aria-label={`Editar ${unit.economicNumber}`}
+                    >
+                      <Pencil />
+                    </Link>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

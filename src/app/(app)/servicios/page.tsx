@@ -22,22 +22,27 @@ const newServiceLink = (
 async function ServicesContent({ searchParams }: { searchParams: PageProps<"/servicios">["searchParams"] }) {
   const [user, params] = await Promise.all([getCurrentUser(), searchParams]);
   const filters = serviceFiltersSchema.parse(params);
-  const isAdmin = user.role === "admin";
+  const seesAll = user.role !== "capturista";
+  const canCapture = user.role !== "gerente";
 
   return (
     <>
       <PageHeader
-        title={isAdmin ? "Servicios" : "Mis servicios"}
+        title={seesAll ? "Servicios" : "Mis servicios"}
         description={
-          isAdmin
+          seesAll
             ? "Reparaciones y mantenimientos de todas las unidades."
             : "Los servicios que has capturado. Toca uno para ver el detalle o corregirlo."
         }
-        actions={newServiceLink}
+        actions={canCapture ? newServiceLink : undefined}
       />
       <ServiceFilters />
       <Suspense fallback={<ServiceListSkeleton />}>
-        <ServiceList filters={filters} pathname="/servicios" emptyAction={newServiceLink} />
+        <ServiceList
+          filters={filters}
+          pathname="/servicios"
+          emptyAction={canCapture ? newServiceLink : undefined}
+        />
       </Suspense>
     </>
   );

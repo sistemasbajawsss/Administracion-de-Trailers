@@ -2,20 +2,20 @@
 
 ## Permisos por rol
 
-| Acción | admin | capturista |
-|---|---|---|
-| Iniciar sesión | Sí | Sí |
-| Ver unidades, categorías y proveedores activos | Sí | Sí |
-| Crear / editar / desactivar unidades y categorías | Sí | No |
-| Crear proveedor nuevo | Sí | Sí (para no frenar la captura) |
-| Editar / desactivar proveedores | Sí | No |
-| Registrar servicios, gastos y comprobantes | Sí | Sí |
-| Ver registros | Todos | Solo los propios |
-| Editar registros | Todos | Solo los propios, con motivo obligatorio (D1) |
-| Eliminar registros | Sí | No |
-| Ver historial de cambios de un registro | Todos | Solo de los propios |
-| Dashboard y reportes | Sí | No |
-| Gestionar usuarios | Sí | No |
+| Acción | admin | capturista | gerente (D4) |
+|---|---|---|---|
+| Iniciar sesión | Sí | Sí | Sí |
+| Ver unidades, categorías y proveedores activos | Sí | Sí | Sí (también inactivos y de baja) |
+| Crear / editar / desactivar unidades y categorías | Sí | No | No |
+| Crear proveedor nuevo | Sí | Sí (para no frenar la captura) | No |
+| Editar / desactivar proveedores | Sí | No | No |
+| Registrar servicios, gastos y comprobantes | Sí | Sí | No |
+| Ver registros | Todos | Solo los propios | Todos |
+| Editar registros | Todos | Solo los propios, con motivo obligatorio (D1) | No |
+| Eliminar registros | Sí | No | No |
+| Ver historial de cambios de un registro | Todos | Solo de los propios | Todos |
+| Dashboard y reportes | Sí | No | Sí |
+| Gestionar usuarios | Sí | No | No |
 
 ## Decisiones tomadas
 - **D1 — Edición de registros** (resuelta 2026-10-23): el capturista puede editar sus propios servicios y gastos sin aprobación de un admin. Cada edición exige un motivo y queda en un historial de cambios (quién, cuándo, qué valores cambiaron y por qué). Los registros editados se marcan como "Editado" y muestran su línea de cambios. No hay estados `pendiente` / `aprobado`.
@@ -28,6 +28,7 @@
   - Estatus (enum `estatus_unidad`): `activo`, `en_taller`, `por_llegar`, `baja`.
   - Obligatorios: número económico, tipo y operación (excepto camionetas). Opcionales: placas, marca, modelo, año, VIN, chofer, longitud (solo cajas) y notas.
   - Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
+- **D4 — Rol gerente** (resuelta 2026-10-23, dentro de la Sección 2): rol `gerente` de solo lectura para los gerentes. Ve unidades, servicios, gastos, historial y reportes de todos; no registra, edita ni elimina nada, ni crea proveedores. Solo un admin asigna el rol. Se aplica en RLS (funciones `puede_ver_todo()` y `puede_capturar()`) y en el servidor.
 
 ---
 

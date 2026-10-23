@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { listActiveCategories, listActiveSuppliers } from "@/features/catalogos/queries";
 import { ServiceForm } from "@/features/servicios/components/service-form";
 import { getService, listUnitOptions } from "@/features/servicios/queries";
+import { requireRole } from "@/lib/auth/get-current-user";
+import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { formatDate, todayInTijuana } from "@/lib/utils/format";
 
 export const metadata: Metadata = { title: "Editar servicio" };
@@ -15,7 +17,8 @@ async function EditService({ params }: { params: PageProps<"/servicios/[id]/edit
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [service, units, categories, suppliers] = await Promise.all([
+  const [, service, units, categories, suppliers] = await Promise.all([
+    requireRole(CAPTURE_ROLES),
     getService(id),
     listUnitOptions(),
     listActiveCategories(),

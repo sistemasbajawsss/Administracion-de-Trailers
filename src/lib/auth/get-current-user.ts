@@ -44,12 +44,13 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
 });
 
 /**
- * Exige un rol en el servidor; si no lo tiene, regresa al inicio.
+ * Exige un rol (o uno de varios) en el servidor; si no lo tiene, regresa al inicio.
  * Ocultar enlaces en la navegación no basta.
  */
-export async function requireRole(role: Role): Promise<CurrentUser> {
+export async function requireRole(role: Role | readonly Role[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (user.role !== role) {
+  const allowed: readonly Role[] = typeof role === "string" ? [role] : role;
+  if (!allowed.includes(user.role)) {
     redirect("/");
   }
   return user;

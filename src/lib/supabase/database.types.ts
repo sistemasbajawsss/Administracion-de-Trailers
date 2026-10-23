@@ -460,6 +460,8 @@ export type Database = {
         Args: { tipo: Database["public"]["Enums"]["tipo_unidad"] }
         Returns: string
       }
+      puede_capturar: { Args: never; Returns: boolean }
+      puede_ver_todo: { Args: never; Returns: boolean }
       registrar_servicio: {
         Args: {
           p_descripcion: string
@@ -480,7 +482,7 @@ export type Database = {
       accion_historial: "insert" | "update" | "delete"
       estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja"
       operacion_unidad: "local" | "foraneo"
-      rol_usuario: "admin" | "capturista"
+      rol_usuario: "admin" | "capturista" | "gerente"
       tipo_unidad: "trailer" | "caja" | "camion_rabon" | "pipa" | "camioneta"
     }
     CompositeTypes: {
@@ -615,7 +617,7 @@ export const Constants = {
       accion_historial: ["insert", "update", "delete"],
       estatus_unidad: ["activo", "en_taller", "por_llegar", "baja"],
       operacion_unidad: ["local", "foraneo"],
-      rol_usuario: ["admin", "capturista"],
+      rol_usuario: ["admin", "capturista", "gerente"],
       tipo_unidad: ["trailer", "caja", "camion_rabon", "pipa", "camioneta"],
     },
   },

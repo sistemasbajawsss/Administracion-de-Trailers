@@ -29,4 +29,10 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { href: "/servicios/nuevo", label: "Registrar servicio", icon: "registrar" },
     { href: "/servicios", label: "Mis servicios", icon: "servicios" },
   ],
+  gerente: [
+    { href: "/", label: "Inicio", icon: "inicio" },
+    { href: "/unidades", label: "Unidades", icon: "unidades" },
+    { href: "/servicios", label: "Servicios", icon: "servicios" },
+    { href: "/dashboard", label: "Reportes", icon: "reportes" },
+  ],
 };

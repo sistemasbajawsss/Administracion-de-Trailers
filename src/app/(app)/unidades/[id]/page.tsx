@@ -13,6 +13,8 @@ import { serviceFiltersSchema } from "@/features/servicios/schemas";
 import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badge";
 import { getUnit } from "@/features/unidades/queries";
 import { UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 
 export const metadata: Metadata = { title: "Ficha de unidad" };
@@ -23,8 +25,9 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [unit, totals] = await Promise.all([getUnit(id), getUnitTotals(id)]);
+  const [user, unit, totals] = await Promise.all([getCurrentUser(), getUnit(id), getUnitTotals(id)]);
   if (!unit) notFound();
+  const isAdmin = user.role === "admin";
 
   const filters = serviceFiltersSchema.parse(query);
   const group = unit.type === "camioneta" ? "camionetas" : unit.operation === "foraneo" ? "foraneo" : "local";
@@ -57,18 +60,20 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
           <p className="mt-3 text-lg">{details.join(" · ")}</p>
           <p className="text-muted-foreground">{unit.driverName ? `Chofer: ${unit.driverName}` : "Sin chofer asignado"}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/unidades/${unit.id}/editar`} className={buttonVariants({ variant: "outline", size: "touch" })}>
-            <Pencil aria-hidden="true" />
-            Editar unidad
-          </Link>
-          {unit.status !== "baja" && (
-            <Link href={`/servicios/nuevo?unidad=${unit.id}`} className={buttonVariants({ size: "touch" })}>
-              <ClipboardPlus aria-hidden="true" />
-              Registrar servicio
+        {isAdmin && (
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/unidades/${unit.id}/editar`} className={buttonVariants({ variant: "outline", size: "touch" })}>
+              <Pencil aria-hidden="true" />
+              Editar unidad
             </Link>
-          )}
-        </div>
+            {unit.status !== "baja" && (
+              <Link href={`/servicios/nuevo?unidad=${unit.id}`} className={buttonVariants({ size: "touch" })}>
+                <ClipboardPlus aria-hidden="true" />
+                Registrar servicio
+              </Link>
+            )}
+          </div>
+        )}
       </header>
 
       <dl className="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
@@ -98,7 +103,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
 
 export default function UnidadPage({ params, searchParams }: Props) {
   return (
-    <RequireRole role="admin">
+    <RequireRole role={VIEW_ALL_ROLES}>
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
         <UnitSheet params={params} searchParams={searchParams} />
       </Suspense>

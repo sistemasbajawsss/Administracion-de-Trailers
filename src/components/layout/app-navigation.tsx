@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import type { ActionResult } from "@/lib/action-result";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
@@ -28,7 +29,7 @@ function Logo({ className }: { className?: string }) {
 export async function AppNavigation({
   signOutAction,
 }: {
-  signOutAction: () => Promise<void>;
+  signOutAction: () => Promise<ActionResult>;
 }) {
   const user = await getCurrentUser();
   const items = NAVIGATION[user.role];

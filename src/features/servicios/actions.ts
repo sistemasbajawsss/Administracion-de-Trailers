@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
-import { getCurrentUser, requireRole } from "@/lib/auth/get-current-user";
+import { requireRole } from "@/lib/auth/get-current-user";
+import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeAmount } from "@/lib/utils/format";
 
@@ -60,7 +61,7 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
   const parsed = serviceSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos del servicio.");
 
-  await getCurrentUser();
+  await requireRole(CAPTURE_ROLES);
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("registrar_servicio", toArgs(parsed.data));
@@ -78,7 +79,7 @@ export async function updateService(
   const parsed = serviceEditSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos del servicio.");
 
-  await getCurrentUser();
+  await requireRole(CAPTURE_ROLES);
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("actualizar_servicio", {

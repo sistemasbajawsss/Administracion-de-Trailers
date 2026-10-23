@@ -24,22 +24,25 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
   if (!service) notFound();
 
   const isAdmin = user.role === "admin";
+  const seesAll = user.role !== "capturista";
 
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
-          href={isAdmin ? `/unidades/${service.unit.id}` : "/servicios"}
+          href={seesAll ? `/unidades/${service.unit.id}` : "/servicios"}
           className={buttonVariants({ variant: "ghost", size: "touch" })}
         >
           <ChevronLeft aria-hidden="true" />
-          {isAdmin ? `Ficha de ${service.unit.economicNumber}` : "Mis servicios"}
+          {seesAll ? `Ficha de ${service.unit.economicNumber}` : "Mis servicios"}
         </Link>
         <div className="flex gap-2">
-          <Link href={`/servicios/${service.id}/editar`} className={buttonVariants({ variant: "outline", size: "touch" })}>
-            <Pencil aria-hidden="true" />
-            Editar
-          </Link>
+          {user.role !== "gerente" && (
+            <Link href={`/servicios/${service.id}/editar`} className={buttonVariants({ variant: "outline", size: "touch" })}>
+              <Pencil aria-hidden="true" />
+              Editar
+            </Link>
+          )}
           {isAdmin && (
             <DeleteServiceDialog
               serviceId={service.id}

@@ -35,6 +35,8 @@ export function LoginForm() {
         return;
       }
       toast.success("Sesión iniciada");
+      // No dejar la contraseña en memoria si se vuelve a mostrar el login.
+      form.reset();
       router.replace("/");
       router.refresh();
     } catch {
