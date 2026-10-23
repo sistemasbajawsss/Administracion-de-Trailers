@@ -16,18 +16,18 @@ async function Welcome() {
     <>
       <PageHeader
         title={`Hola, ${firstName}`}
-        description="Aquí verás cuánto se ha invertido en cada camión."
+        description="Aquí verás cuánto se ha invertido en cada unidad."
       />
       <EmptyState
-        title="Todavía no hay camiones registrados"
-        description="Cuando se den de alta los camiones y se capturen servicios, aquí aparecerá el resumen de gastos."
+        title="Todavía no hay unidades registradas"
+        description="Cuando se den de alta las unidades y se capturen servicios, aquí aparecerá el resumen de gastos."
       />
     </>
   ) : (
     <>
       <PageHeader
         title={`Hola, ${firstName}`}
-        description="Registra los servicios y gastos de cada camión con su comprobante."
+        description="Registra los servicios y gastos de cada unidad con su comprobante."
       />
       <EmptyState
         title="Aún no has registrado servicios"

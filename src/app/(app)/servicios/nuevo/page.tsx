@@ -10,11 +10,11 @@ export default function NuevoServicioPage() {
     <>
       <PageHeader
         title="Registrar servicio"
-        description="Elige el camión, captura los gastos y adjunta el comprobante."
+        description="Elige la unidad, captura los gastos y adjunta el comprobante."
       />
       <EmptyState
         title="La captura aún no está disponible"
-        description="El formulario de servicios se habilita cuando existan camiones registrados."
+        description="El formulario de servicios se habilita cuando existan unidades registradas."
       />
     </>
   );

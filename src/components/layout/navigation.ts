@@ -17,8 +17,7 @@ export type NavItem = {
 export const NAVIGATION: Record<Role, NavItem[]> = {
   admin: [
     { href: "/", label: "Inicio", icon: "inicio" },
-    // Ruta "unidades" mientras se resuelve D3; el texto visible sigue siendo "Camiones".
-    { href: "/unidades", label: "Camiones", icon: "unidades" },
+    { href: "/unidades", label: "Unidades", icon: "unidades" },
     { href: "/servicios", label: "Servicios", icon: "servicios" },
     { href: "/dashboard", label: "Reportes", icon: "reportes" },
     { href: "/admin/usuarios", label: "Usuarios", icon: "usuarios" },

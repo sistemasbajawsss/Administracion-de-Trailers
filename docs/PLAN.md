@@ -5,20 +5,22 @@
 | Acción | admin | capturista |
 |---|---|---|
 | Iniciar sesión | Sí | Sí |
-| Ver camiones, categorías y proveedores activos | Sí | Sí |
-| Crear / editar / desactivar camiones y categorías | Sí | No |
+| Ver unidades, categorías y proveedores activos | Sí | Sí |
+| Crear / editar / desactivar unidades y categorías | Sí | No |
 | Crear proveedor nuevo | Sí | Sí (para no frenar la captura) |
 | Editar / desactivar proveedores | Sí | No |
 | Registrar servicios, gastos y comprobantes | Sí | Sí |
 | Ver registros | Todos | Solo los propios |
-| Editar / eliminar registros | Todos | Ver decisión pendiente D1 |
+| Editar registros | Todos | Solo los propios, con motivo obligatorio (D1) |
+| Eliminar registros | Sí | No |
+| Ver historial de cambios de un registro | Todos | Solo de los propios |
 | Dashboard y reportes | Sí | No |
 | Gestionar usuarios | Sí | No |
 
-## Decisiones pendientes
-- **D1**: ¿El capturista puede editar sus registros después de guardarlos? ¿Los registros requieren aprobación de un admin (estado `pendiente` / `aprobado`)? Se resuelve antes de la Sección 2.
-- **D2**: Nombre del subdominio. Se resuelve antes del primer deploy.
-- **D3**: Nombre de las unidades en tablas e interfaz (`camiones`, `trailers` o `unidades`). Se resuelve antes de escribir migraciones de catálogos. Mientras tanto, el feature y la ruta se llaman `unidades`.
+## Decisiones tomadas
+- **D1 — Edición de registros** (resuelta 2026-10-23): el capturista puede editar sus propios servicios y gastos sin aprobación de un admin. Cada edición exige un motivo y queda en un historial de cambios (quién, cuándo, qué valores cambiaron y por qué). Los registros editados se marcan como "Editado" y muestran su línea de cambios. No hay estados `pendiente` / `aprobado`.
+- **D2 — Dominio** (resuelta 2026-10-23): dominio final `flotilla.bajaws.com.mx` (Cloudflare → Vercel). Mientras tanto se usa el dominio gratuito `*.vercel.app`.
+- **D3 — Unidades** (resuelta 2026-10-23): la tabla, el feature y la ruta se llaman `unidades`; en la interfaz, "Unidades". Cada unidad tiene un tipo: `trailer`, `camion_rabon` o `camioneta` (enum `tipo_unidad`). Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
 
 ---
 
@@ -62,26 +64,33 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 
 ## Sección 1 — Catálogos
 **Alcance**
-- Tablas `camiones` (numero_economico único, placas, marca, modelo, anio, vin, estatus: activo / en_taller / baja, notas), `categorias` (nombre único, activo) y `proveedores` (nombre, telefono, notas, activo).
+- Enum `tipo_unidad` (`trailer`, `camion_rabon`, `camioneta`).
+- Tablas `unidades` (numero_economico único, tipo `tipo_unidad`, placas, marca, modelo, anio, vin, estatus: activo / en_taller / baja, notas), `categorias` (nombre único, activo) y `proveedores` (nombre, telefono, notas, activo).
 - Seed inicial de categorías: Motor, Transmisión, Frenos, Suspensión, Eléctrico, Llantas, Carrocería, Mantenimiento preventivo, Otros.
-- CRUD de camiones y categorías (solo admin). Alta rápida de proveedor disponible para ambos roles.
-- Lista de camiones con búsqueda por número económico.
+- CRUD de unidades y categorías (solo admin). Alta rápida de proveedor disponible para ambos roles.
+- Lista de unidades con búsqueda por número económico y filtro por tipo.
 
 **Terminado cuando**
-- RLS impide que un capturista modifique camiones o categorías, incluso por API directa.
-- No se pueden repetir números económicos.
+- RLS impide que un capturista modifique unidades o categorías, incluso por API directa.
+- No se pueden repetir números económicos (en ningún tipo).
 
 ## Sección 2 — Servicios y gastos
-**Alcance** (requiere D1 resuelta)
-- Tabla `servicios`: camion_id, fecha, kilometraje, descripcion, proveedor_id, created_by.
+**Alcance**
+- Tabla `servicios`: unidad_id, fecha, kilometraje, descripcion, proveedor_id, created_by, updated_by.
 - Tabla `gastos`: servicio_id, categoria_id, concepto, monto `numeric(12,2)`.
 - Un servicio puede tener varios gastos (ej. frenos + aceite en la misma visita).
-- Formulario de captura mobile-first: elegir camión, fecha, km, proveedor y agregar renglones de gasto.
-- Ficha del camión con su historial de servicios y total invertido.
+- Formulario de captura mobile-first: elegir unidad, fecha, km, proveedor y agregar renglones de gasto.
+- Ficha de la unidad con su historial de servicios y total invertido.
+- Edición (D1): el capturista edita sus propios servicios y gastos; admin edita todos. Motivo obligatorio en cada edición.
+- Tabla `historial_cambios` (tabla, registro_id, accion: insert / update / delete, datos_anteriores y datos_nuevos en `jsonb`, motivo, created_by, created_at), llenada por triggers en `servicios` y `gastos`. Sin políticas de update ni delete: el historial no se puede alterar.
+- Marca "Editado" en los registros con cambios y vista de su línea de cambios (qué campo cambió, de qué valor a qué valor, quién, cuándo y por qué).
+- Eliminar servicios: solo admin; queda registrado en el historial.
 
 **Terminado cuando**
-- Capturista solo ve sus propios servicios; admin ve todos.
+- Capturista solo ve y edita sus propios servicios; admin ve y edita todos.
 - El total del servicio cuadra con la suma de sus gastos.
+- Toda edición deja un renglón en `historial_cambios` con motivo, incluso si se hace por API directa.
+- Un capturista no puede eliminar registros ni modificar el historial, incluso por API directa.
 
 ## Sección 3 — Comprobantes
 **Alcance**
@@ -98,8 +107,8 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 
 ## Sección 4 — Dashboard y reportes (solo admin)
 **Alcance**
-- Total invertido por camión, por categoría, por proveedor y por mes, con filtros de rango de fechas.
-- Ranking de camiones con mayor gasto.
+- Total invertido por unidad, por tipo de unidad, por categoría, por proveedor y por mes, con filtros de rango de fechas.
+- Ranking de unidades con mayor gasto.
 - Gráficas con Recharts.
 - Exportación a Excel del periodo filtrado.
 
@@ -108,5 +117,5 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 
 ## Sección 5 — Extras (opcional)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.
-- Bitácora de auditoría (quién modificó qué y cuándo).
+- Bitácora de auditoría para el resto de las tablas (catálogos y usuarios). Servicios y gastos ya la tienen desde la Sección 2.
 - Gestión de usuarios desde la interfaz (invitar, desactivar, cambiar rol).

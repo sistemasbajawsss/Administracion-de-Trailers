@@ -19,7 +19,7 @@ src/
 │   ├── (app)/                   # Todo lo que requiere sesión
 │   │   ├── layout.tsx           # Shell: navegación según rol
 │   │   ├── page.tsx             # Inicio
-│   │   ├── unidades/            # Nombre final según decisión D3
+│   │   ├── unidades/            # Trailers, camiones rabones y camionetas (D3)
 │   │   ├── servicios/
 │   │   ├── dashboard/           # Solo admin
 │   │   └── admin/               # Solo admin: catálogos, usuarios

@@ -16,7 +16,7 @@ export default function LoginPage() {
       >
         <div className="brand-stripe absolute inset-y-0 right-0 w-2" />
         <p className="max-w-md font-heading text-5xl leading-[1.05] font-semibold text-balance">
-          Cada reparación, con su comprobante y su camión.
+          Cada reparación, con su comprobante y su unidad.
         </p>
         <p className="mt-6 max-w-sm text-lg leading-relaxed text-white/70">
           Registra servicios y gastos desde el taller y consulta cuánto se

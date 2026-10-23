@@ -35,11 +35,12 @@ Dividida en dos partes (ver `docs/PLAN.md`):
 - Comprobantes: PDF o foto de ticket (sin XML de CFDI). Montos con IVA incluido.
 - Arquitectura por features definida en `docs/ARQUITECTURA.md`.
 - Desarrollo directo contra Supabase en la nube (sin Docker). Proyecto `administracion-trailers-dev` aparte cuando haya datos reales.
+- D1: el capturista edita sus propios registros sin aprobación; cada edición pide motivo y queda en `historial_cambios` con su línea de cambios. Solo admin elimina.
+- D2: dominio final `flotilla.bajaws.com.mx`; mientras tanto, dominio gratuito de Vercel.
+- D3: `unidades` con tipo `trailer` / `camion_rabon` / `camioneta`; en la interfaz, "Unidades".
 
 ## Decisiones pendientes
-- D1: edición / aprobación de registros del capturista (antes de Sección 2).
-- D2: nombre del subdominio (antes del primer deploy).
-- D3: nombre de las unidades: camiones / trailers / unidades (antes de migraciones de catálogos).
+- Ninguna.
 
 ## Bloqueos
 - Proyecto de Supabase en la nube pendiente de aprobación. Bloquea la Sección 0B.
