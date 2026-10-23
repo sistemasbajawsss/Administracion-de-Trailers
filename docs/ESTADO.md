@@ -3,7 +3,9 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 1 — Catálogos** · Estado: por iniciar · Rama: `seccion-1-catalogos` (crear desde `main`)
+**Sección 1 — Catálogos** · Estado: plan pendiente de aprobación · Rama: `seccion-1-catalogos`
+
+- Reglas de "Datos y rendimiento" agregadas a `docs/ARQUITECTURA.md` y `vercel.json` con región `pdx1` (Oregon, igual que Supabase).
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -54,4 +56,3 @@
 - Verificado: build y lint sin errores; sin sesión todas las rutas → 307 `/login`; RLS de `perfiles` probado con admin, capturista y anon; login con ambos usuarios probado en el navegador.
 - Pendientes que pasan a la siguiente sección:
   - Avisos de `supabase db advisors` (aceptados): `es_admin()` y `rol_actual()` son llamables por RPC (intencional, solo devuelven el rol propio); dos políticas SELECT en `perfiles` (rendimiento menor; se pueden unir en una migración futura).
-  - Propuesta pendiente de aprobar: sección "Datos y rendimiento" en `docs/ARQUITECTURA.md` y `vercel.json` con región `pdx1`.
