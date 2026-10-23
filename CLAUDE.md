@@ -1,12 +1,13 @@
 # CLAUDE.md — Administración Trailers
 
-Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ticket) de ~30 camiones identificados por su número económico interno. Objetivo: saber cuánto se invierte en cada camión, por categoría y por periodo.
+Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ticket) de ~30 unidades (trailers, cajas de trailer, camiones rabones y camionetas) identificadas por su número económico interno. Objetivo: saber cuánto se invierte en cada unidad, por tipo, por categoría y por periodo.
 
 ## Antes de empezar cualquier tarea
 
-- Lee `docs/ESTADO.md` para saber en qué sección vamos y qué ya existe.
-- Lee la sección correspondiente en `docs/PLAN.md`.
-- Trabaja SOLO dentro del alcance de la sección actual. Si algo requiere tocar código o tablas de una sección ya cerrada, detente y pregunta antes.
+1. Lee `docs/ESTADO.md` para saber en qué sección vamos y qué ya existe.
+2. Lee la sección correspondiente en `docs/PLAN.md`.
+3. Respeta la estructura y reglas de `docs/ARQUITECTURA.md`. Ningún archivo se crea fuera de ella; si algo no encaja, pregunta antes.
+4. Trabaja SOLO dentro del alcance de la sección actual. Si algo requiere tocar código o tablas de una sección ya cerrada, detente y pregunta antes.
 
 ## Stack
 
@@ -20,7 +21,7 @@ Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ti
 
 ## Convenciones
 
-- Base de datos (tablas, columnas, enums): español, snake_case, tablas en plural (`camiones`, `gastos`).
+- Base de datos (tablas, columnas, enums): español, snake_case, tablas en plural (`unidades`, `gastos`).
 - Código TypeScript (variables, funciones, componentes): inglés, camelCase / PascalCase.
 - Textos de interfaz: español de México.
 - Moneda: MXN, formato es-MX (`$12,345.67`). Fechas en pantalla: dd/mm/aaaa.
