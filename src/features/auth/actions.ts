@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { createClient } from "@/lib/supabase/server";
@@ -42,9 +41,15 @@ export async function signIn(input: unknown): Promise<ActionResult> {
   return ok();
 }
 
-export async function signOut(): Promise<void> {
+/**
+ * Cierra la sesión. No redirige desde el servidor: el cliente hace una
+ * navegación completa a /login para borrar de memoria las páginas que se
+ * vieron con la sesión anterior (y el formulario de login empieza vacío).
+ */
+export async function signOut(): Promise<ActionResult> {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) return fail("No se pudo cerrar la sesión. Inténtalo de nuevo.");
   revalidatePath("/", "layout");
-  redirect("/login");
+  return ok();
 }

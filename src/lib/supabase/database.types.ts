@@ -39,6 +39,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      bitacora_eliminaciones: {
+        Row: {
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          fecha_servicio: string | null
+          id: number
+          num_gastos: number
+          num_servicios: number
+          numero_economico: string
+          servicio_id: string | null
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_registro: string
+          total: number
+          unidad_id: string
+        }
+        Insert: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha_servicio?: string | null
+          id?: never
+          num_gastos: number
+          num_servicios: number
+          numero_economico: string
+          servicio_id?: string | null
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_registro?: string
+          total: number
+          unidad_id: string
+        }
+        Update: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha_servicio?: string | null
+          id?: never
+          num_gastos?: number
+          num_servicios?: number
+          numero_economico?: string
+          servicio_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_registro?: string
+          total?: number
+          unidad_id?: string
+        }
+        Relationships: []
+      }
       categorias: {
         Row: {
           activo: boolean
@@ -46,6 +94,7 @@ export type Database = {
           created_by: string | null
           id: string
           nombre: string
+          requiere_concepto: boolean
           updated_at: string
         }
         Insert: {
@@ -54,6 +103,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           nombre: string
+          requiere_concepto?: boolean
           updated_at?: string
         }
         Update: {
@@ -62,6 +112,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           nombre?: string
+          requiere_concepto?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -93,6 +144,106 @@ export type Database = {
           nombre?: string
           telefono?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      gastos: {
+        Row: {
+          categoria_id: string
+          concepto: string | null
+          created_at: string
+          created_by: string
+          id: string
+          monto: number
+          servicio_id: string
+          updated_at: string
+        }
+        Insert: {
+          categoria_id: string
+          concepto?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          monto: number
+          servicio_id: string
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string
+          concepto?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          monto?: number
+          servicio_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historial_cambios: {
+        Row: {
+          accion: Database["public"]["Enums"]["accion_historial"]
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          datos_anteriores: Json | null
+          datos_nuevos: Json | null
+          dueno_id: string
+          id: number
+          motivo: string | null
+          registro_id: string
+          servicio_id: string
+          tabla: string
+        }
+        Insert: {
+          accion: Database["public"]["Enums"]["accion_historial"]
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          datos_anteriores?: Json | null
+          datos_nuevos?: Json | null
+          dueno_id: string
+          id?: never
+          motivo?: string | null
+          registro_id: string
+          servicio_id: string
+          tabla: string
+        }
+        Update: {
+          accion?: Database["public"]["Enums"]["accion_historial"]
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          datos_anteriores?: Json | null
+          datos_nuevos?: Json | null
+          dueno_id?: string
+          id?: never
+          motivo?: string | null
+          registro_id?: string
+          servicio_id?: string
+          tabla?: string
         }
         Relationships: []
       }
@@ -158,6 +309,60 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      servicios: {
+        Row: {
+          created_at: string
+          created_by: string
+          descripcion: string | null
+          fecha: string
+          id: string
+          kilometraje: number | null
+          proveedor_id: string | null
+          unidad_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          descripcion?: string | null
+          fecha: string
+          id?: string
+          kilometraje?: number | null
+          proveedor_id?: string | null
+          unidad_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          descripcion?: string | null
+          fecha?: string
+          id?: string
+          kilometraje?: number | null
+          proveedor_id?: string | null
+          unidad_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicios_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicios_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unidades: {
         Row: {
@@ -229,12 +434,103 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      servicios_resumen: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          descripcion: string | null
+          editado: boolean | null
+          fecha: string | null
+          id: string | null
+          kilometraje: number | null
+          num_gastos: number | null
+          proveedor_id: string | null
+          total: number | null
+          unidad_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicios_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicios_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      totales_por_unidad: {
+        Row: {
+          num_servicios: number | null
+          total: number | null
+          ultimo_servicio: string | null
+          unidad_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicios_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      actualizar_servicio: {
+        Args: {
+          p_descripcion: string
+          p_fecha: string
+          p_gastos: Json
+          p_kilometraje: number
+          p_motivo: string
+          p_proveedor_id: string
+          p_servicio_id: string
+          p_unidad_id: string
+        }
+        Returns: undefined
+      }
+      eliminar_servicio: {
+        Args: { p_motivo: string; p_servicio_id: string }
+        Returns: undefined
+      }
+      eliminar_servicio_definitivo: {
+        Args: { p_confirmacion: string; p_historial_id: number }
+        Returns: undefined
+      }
+      eliminar_unidad: {
+        Args: { p_confirmacion: string; p_unidad_id: string }
+        Returns: undefined
+      }
       es_admin: { Args: never; Returns: boolean }
       prefijo_tipo_unidad: {
         Args: { tipo: Database["public"]["Enums"]["tipo_unidad"] }
+        Returns: string
+      }
+      puede_capturar: { Args: never; Returns: boolean }
+      puede_ver_todo: { Args: never; Returns: boolean }
+      registrar_servicio: {
+        Args: {
+          p_descripcion: string
+          p_fecha: string
+          p_gastos: Json
+          p_kilometraje: number
+          p_proveedor_id: string
+          p_unidad_id: string
+        }
+        Returns: string
+      }
+      restaurar_servicio: {
+        Args: { p_historial_id: number; p_motivo: string }
         Returns: string
       }
       rol_actual: {
@@ -243,9 +539,10 @@ export type Database = {
       }
     }
     Enums: {
+      accion_historial: "insert" | "update" | "delete"
       estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja"
       operacion_unidad: "local" | "foraneo"
-      rol_usuario: "admin" | "capturista"
+      rol_usuario: "admin" | "capturista" | "gerente"
       tipo_unidad: "trailer" | "caja" | "camion_rabon" | "pipa" | "camioneta"
     }
     CompositeTypes: {
@@ -377,9 +674,10 @@ export const Constants = {
   },
   public: {
     Enums: {
+      accion_historial: ["insert", "update", "delete"],
       estatus_unidad: ["activo", "en_taller", "por_llegar", "baja"],
       operacion_unidad: ["local", "foraneo"],
-      rol_usuario: ["admin", "capturista"],
+      rol_usuario: ["admin", "capturista", "gerente"],
       tipo_unidad: ["trailer", "caja", "camion_rabon", "pipa", "camioneta"],
     },
   },

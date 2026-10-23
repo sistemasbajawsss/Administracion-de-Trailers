@@ -12,15 +12,20 @@ async function Welcome() {
   const user = await getCurrentUser();
   const firstName = user.name.split(" ")[0];
 
-  return user.role === "admin" ? (
+  return user.role !== "capturista" ? (
     <>
       <PageHeader
         title={`Hola, ${firstName}`}
         description="Aquí verás cuánto se ha invertido en cada unidad."
       />
       <EmptyState
-        title="Todavía no hay unidades registradas"
-        description="Cuando se den de alta las unidades y se capturen servicios, aquí aparecerá el resumen de gastos."
+        title="El resumen de gastos llega con los reportes"
+        description="Mientras tanto, consulta el total invertido en la ficha de cada unidad o la lista de servicios."
+        action={
+          <Link href="/unidades" className={cn(buttonVariants({ size: "touch" }), "w-full sm:w-auto")}>
+            Ver unidades
+          </Link>
+        }
       />
     </>
   ) : (

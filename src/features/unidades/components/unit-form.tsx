@@ -3,11 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { useGoBack } from "@/components/shared/go-back";
+import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -68,7 +68,7 @@ function listHref(values: UnitInput) {
 }
 
 export function UnitForm({ unit, drivers }: { unit?: UnitDetail; drivers: DriverOption[] }) {
-  const router = useRouter();
+  const goBack = useGoBack();
   const isEdit = Boolean(unit);
 
   const form = useForm<UnitInput>({
@@ -112,7 +112,8 @@ export function UnitForm({ unit, drivers }: { unit?: UnitDetail; drivers: Driver
         return;
       }
       toast.success(isEdit ? `Cambios en ${number} guardados` : `Unidad ${number} creada`);
-      router.push(listHref(clean));
+      // Regresa a la pantalla de donde se vino (lista o ficha), ya con los cambios.
+      goBack(listHref(clean), { refresh: true });
     } catch {
       toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
     }
@@ -369,9 +370,14 @@ export function UnitForm({ unit, drivers }: { unit?: UnitDetail; drivers: Driver
         </FieldSet>
 
         <div className="flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:justify-end">
-          <Link href={unit ? listHref(toFormValues(unit)) : "/unidades"} className={buttonVariants({ variant: "outline", size: "touch" })}>
+          <Button
+            type="button"
+            variant="outline"
+            size="touch"
+            onClick={() => goBack(unit ? `/unidades/${unit.id}` : "/unidades")}
+          >
             Cancelar
-          </Link>
+          </Button>
           <Button type="submit" size="touch" disabled={isSubmitting}>
             {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden="true" />}
             {isSubmitting ? "Guardando…" : isEdit ? "Guardar cambios" : "Crear unidad"}

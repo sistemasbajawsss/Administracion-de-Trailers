@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
-import { getCurrentUser, requireRole } from "@/lib/auth/get-current-user";
+import { requireRole } from "@/lib/auth/get-current-user";
+import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 
 import { catalogItemSchema, type CatalogItemInput } from "./schemas";
@@ -91,8 +92,8 @@ export async function createCatalogItem(
   const parsed = catalogItemSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos.");
 
-  // Proveedores: ambos roles (alta rápida en la captura). El resto: solo admin.
-  const user = kind === "proveedores" ? await getCurrentUser() : await requireRole("admin");
+  // Proveedores: quien captura (alta rápida). El resto: solo admin. El gerente no escribe.
+  const user = await requireRole(kind === "proveedores" ? CAPTURE_ROLES : "admin");
 
   const supabase = await createClient();
   const { data, error } = await insertRow(supabase, kind, parsed.data, user.id);

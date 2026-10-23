@@ -6,7 +6,7 @@ import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { createClient } from "@/lib/supabase/server";
 
-import { normalizeEconomicNumber, unitSchema, type UnitInput } from "./schemas";
+import { deleteUnitSchema, normalizeEconomicNumber, unitSchema, type UnitInput } from "./schemas";
 
 const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
@@ -74,5 +74,30 @@ export async function updateUnit(id: string, input: unknown): Promise<ActionResu
   if (!data.length) return fail("La unidad no existe o no tienes permiso para editarla.");
 
   revalidatePath("/unidades", "layout");
+  return ok();
+}
+
+/**
+ * Elimina la unidad con todos sus servicios, gastos e historial (D5).
+ * No se puede deshacer; queda un renglón en la bitácora de eliminaciones.
+ */
+export async function deleteUnit(id: string, input: unknown): Promise<ActionResult> {
+  const parsed = deleteUnitSchema.safeParse(input);
+  if (!parsed.success) return fail("Escribe ELIMINAR REGISTRO para confirmar.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("eliminar_unidad", {
+    p_unidad_id: id,
+    p_confirmacion: parsed.data.confirmation,
+  });
+  if (error?.code === "P0002") return fail("La unidad ya no existe.");
+  if (error?.code === "42501") return fail("Solo un administrador puede eliminar unidades.");
+  if (error) return fail("No se pudo eliminar la unidad. Inténtalo de nuevo.");
+
+  revalidatePath("/unidades", "layout");
+  revalidatePath("/servicios", "layout");
+  revalidatePath("/");
   return ok();
 }

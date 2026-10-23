@@ -14,6 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { IN_APP_HISTORY_KEY } from "@/components/shared/go-back";
+import type { ActionResult } from "@/lib/action-result";
 import { ROLE_LABELS, type CurrentUser } from "@/lib/auth/types";
 
 function initials(name: string) {
@@ -32,7 +34,7 @@ export function UserMenu({
 }: {
   user: CurrentUser;
   /** Server Action de cierre de sesión; la inyecta app/ para no importar features desde components. */
-  signOutAction: () => Promise<void>;
+  signOutAction: () => Promise<ActionResult>;
   compact?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -41,8 +43,16 @@ export function UserMenu({
     startTransition(async () => {
       const toastId = toast.loading("Cerrando sesión…");
       try {
-        await signOutAction();
-        toast.dismiss(toastId);
+        const result = await signOutAction();
+        if (!result.ok) {
+          toast.error(result.error, { id: toastId });
+          return;
+        }
+        // Navegación completa: limpia la memoria del navegador de la sesión anterior.
+        try {
+          window.sessionStorage.removeItem(IN_APP_HISTORY_KEY);
+        } catch {}
+        window.location.replace("/login");
       } catch {
         toast.error("No se pudo cerrar la sesión. Inténtalo de nuevo.", { id: toastId });
       }

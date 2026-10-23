@@ -3,18 +3,20 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 2 — Servicios y gastos** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-2-servicios` (por crear)
+**Sección 3 — Comprobantes** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-3-comprobantes` (por crear)
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
 - Proyecto independiente en subdominio propio.
-- Roles: `admin` (Edgar y jefe) y `capturista` (solo registra montos y comprobantes).
+- Roles: `admin` (Edgar y jefe), `capturista` (registra y corrige sus propios servicios) y `gerente` (solo lectura de todo, D4).
 - Comprobantes: PDF o foto de ticket (sin XML de CFDI). Montos con IVA incluido.
 - Arquitectura por features definida en `docs/ARQUITECTURA.md`.
 - Desarrollo directo contra Supabase en la nube (sin Docker). Proyecto `administracion-trailers-dev` aparte cuando haya datos reales.
 - D1: el capturista edita sus propios registros sin aprobación; cada edición pide motivo y queda en `historial_cambios` con su línea de cambios. Solo admin elimina.
 - D2: dominio final `flotilla.bajaws.com.mx`; mientras tanto, dominio gratuito de Vercel.
 - D3: `unidades` con tipo `trailer` (T-) / `caja` (R-) / `camion_rabon` (F-) / `pipa` (P-) / `camioneta` (C-), operación `local` / `foraneo`, chofer opcional (catálogo `choferes`) y longitud en pies para cajas. Las cajas son unidades individuales, sin relación con el trailer que las jala. Detalle en `docs/PLAN.md`.
+- D4: rol `gerente` de solo lectura (ve unidades, servicios, gastos, historial y reportes de todos; no escribe nada).
+- D5: dar de baja una unidad es reversible; eliminarla por completo (con su historial) exige escribir `ELIMINAR REGISTRO` y deja nota en `bitacora_eliminaciones`. Los servicios eliminados se pueden restaurar o eliminar para siempre (también con `ELIMINAR REGISTRO`) desde Servicios › Eliminados.
 
 ## Decisiones pendientes
 - Ninguna.
@@ -29,20 +31,48 @@
 - Registro público deshabilitado en Supabase Auth (verificado `disable_signup=true`).
 - Usuarios: `sistemas@bajaws.com.mx` (admin) y `capturista@bajaws.com.mx` (capturista). Se crean en Authentication → Users con "Auto Confirm User"; el rol admin se asigna actualizando `perfiles`.
 - Windows: la política de ejecución de PowerShell del usuario es `RemoteSigned` (para `npm` / `npx`). El CLI de Supabase detecta a Claude Code como agente: los comandos interactivos (`login`, `link`) se ejecutan en una ventana de CMD aparte con `--agent no`.
+- No correr `npm run build` con `npm run dev` encendido: ambos escriben en `.next` y las Server Actions nuevas fallan en dev. Con el servidor encendido se verifica con `npx tsc --noEmit` y `npm run lint`. El proyecto está en OneDrive, que llegó a bloquear archivos de `.next` (EPERM); conviene excluir `.next` y `node_modules` de la sincronización.
+- Un valor nuevo de enum va en su propia migración (no se puede usar en la misma transacción); para aplicar solo esa, se aparta temporalmente la siguiente migración.
 
 ## Existe actualmente
 - Tablas:
   - `perfiles` (RLS: cada usuario lee el suyo; admin lee y edita todos; nadie inserta ni borra directamente).
-  - `choferes`, `unidades`, `categorias`, `proveedores` (RLS: capturista lee activos / unidades que no están de baja; solo admin crea y edita; ambos roles crean proveedores activos; nadie borra).
+  - `choferes`, `unidades`, `categorias`, `proveedores` (RLS: capturista lee activos / unidades que no están de baja; admin y gerente ven todo; solo admin crea y edita; admin y capturista crean proveedores; nadie borra salvo `eliminar_unidad()`).
   - `unidades.numero_orden`: columna generada con el número del económico, para ordenar `T-2` antes de `T-10`.
-- Enums: `rol_usuario`, `tipo_unidad`, `operacion_unidad`, `estatus_unidad`.
-- Funciones: `es_admin()`, `rol_actual()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()` (trigger).
-- Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones.
-- Rutas: `/login`, `/` (Inicio), `/unidades`, `/unidades/nueva`, `/unidades/[id]/editar`, `/admin/catalogos` (solo admin); `/servicios`, `/dashboard`, `/admin/usuarios` (solo admin, placeholders); `/servicios/nuevo` (ambos roles, placeholder).
-- Código: `features/auth`, `features/unidades` (types, schemas, queries, actions, componentes de lista / filtros / formulario), `features/catalogos` (incluye `supplier-quick-add` listo para la Sección 2), `components/layout`, `components/shared` (page-header, empty-state, list-pagination), `lib/auth/get-current-user.ts`, `lib/action-result.ts`, `lib/env.ts`.
+  - `categorias.requiere_concepto`: marca de "Otros (especificar)"; el gasto debe llevar concepto.
+  - `servicios`, `gastos` (RLS: capturista ve y edita los suyos; admin todo; gerente solo lee todo; solo admin elimina). Escritura por funciones `registrar_servicio()`, `actualizar_servicio()` (motivo obligatorio) y `eliminar_servicio()` (motivo obligatorio).
+  - `historial_cambios` (lo llenan triggers; motivo obligatorio en todo cambio que no sea alta; nadie lo edita; solo se borra con `eliminar_unidad()` o `eliminar_servicio_definitivo()`).
+  - `bitacora_eliminaciones` (unidades y servicios eliminados para siempre; solo admin la lee; nadie la edita).
+  - Vistas `servicios_resumen` (total, número de gastos, marca "editado") y `totales_por_unidad`, ambas `security_invoker`.
+- Enums: `rol_usuario` (admin, capturista, gerente), `tipo_unidad`, `operacion_unidad`, `estatus_unidad`, `accion_historial`.
+- Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()`, `eliminar_unidad()` (las llama la app).
+- Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones. Servicios de prueba capturados por el usuario.
+- Rutas:
+  - Todos: `/login`, `/` (Inicio), `/servicios` (capturista: "Mis servicios"), `/servicios/[id]`.
+  - Admin y capturista: `/servicios/nuevo` (`?unidad=` preselecciona), `/servicios/[id]/editar`.
+  - Admin y gerente: `/unidades`, `/unidades/[id]` (ficha con total invertido), `/dashboard` (placeholder).
+  - Solo admin: `/unidades/nueva`, `/unidades/[id]/editar`, `/servicios/eliminados`, `/admin/catalogos`, `/admin/usuarios` (placeholder).
+- Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`.
 - Buckets: —
 
 ## Historial de secciones
+
+### Sección 2 — Servicios y gastos (cerrada 2026-10-23)
+- Hecho:
+  - Captura mobile-first: selector de unidad en hoja con botones agrupados (Locales / Foráneos / Camionetas) y buscador; km oculto en cajas; proveedor opcional con alta rápida; renglones de gasto con total en vivo (centavos enteros); "Otros (especificar)" exige concepto.
+  - Lista de servicios con filtros por unidad y fechas (en la URL), detalle tipo ticket, edición con motivo obligatorio, marca "Editado" y línea de cambios (qué campo, de qué a qué, quién, cuándo, por qué).
+  - Ficha de unidad con total invertido, número de servicios, último servicio e historial.
+  - Rol `gerente` de solo lectura (D4), en RLS y servidor.
+  - Eliminar servicio (admin, motivo) → Servicios › Eliminados: restaurar tal cual o eliminar para siempre con `ELIMINAR REGISTRO`. Eliminar unidad completa desde su ficha con `ELIMINAR REGISTRO` (D5). Bitácora de eliminaciones.
+  - "Volver" y "Cancelar" regresan a la pantalla de origen (con respaldo a la lista si la página se abrió directo).
+  - Corregidos: error `Date.now()` en prerender (lecturas de Supabase con `connection()`), cierre de sesión con alerta falsa y login con datos escritos, `usePathname` fuera de Suspense.
+- Tablas / migraciones nuevas: `20261023224341_servicios_y_gastos.sql`, `20261023231027_rol_gerente.sql`, `20261023231030_permisos_gerente.sql`, `20261023232046_eliminar_unidad.sql`, `20261023233026_restaurar_servicio.sql`, `20261023233900_eliminar_servicio_definitivo.sql`.
+- Rutas nuevas: `/servicios/[id]`, `/servicios/[id]/editar`, `/servicios/eliminados`, `/unidades/[id]`; `/servicios` y `/servicios/nuevo` dejaron de ser placeholders.
+- Verificado: build y lint sin errores; tipos regenerados; cada migración ensayada antes de aplicarla en transacciones sin commit con admin, capturista y gerente (incluye intentos por API directa sin motivo, sin permiso y con frase incorrecta); pantallas revisadas por el usuario.
+- Pendientes que pasan a la siguiente sección:
+  - Crear el usuario gerente (lo da de alta el usuario en Supabase; el rol se asigna en `perfiles`) y probar esa vista.
+  - Avisos de `supabase db advisors` aceptados: funciones `security definer` llamables por usuarios con sesión (`es_admin`, `rol_actual`, `puede_ver_todo`, `puede_capturar`, `eliminar_unidad`, `restaurar_servicio`, `eliminar_servicio_definitivo`); las de acción revisan rol y confirmación adentro. Siguen: dos políticas SELECT en `perfiles` y la protección contra contraseñas filtradas (requiere plan Pro).
+  - Inicio del admin y gerente todavía sin resumen: llega con la Sección 4.
 
 ### Sección 1 — Catálogos (cerrada 2026-10-23)
 - Hecho:

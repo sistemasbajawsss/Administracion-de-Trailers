@@ -43,7 +43,7 @@ Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ti
 
 ## Roles y seguridad
 
-- Roles: `admin` y `capturista` (enum `rol_usuario`, en la tabla `perfiles`).
+- Roles: `admin`, `capturista` y `gerente` (solo lectura) (enum `rol_usuario`, en la tabla `perfiles`).
 - No hay registro público. Los usuarios los crea un admin.
 - Los permisos se aplican en RLS y en el servidor. Ocultar un botón NO es seguridad.
 - La `service_role` key solo se usa en código de servidor y nunca se expone al cliente ni con prefijo `NEXT_PUBLIC_`.

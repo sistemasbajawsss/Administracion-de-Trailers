@@ -46,7 +46,7 @@ function DriverName({ name }: { name: string | null }) {
   return name ? <span>{name}</span> : <span className="text-muted-foreground">Sin chofer</span>;
 }
 
-export async function UnitList({ filters }: { filters: UnitFilters }) {
+export async function UnitList({ filters, canEdit }: { filters: UnitFilters; canEdit: boolean }) {
   const { units, total } = await listUnits(filters);
 
   if (units.length === 0) {
@@ -57,13 +57,16 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
         description={
           filtered
             ? "Cambia la búsqueda o quita los filtros para ver más unidades."
-            : "Da de alta una unidad con el botón Nueva unidad."
+            : canEdit
+              ? "Da de alta una unidad con el botón Nueva unidad."
+              : "Todavía no hay unidades en este grupo."
         }
       />
     );
   }
 
   const editHref = (id: string) => `/unidades/${id}/editar`;
+  const sheetHref = (id: string) => `/unidades/${id}`;
 
   return (
     <>
@@ -85,7 +88,13 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
             {units.map((unit) => (
               <TableRow key={unit.id}>
                 <TableCell className="py-3 pl-5">
-                  <EconomicNumber value={unit.economicNumber} muted={unit.status === "baja"} />
+                  <Link
+                    href={sheetHref(unit.id)}
+                    className="rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                    aria-label={`Ficha de ${unit.economicNumber}`}
+                  >
+                    <EconomicNumber value={unit.economicNumber} muted={unit.status === "baja"} />
+                  </Link>
                 </TableCell>
                 <TableCell className="text-base">
                   {unitDetail(unit)}
@@ -100,13 +109,15 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
                   <UnitStatusBadge status={unit.status} />
                 </TableCell>
                 <TableCell className="pr-5 text-right">
-                  <Link
-                    href={editHref(unit.id)}
-                    className={buttonVariants({ variant: "ghost", size: "icon-touch" })}
-                    aria-label={`Editar ${unit.economicNumber}`}
-                  >
-                    <Pencil />
-                  </Link>
+                  {canEdit && (
+                    <Link
+                      href={editHref(unit.id)}
+                      className={buttonVariants({ variant: "ghost", size: "icon-touch" })}
+                      aria-label={`Editar ${unit.economicNumber}`}
+                    >
+                      <Pencil />
+                    </Link>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -114,12 +125,12 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
         </Table>
       </div>
 
-      {/* Celular: lista tocable, cada renglón abre la edición */}
+      {/* Celular: lista tocable, cada renglón abre la ficha */}
       <ul className="divide-y overflow-hidden rounded-lg border bg-white md:hidden">
         {units.map((unit) => (
           <li key={unit.id}>
             <Link
-              href={editHref(unit.id)}
+              href={sheetHref(unit.id)}
               className="flex min-h-16 items-center gap-4 px-4 py-3 outline-none focus-visible:bg-muted active:bg-muted"
             >
               <span className="w-16 shrink-0">

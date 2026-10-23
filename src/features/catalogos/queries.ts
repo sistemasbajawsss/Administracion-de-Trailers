@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 
-import type { CatalogItem, DriverOption } from "./types";
+import type { CatalogItem, CategoryOption, DriverOption, SupplierOption } from "./types";
 
 /**
  * Los tres catálogos en paralelo (una sola espera para la pantalla de
@@ -61,4 +61,30 @@ export async function listActiveDrivers(): Promise<DriverOption[]> {
 
   if (error) throw new Error("No se pudieron cargar los choferes");
   return data.map((d) => ({ id: d.id, name: d.nombre }));
+}
+
+/** Categorías activas para los renglones de gasto. */
+export async function listActiveCategories(): Promise<CategoryOption[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categorias")
+    .select("id, nombre, requiere_concepto")
+    .eq("activo", true)
+    .order("nombre");
+
+  if (error) throw new Error("No se pudieron cargar las categorías");
+  return data.map((c) => ({ id: c.id, name: c.nombre, requiresConcept: c.requiere_concepto }));
+}
+
+/** Proveedores activos para el formulario de servicio. */
+export async function listActiveSuppliers(): Promise<SupplierOption[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("proveedores")
+    .select("id, nombre")
+    .eq("activo", true)
+    .order("nombre");
+
+  if (error) throw new Error("No se pudieron cargar los proveedores");
+  return data.map((s) => ({ id: s.id, name: s.nombre }));
 }
