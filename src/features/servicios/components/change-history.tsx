@@ -24,6 +24,8 @@ function ChangeLine({ change }: { change: HistoryChange }) {
       return <p>Capturó el servicio.</p>;
     case "service-deleted":
       return <p>Eliminó el servicio.</p>;
+    case "service-restored":
+      return <p>Restauró el servicio con sus gastos.</p>;
     case "service-updated":
       return (
         <div>

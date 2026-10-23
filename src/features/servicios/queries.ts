@@ -3,10 +3,11 @@ import "server-only";
 import { UNIT_TYPE_LABELS, type UnitType } from "@/features/unidades/types";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
-import { formatDate, formatKm, formatMoney } from "@/lib/utils/format";
+import { formatDate, formatKm, formatMoney, toCents } from "@/lib/utils/format";
 
 import type { ServiceFilters } from "./schemas";
 import type {
+  DeletedService,
   FieldChange,
   HistoryChange,
   HistoryEntry,
@@ -153,6 +154,60 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
   });
 }
 
+/**
+ * Servicios eliminados que se pueden restaurar (solo admin, por RLS del historial
+ * y por la página). Se descartan los que ya se restauraron. El total sale de la
+ * copia guardada; se suma en centavos enteros, sin floats.
+ */
+export async function listDeletedServices(): Promise<DeletedService[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("historial_cambios")
+    .select("id, servicio_id, datos_anteriores, motivo, autor_nombre, created_at")
+    .eq("tabla", "servicios")
+    .eq("accion", "delete")
+    .order("id", { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error("No se pudieron cargar los servicios eliminados");
+  if (data.length === 0) return [];
+
+  const serviceIds = [...new Set(data.map((row) => row.servicio_id))];
+  const unitIds = [...new Set(data.map((row) => str(asRow(row.datos_anteriores).unidad_id)).filter(Boolean))];
+
+  const [restored, units] = await Promise.all([
+    supabase.from("servicios").select("id").in("id", serviceIds),
+    supabase.from("unidades").select("id, numero_economico").in("id", unitIds),
+  ]);
+  if (restored.error || units.error) throw new Error("No se pudieron cargar los servicios eliminados");
+
+  const restoredIds = new Set(restored.data.map((s) => s.id));
+  const unitNames = new Map(units.data.map((u) => [u.id, u.numero_economico]));
+  const seen = new Set<string>();
+
+  return data.flatMap((row) => {
+    // Si se eliminó, restauró y volvió a eliminar, solo cuenta la copia más reciente.
+    if (restoredIds.has(row.servicio_id) || seen.has(row.servicio_id)) return [];
+    seen.add(row.servicio_id);
+
+    const snapshot = asRow(row.datos_anteriores);
+    const expenses = Array.isArray(snapshot.gastos) ? snapshot.gastos.map(asRow) : [];
+    return [
+      {
+        historyId: row.id,
+        serviceId: row.servicio_id,
+        unitEconomicNumber: unitNames.get(str(snapshot.unidad_id)) ?? null,
+        date: str(snapshot.fecha),
+        totalCents: expenses.reduce((sum, e) => sum + (toCents(str(e.monto)) ?? 0), 0),
+        expenseCount: expenses.length,
+        deletedAt: row.created_at,
+        deletedBy: row.autor_nombre ?? "Usuario",
+        reason: row.motivo,
+      },
+    ];
+  });
+}
+
 /** Total invertido en una unidad (sumado en la BD) y cuántos gastos tiene. */
 export async function getUnitTotals(unitId: string): Promise<UnitTotals> {
   const supabase = await createClient();
@@ -246,7 +301,8 @@ function toChange(row: HistoryRow, names: Names): HistoryChange | null {
   const after = asRow(row.datos_nuevos);
 
   if (row.tabla === "servicios") {
-    if (row.accion === "insert") return { kind: "service-created" };
+    // Un alta con motivo solo la hace restaurar_servicio.
+    if (row.accion === "insert") return row.motivo ? { kind: "service-restored" } : { kind: "service-created" };
     if (row.accion === "delete") return { kind: "service-deleted" };
     const changes = diff(before, after, SERVICE_FIELDS, (f, v) => describeServiceField(f, v, names));
     return changes.length ? { kind: "service-updated", changes } : null;

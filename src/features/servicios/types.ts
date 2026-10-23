@@ -49,6 +49,7 @@ export type HistoryChange =
   | { kind: "service-created" }
   | { kind: "service-updated"; changes: FieldChange[] }
   | { kind: "service-deleted" }
+  | { kind: "service-restored" }
   | { kind: "expense-added"; summary: string }
   | { kind: "expense-removed"; summary: string }
   | { kind: "expense-updated"; summary: string; changes: FieldChange[] };
@@ -59,6 +60,19 @@ export type HistoryEntry = {
   author: string;
   reason: string | null;
   changes: HistoryChange[];
+};
+
+/** Servicio eliminado que todavía se puede restaurar (copia guardada en el historial). */
+export type DeletedService = {
+  historyId: number;
+  serviceId: string;
+  unitEconomicNumber: string | null;
+  date: string;
+  totalCents: number;
+  expenseCount: number;
+  deletedAt: string;
+  deletedBy: string;
+  reason: string | null;
 };
 
 export type UnitTotals = {

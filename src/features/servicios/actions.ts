@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { normalizeAmount } from "@/lib/utils/format";
 
 import {
+  restoreServiceSchema,
   deleteServiceSchema,
   serviceEditSchema,
   serviceSchema,
@@ -108,4 +109,24 @@ export async function deleteService(id: string, unitId: string, input: unknown):
 
   revalidateServices([unitId]);
   return ok();
+}
+
+/** Restaura un servicio eliminado tal como estaba (solo admin, con motivo). */
+export async function restoreService(historyId: number, input: unknown): Promise<ActionResult<{ id: string }>> {
+  const parsed = restoreServiceSchema.safeParse(input);
+  if (!parsed.success || !Number.isInteger(historyId)) return fail("Explica por qué se restaura el servicio.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restaurar_servicio", {
+    p_historial_id: historyId,
+    p_motivo: parsed.data.reason,
+  });
+  if (error) return fail(errorMessage(error, "No se pudo restaurar el servicio. Inténtalo de nuevo."));
+
+  revalidatePath("/servicios", "layout");
+  revalidatePath("/unidades", "layout");
+  revalidatePath("/");
+  return ok({ id: data });
 }

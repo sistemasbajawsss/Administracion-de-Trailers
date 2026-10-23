@@ -48,7 +48,7 @@ export function DeleteServiceDialog({
       try {
         const result = await deleteService(serviceId, unitId, parsed.data);
         if (!result.ok) return void toast.error(result.error);
-        toast.success("Servicio eliminado. Queda registrado en el historial.");
+        toast.success("Servicio eliminado. Puedes restaurarlo desde Servicios › Eliminados.");
         setOpen(false);
         router.push("/servicios");
       } catch {
@@ -77,7 +77,7 @@ export function DeleteServiceDialog({
           <AlertDialogHeader>
             <AlertDialogTitle className="font-heading text-xl">¿Eliminar {label}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se borran el servicio y sus gastos. En la línea de cambios queda una copia con tu nombre y el motivo.
+              Deja de contar en totales y listas. Queda una copia con tu nombre y el motivo, y se puede restaurar desde Servicios › Eliminados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Field data-invalid={Boolean(error)}>

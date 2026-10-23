@@ -60,6 +60,14 @@ export const deleteServiceSchema = z.object({
     .max(500, "Motivo: máximo 500 caracteres"),
 });
 
+export const restoreServiceSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(5, "Explica por qué se restaura (mínimo 5 letras)")
+    .max(500, "Motivo: máximo 500 caracteres"),
+});
+
 export const serviceFiltersSchema = z.object({
   q: z.string().trim().max(20).catch(""),
   desde: z.string().regex(DATE_PATTERN).optional().catch(undefined),

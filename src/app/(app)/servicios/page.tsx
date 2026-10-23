@@ -1,4 +1,4 @@
-import { ClipboardPlus } from "lucide-react";
+import { ArchiveRestore, ClipboardPlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -34,7 +34,19 @@ async function ServicesContent({ searchParams }: { searchParams: PageProps<"/ser
             ? "Reparaciones y mantenimientos de todas las unidades."
             : "Los servicios que has capturado. Toca uno para ver el detalle o corregirlo."
         }
-        actions={canCapture ? newServiceLink : undefined}
+        actions={
+          canCapture || user.role === "admin" ? (
+            <>
+              {user.role === "admin" && (
+                <Link href="/servicios/eliminados" className={buttonVariants({ variant: "outline", size: "touch" })}>
+                  <ArchiveRestore aria-hidden="true" />
+                  Eliminados
+                </Link>
+              )}
+              {canCapture && newServiceLink}
+            </>
+          ) : undefined
+        }
       />
       <ServiceFilters />
       <Suspense fallback={<ServiceListSkeleton />}>
