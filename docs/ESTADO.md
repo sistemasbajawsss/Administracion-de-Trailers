@@ -3,30 +3,7 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 0 — Fundación** · Estado: en curso · Rama: `seccion-0-fundacion`
-
-Dividida en dos partes (ver `docs/PLAN.md`):
-- **0A — Sin conexión a Supabase**: terminada (2026-10-23). Build y lint sin errores.
-- **0B — Con conexión a Supabase**: bloqueada hasta que el proyecto de Supabase esté aprobado y disponible.
-
-### Hecho en 0A
-- Next.js 16.4.3 (App Router, Turbopack, Cache Components activado por defecto) + TypeScript strict + Tailwind v4.
-- shadcn/ui estilo `base-nova` (usa Base UI, no Radix): button, input, label, field, card, sonner, dropdown-menu, sheet, avatar, separator. Se agregó el tamaño `touch` (48px) e `icon-touch` (44px) a Button.
-- Zod 4, react-hook-form, @hookform/resolvers, @supabase/ssr, @supabase/supabase-js y Supabase CLI (devDependency).
-- `.npmrc` con `legacy-peer-deps=true`: @hookform/resolvers declara peers opcionales que npm 11 no logra resolver.
-- `supabase init` con registro público deshabilitado en `supabase/config.toml`.
-- Migración `20261023173401_perfiles_y_roles.sql` escrita, **NO aplicada**.
-- Clientes `src/lib/supabase/{client,server,proxy}.ts` y `src/proxy.ts` (en Next 16 `middleware.ts` se renombró a `proxy.ts`). Ante cualquier error redirige a `/login`. Verificado: sin modo simulado, todas las rutas responden 307 → `/login`.
-- `/login` con validación Zod (sin autenticación real) y layout con navegación por rol (barra lateral en escritorio, menú lateral en celular).
-- Diseño: paleta del logo de Baja Wastewater Solutions, tipografía Barlow / Barlow Semi Condensed.
-
-### Pendientes para 0B
-- `npx supabase link`, `db push` de la migración y regenerar `src/lib/supabase/database.types.ts`.
-- Implementar en `src/lib/auth/get-current-user.ts` la lectura real (getClaims + tabla `perfiles`).
-- Login y cierre de sesión reales (`login-form.tsx` y `user-menu.tsx` hoy muestran un toast).
-- Eliminar `src/mock/`, `USE_MOCK_AUTH` / `MOCK_ROLE` (en `.env.example`, `src/lib/env.ts` y `src/proxy.ts`).
-- Crear usuarios admin y capturista; dar rol admin con `raw_app_meta_data.rol = 'admin'` o actualizando `perfiles`.
-- Al usar la sesión real, las páginas pasan de estáticas a dinámicas; hoy, con el mock, el rol queda fijo en el build.
+**Sección 1 — Catálogos** · Estado: por iniciar · Rama: `seccion-1-catalogos` (crear desde `main`)
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -43,19 +20,38 @@ Dividida en dos partes (ver `docs/PLAN.md`):
 - Ninguna.
 
 ## Bloqueos
-- Proyecto de Supabase en la nube pendiente de aprobación. Bloquea la Sección 0B.
+- Ninguno.
+
+## Entorno
+- Supabase: proyecto "Administracion de trailers", ref `judgscglqwdkxnhixopv`, región West US (Oregon). Enlazado con `npx supabase link`.
+- La cuenta de Supabase tiene otros proyectos (BAJAWS, Soporte): no tocarlos.
+- Variables: `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en `.env.local`.
+- Registro público deshabilitado en Supabase Auth (verificado `disable_signup=true`).
+- Usuarios: `sistemas@bajaws.com.mx` (admin) y `capturista@bajaws.com.mx` (capturista). Se crean en Authentication → Users con "Auto Confirm User"; el rol admin se asigna actualizando `perfiles`.
+- Windows: la política de ejecución de PowerShell del usuario es `RemoteSigned` (para `npm` / `npx`). El CLI de Supabase detecta a Claude Code como agente: los comandos interactivos (`login`, `link`) se ejecutan en una ventana de CMD aparte con `--agent no`.
 
 ## Existe actualmente
-- Tablas: — (`perfiles` escrita en migración, sin aplicar)
-- Rutas: `/login`, `/` (Inicio), `/unidades`, `/servicios`, `/dashboard`, `/admin/usuarios` (solo admin, placeholders), `/servicios/nuevo` (ambos roles, placeholder)
-- Código organizado según `docs/ARQUITECTURA.md`: `features/auth` (schemas, login-form, require-role), `components/layout`, `components/shared`, `mock/`.
+- Tablas: `perfiles` (RLS: cada usuario lee el suyo; admin lee y edita todos; nadie inserta ni borra directamente).
+- Enums: `rol_usuario`.
+- Funciones: `es_admin()`, `rol_actual()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`).
+- Rutas: `/login`, `/` (Inicio), `/unidades`, `/servicios`, `/dashboard`, `/admin/usuarios` (solo admin, placeholders), `/servicios/nuevo` (ambos roles, placeholder).
+- Código: `features/auth` (schemas, actions `signIn` / `signOut`, login-form, require-role), `components/layout`, `components/shared`, `lib/auth/get-current-user.ts`, `lib/action-result.ts`.
 - Buckets: —
 
 ## Historial de secciones
-<!-- Plantilla para cada cierre:
-### Sección N — Nombre (cerrada AAAA-MM-DD)
+
+### Sección 0 — Fundación (cerrada 2026-10-23)
 - Hecho:
-- Tablas / migraciones nuevas:
-- Rutas nuevas:
+  - Next.js 16.4.3 (App Router, Turbopack, Cache Components) + TypeScript strict + Tailwind v4.
+  - shadcn/ui estilo `base-nova` (Base UI, no Radix): button, input, label, field, card, sonner, dropdown-menu, sheet, avatar, separator. Tamaños `touch` (48px) e `icon-touch` (44px) en Button.
+  - Zod 4, react-hook-form, @hookform/resolvers, @supabase/ssr, @supabase/supabase-js, Supabase CLI. `.npmrc` con `legacy-peer-deps=true` por peers opcionales de @hookform/resolvers.
+  - `src/proxy.ts` (en Next 16 `middleware` se renombró a `proxy`): refresca la sesión con `getClaims()` y manda a `/login` ante cualquier error.
+  - Login y cierre de sesión con Server Actions; rol leído de `perfiles`; usuarios desactivados no pueden entrar.
+  - Layout con navegación por rol (barra lateral en escritorio, menú lateral en celular). Diseño con la paleta del logo de Baja Wastewater Solutions y tipografía Barlow.
+  - Código reorganizado según `docs/ARQUITECTURA.md`.
+- Tablas / migraciones nuevas: `20261023173401_perfiles_y_roles.sql` (enum `rol_usuario`, tabla `perfiles`, funciones de RLS, trigger de alta de perfil).
+- Rutas nuevas: las de "Existe actualmente".
+- Verificado: build y lint sin errores; sin sesión todas las rutas → 307 `/login`; RLS de `perfiles` probado con admin, capturista y anon; login con ambos usuarios probado en el navegador.
 - Pendientes que pasan a la siguiente sección:
--->
+  - Avisos de `supabase db advisors` (aceptados): `es_admin()` y `rol_actual()` son llamables por RPC (intencional, solo devuelven el rol propio); dos políticas SELECT en `perfiles` (rendimiento menor; se pueden unir en una migración futura).
+  - Propuesta pendiente de aprobar: sección "Datos y rendimiento" en `docs/ARQUITECTURA.md` y `vercel.json` con región `pdx1`.
