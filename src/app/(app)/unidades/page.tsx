@@ -11,7 +11,7 @@ export default function UnidadesPage() {
     <RequireRole role="admin">
       <PageHeader
         title="Unidades"
-        description="Trailers, camiones rabones y camionetas de la flotilla, por número económico."
+        description="Trailers, cajas, camiones rabones y camionetas de la flotilla, por número económico."
       />
       <EmptyState
         title="Todavía no hay unidades registradas"
