@@ -1,25 +1,47 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
-import { isMockAuthEnabled } from "@/lib/env";
-import { getMockUser } from "@/mock/session";
+import { createClient } from "@/lib/supabase/server";
 
 import type { CurrentUser, Role } from "./types";
 
 /**
  * Único punto de lectura del usuario actual (Data Access Layer).
- * Sección 0A: devuelve el usuario simulado. En 0B lee la sesión de Supabase
- * y el rol desde la tabla perfiles.
+ * Valida el JWT con getClaims() y toma nombre y rol de la tabla perfiles.
+ * Sin sesión → /login. Perfil desactivado → /login?motivo=inactivo.
+ * cache() evita repetir la consulta dentro de la misma petición.
  */
-export async function getCurrentUser(): Promise<CurrentUser> {
-  if (isMockAuthEnabled()) {
-    return getMockUser();
+export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
+  const supabase = await createClient();
+
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
+  if (claimsError || !claims?.sub) {
+    redirect("/login");
   }
 
-  // Pendiente 0B: supabase.auth.getClaims() + consulta a perfiles.
-  redirect("/login");
-}
+  const { data: perfil, error } = await supabase
+    .from("perfiles")
+    .select("id, nombre, rol, activo")
+    .eq("id", claims.sub)
+    .maybeSingle();
+
+  if (error || !perfil) {
+    redirect("/login");
+  }
+  if (!perfil.activo) {
+    redirect("/login?motivo=inactivo");
+  }
+
+  return {
+    id: perfil.id,
+    name: perfil.nombre,
+    email: typeof claims.email === "string" ? claims.email : "",
+    role: perfil.rol,
+  };
+});
 
 /**
  * Exige un rol en el servidor; si no lo tiene, regresa al inicio.

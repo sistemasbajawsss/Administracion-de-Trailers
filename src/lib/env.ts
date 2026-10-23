@@ -26,16 +26,3 @@ export function getSupabaseEnv(): SupabaseEnv {
 
   return result.data;
 }
-
-/**
- * Modo simulado de la Sección 0A. Nunca se permite en producción de Vercel.
- */
-export function isMockAuthEnabled(): boolean {
-  const enabled = process.env.USE_MOCK_AUTH === "1";
-
-  if (enabled && process.env.VERCEL_ENV === "production") {
-    throw new Error("USE_MOCK_AUTH no puede estar activo en producción");
-  }
-
-  return enabled;
-}

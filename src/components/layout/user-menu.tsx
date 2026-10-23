@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronsUpDown, LogOut } from "lucide-react";
+import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,14 +27,26 @@ function initials(name: string) {
 
 export function UserMenu({
   user,
+  signOutAction,
   compact = false,
 }: {
   user: CurrentUser;
+  /** Server Action de cierre de sesión; la inyecta app/ para no importar features desde components. */
+  signOutAction: () => Promise<void>;
   compact?: boolean;
 }) {
+  const [isPending, startTransition] = useTransition();
+
   function handleSignOut() {
-    // Sección 0A: sin sesión real. El cierre de sesión llega en 0B.
-    toast.info("El cierre de sesión estará disponible cuando se conecte la base de datos.");
+    startTransition(async () => {
+      const toastId = toast.loading("Cerrando sesión…");
+      try {
+        await signOutAction();
+        toast.dismiss(toastId);
+      } catch {
+        toast.error("No se pudo cerrar la sesión. Inténtalo de nuevo.", { id: toastId });
+      }
+    });
   }
 
   return (
@@ -67,7 +80,7 @@ export function UserMenu({
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="min-h-11">
+        <DropdownMenuItem onClick={handleSignOut} disabled={isPending} className="min-h-11">
           <LogOut aria-hidden="true" />
           Cerrar sesión
         </DropdownMenuItem>

@@ -1,14 +1,8 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
-import { isMockAuthEnabled } from "@/lib/env";
 import { updateSession } from "@/lib/supabase/proxy";
 
 export async function proxy(request: NextRequest) {
-  // Sección 0A: sin proyecto de Supabase todavía. Se elimina en 0B.
-  if (isMockAuthEnabled()) {
-    return NextResponse.next({ request });
-  }
-
   return updateSession(request);
 }
 

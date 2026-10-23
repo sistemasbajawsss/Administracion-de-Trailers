@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Suspense } from "react";
 
 import { LoginForm } from "@/features/auth/components/login-form";
 
@@ -38,7 +39,10 @@ export default function LoginPage() {
           <p className="mt-2 text-muted-foreground">
             Usa el correo y la contraseña que te dio el administrador.
           </p>
-          <LoginForm />
+          {/* useSearchParams en el formulario requiere un límite de Suspense. */}
+          <Suspense>
+            <LoginForm />
+          </Suspense>
         </div>
       </section>
     </main>

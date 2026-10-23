@@ -25,7 +25,11 @@ function Logo({ className }: { className?: string }) {
  * Barra lateral (escritorio) y barra superior (celular) según el rol.
  * Lee la sesión, por eso se renderiza dentro de un <Suspense>.
  */
-export async function AppNavigation() {
+export async function AppNavigation({
+  signOutAction,
+}: {
+  signOutAction: () => Promise<void>;
+}) {
   const user = await getCurrentUser();
   const items = NAVIGATION[user.role];
 
@@ -39,7 +43,7 @@ export async function AppNavigation() {
           <NavLinks items={items} />
         </nav>
         <div className="border-t p-3">
-          <UserMenu user={user} />
+          <UserMenu user={user} signOutAction={signOutAction} />
         </div>
       </aside>
 
@@ -49,7 +53,7 @@ export async function AppNavigation() {
           <Logo className="h-auto w-28" />
         </div>
         <div className="w-11">
-          <UserMenu user={user} compact />
+          <UserMenu user={user} signOutAction={signOutAction} compact />
         </div>
       </header>
     </>

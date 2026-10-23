@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -13,18 +14,32 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { signIn } from "@/features/auth/actions";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
 
 export function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inactive = searchParams.get("motivo") === "inactivo";
+
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  async function onSubmit() {
-    // Sección 0A: sin conexión a Supabase. La autenticación real llega en 0B.
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    toast.info("El inicio de sesión estará disponible cuando se conecte la base de datos.");
+  async function onSubmit(values: LoginInput) {
+    try {
+      const result = await signIn(values);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Sesión iniciada");
+      router.replace("/");
+      router.refresh();
+    } catch {
+      toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
+    }
   }
 
   const isSubmitting = form.formState.isSubmitting;
@@ -35,6 +50,11 @@ export function LoginForm() {
       onSubmit={form.handleSubmit(onSubmit)}
       className="mt-8"
     >
+      {inactive && (
+        <p role="alert" className="mb-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          Tu usuario está desactivado. Pide al administrador que lo reactive.
+        </p>
+      )}
       <FieldGroup>
         <Controller
           name="email"
