@@ -39,6 +39,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      bitacora_eliminaciones: {
+        Row: {
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          id: number
+          num_gastos: number
+          num_servicios: number
+          numero_economico: string
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          total: number
+          unidad_id: string
+        }
+        Insert: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          num_gastos: number
+          num_servicios: number
+          numero_economico: string
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          total: number
+          unidad_id: string
+        }
+        Update: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          num_gastos?: number
+          num_servicios?: number
+          numero_economico?: string
+          tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          total?: number
+          unidad_id?: string
+        }
+        Relationships: []
+      }
       categorias: {
         Row: {
           activo: boolean
@@ -453,6 +492,10 @@ export type Database = {
       }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
+        Returns: undefined
+      }
+      eliminar_unidad: {
+        Args: { p_confirmacion: string; p_unidad_id: string }
         Returns: undefined
       }
       es_admin: { Args: never; Returns: boolean }
