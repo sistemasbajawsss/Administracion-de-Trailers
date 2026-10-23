@@ -44,11 +44,14 @@ export type Database = {
           autor_nombre: string | null
           created_at: string
           created_by: string | null
+          fecha_servicio: string | null
           id: number
           num_gastos: number
           num_servicios: number
           numero_economico: string
+          servicio_id: string | null
           tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_registro: string
           total: number
           unidad_id: string
         }
@@ -56,11 +59,14 @@ export type Database = {
           autor_nombre?: string | null
           created_at?: string
           created_by?: string | null
+          fecha_servicio?: string | null
           id?: never
           num_gastos: number
           num_servicios: number
           numero_economico: string
+          servicio_id?: string | null
           tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_registro?: string
           total: number
           unidad_id: string
         }
@@ -68,11 +74,14 @@ export type Database = {
           autor_nombre?: string | null
           created_at?: string
           created_by?: string | null
+          fecha_servicio?: string | null
           id?: never
           num_gastos?: number
           num_servicios?: number
           numero_economico?: string
+          servicio_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_registro?: string
           total?: number
           unidad_id?: string
         }
@@ -492,6 +501,10 @@ export type Database = {
       }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
+        Returns: undefined
+      }
+      eliminar_servicio_definitivo: {
+        Args: { p_confirmacion: string; p_historial_id: number }
         Returns: undefined
       }
       eliminar_unidad: {
