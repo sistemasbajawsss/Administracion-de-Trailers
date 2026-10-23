@@ -2,6 +2,7 @@ import {
   ChartColumn,
   ClipboardPlus,
   House,
+  Tags,
   Truck,
   UsersRound,
   Wrench,
@@ -16,6 +17,7 @@ const ICONS: Record<NavIconName, LucideIcon> = {
   servicios: Wrench,
   registrar: ClipboardPlus,
   reportes: ChartColumn,
+  catalogos: Tags,
   usuarios: UsersRound,
 };
 

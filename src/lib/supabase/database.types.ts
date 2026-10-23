@@ -172,6 +172,7 @@ export type Database = {
           modelo: string | null
           notas: string | null
           numero_economico: string
+          numero_orden: number | null
           operacion: Database["public"]["Enums"]["operacion_unidad"] | null
           placas: string | null
           tipo: Database["public"]["Enums"]["tipo_unidad"]
@@ -190,6 +191,7 @@ export type Database = {
           modelo?: string | null
           notas?: string | null
           numero_economico: string
+          numero_orden?: number | null
           operacion?: Database["public"]["Enums"]["operacion_unidad"] | null
           placas?: string | null
           tipo: Database["public"]["Enums"]["tipo_unidad"]
@@ -208,6 +210,7 @@ export type Database = {
           modelo?: string | null
           notas?: string | null
           numero_economico?: string
+          numero_orden?: number | null
           operacion?: Database["public"]["Enums"]["operacion_unidad"] | null
           placas?: string | null
           tipo?: Database["public"]["Enums"]["tipo_unidad"]
