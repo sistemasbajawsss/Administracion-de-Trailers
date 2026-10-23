@@ -29,6 +29,7 @@
   - Obligatorios: número económico, tipo y operación (excepto camionetas). Opcionales: placas, marca, modelo, año, VIN, chofer, longitud (solo cajas) y notas.
   - Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
 - **D4 — Rol gerente** (resuelta 2026-10-23, dentro de la Sección 2): rol `gerente` de solo lectura para los gerentes. Ve unidades, servicios, gastos, historial y reportes de todos; no registra, edita ni elimina nada, ni crea proveedores. Solo un admin asigna el rol. Se aplica en RLS (funciones `puede_ver_todo()` y `puede_capturar()`) y en el servidor.
+- **D5 — Eliminar una unidad por completo** (resuelta 2026-10-23, dentro de la Sección 2): además de darla de baja (reversible), el admin puede eliminar una unidad con todos sus servicios, gastos y línea de cambios. Exige escribir `ELIMINAR REGISTRO` en la pantalla y la función `eliminar_unidad()` vuelve a revisarlo. No se puede deshacer. Queda un renglón en `bitacora_eliminaciones` (número económico, tipo, servicios, gastos, total, quién y cuándo). Es la única excepción a "el historial no se puede alterar" de D1.
 
 ---
 

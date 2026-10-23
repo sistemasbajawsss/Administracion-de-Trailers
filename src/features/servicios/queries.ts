@@ -153,21 +153,28 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
   });
 }
 
-/** Total invertido en una unidad (sumado en la BD). */
+/** Total invertido en una unidad (sumado en la BD) y cuántos gastos tiene. */
 export async function getUnitTotals(unitId: string): Promise<UnitTotals> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("totales_por_unidad")
-    .select("total::text, num_servicios, ultimo_servicio")
-    .eq("unidad_id", unitId)
-    .returns<{ total: string; num_servicios: number; ultimo_servicio: string | null }[]>()
-    .maybeSingle();
+  const [totals, expenses] = await Promise.all([
+    supabase
+      .from("totales_por_unidad")
+      .select("total::text, num_servicios, ultimo_servicio")
+      .eq("unidad_id", unitId)
+      .returns<{ total: string; num_servicios: number; ultimo_servicio: string | null }[]>()
+      .maybeSingle(),
+    supabase
+      .from("gastos")
+      .select("id, servicio:servicios!inner(unidad_id)", { count: "exact", head: true })
+      .eq("servicio.unidad_id", unitId),
+  ]);
 
-  if (error) throw new Error("No se pudo calcular el total de la unidad");
+  if (totals.error || expenses.error) throw new Error("No se pudo calcular el total de la unidad");
   return {
-    total: data?.total ?? "0",
-    serviceCount: data?.num_servicios ?? 0,
-    lastServiceDate: data?.ultimo_servicio ?? null,
+    total: totals.data?.total ?? "0",
+    serviceCount: totals.data?.num_servicios ?? 0,
+    expenseCount: expenses.count ?? 0,
+    lastServiceDate: totals.data?.ultimo_servicio ?? null,
   };
 }
 

@@ -10,6 +10,7 @@ import { RequireRole } from "@/features/auth/components/require-role";
 import { ServiceList, ServiceListSkeleton } from "@/features/servicios/components/service-list";
 import { getUnitTotals } from "@/features/servicios/queries";
 import { serviceFiltersSchema } from "@/features/servicios/schemas";
+import { DeleteUnitZone } from "@/features/unidades/components/delete-unit-zone";
 import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badge";
 import { getUnit } from "@/features/unidades/queries";
 import { UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
@@ -97,6 +98,17 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
       <Suspense fallback={<ServiceListSkeleton />}>
         <ServiceList filters={{ ...filters, q: "", desde: undefined, hasta: undefined }} unitId={unit.id} pathname={`/unidades/${unit.id}`} />
       </Suspense>
+
+      {isAdmin && (
+        <DeleteUnitZone
+          unitId={unit.id}
+          economicNumber={unit.economicNumber}
+          serviceCount={totals.serviceCount}
+          expenseCount={totals.expenseCount}
+          totalLabel={formatMoney(totals.total)}
+          afterDeleteHref={group === "local" ? "/unidades" : `/unidades?grupo=${group}`}
+        />
+      )}
     </>
   );
 }

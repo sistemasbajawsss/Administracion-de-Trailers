@@ -80,6 +80,13 @@ export const unitSchema = z
 
 export type UnitInput = z.infer<typeof unitSchema>;
 
+/** Frase que hay que escribir para eliminar una unidad por completo (D5). La BD exige la misma. */
+export const DELETE_UNIT_PHRASE = "ELIMINAR REGISTRO";
+
+export const deleteUnitSchema = z.object({
+  confirmation: z.literal(DELETE_UNIT_PHRASE, `Escribe ${DELETE_UNIT_PHRASE} para confirmar`),
+});
+
 export const unitFiltersSchema = z.object({
   grupo: z.enum(["local", "foraneo", "camionetas"]).catch("local"),
   q: z.string().trim().max(20).catch(""),

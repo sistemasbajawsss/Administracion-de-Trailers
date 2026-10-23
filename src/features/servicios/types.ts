@@ -64,5 +64,6 @@ export type HistoryEntry = {
 export type UnitTotals = {
   total: string;
   serviceCount: number;
+  expenseCount: number;
   lastServiceDate: string | null;
 };
