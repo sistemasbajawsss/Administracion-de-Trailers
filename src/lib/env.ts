@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const supabaseEnvSchema = z.object({
   url: z.url(),
-  anonKey: z.string().min(1),
+  publishableKey: z.string().min(1),
 });
 
 export type SupabaseEnv = z.infer<typeof supabaseEnvSchema>;
@@ -15,12 +15,12 @@ export type SupabaseEnv = z.infer<typeof supabaseEnvSchema>;
 export function getSupabaseEnv(): SupabaseEnv {
   const result = supabaseEnvSchema.safeParse({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   });
 
   if (!result.success) {
     throw new Error(
-      "Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local",
+      "Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY en .env.local",
     );
   }
 

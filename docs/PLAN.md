@@ -33,7 +33,7 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 - Supabase CLI configurado con `npx supabase init` (sin `link`, sin Docker ni entorno local).
 - Migración escrita pero NO aplicada: enum `rol_usuario` (`admin`, `capturista`) y tabla `perfiles` (id = `auth.users.id`, nombre, rol, activo, created_at). Trigger que crea el perfil al crear un usuario. RLS habilitado en `perfiles`.
 - Funciones SQL de apoyo para RLS: `es_admin()` y `rol_actual()` (en la misma migración, sin aplicar).
-- Clientes de Supabase (navegador y servidor) con `@supabase/ssr`, leyendo URL y anon key de `.env.local`.
+- Clientes de Supabase (navegador y servidor) con `@supabase/ssr`, leyendo URL y publishable key de `.env.local`.
 - Middleware que protege todas las rutas excepto `/login`, leyendo de `.env.local`.
 - `.env.example` sin valores reales; `.env.local` excluido por `.gitignore`.
 - Pantalla de `/login` (correo y contraseña) con UI y validación Zod, sin funcionalidad real de autenticación.
@@ -50,7 +50,7 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 **Alcance**
 - Proyecto en la nube enlazado con `npx supabase link`.
 - Migración de 0A aplicada con `npx supabase db push` y tipos regenerados en `src/lib/supabase/database.types.ts`.
-- `.env.local` con URL y anon key reales.
+- `.env.local` con URL y publishable key reales (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`).
 - Registro público deshabilitado en Supabase Auth.
 - Login, cierre de sesión y proxy funcionando contra Supabase.
 - Layout leyendo el rol real desde `perfiles`; se elimina `src/mock/`.
