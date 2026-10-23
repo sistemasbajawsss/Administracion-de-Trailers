@@ -22,11 +22,11 @@
 - **D2 — Dominio** (resuelta 2026-10-23): dominio final `flotilla.bajaws.com.mx` (Cloudflare → Vercel). Mientras tanto se usa el dominio gratuito `*.vercel.app`.
 - **D3 — Unidades** (resuelta 2026-10-23, ampliada el mismo día): la tabla, el feature y la ruta se llaman `unidades`; en la interfaz, "Unidades".
   - Tipo (enum `tipo_unidad`) y prefijo obligatorio del número económico: `trailer` (T-), `camion_rabon` (F-), `pipa` (P-), `caja` (R-), `camioneta` (C-). Formato: prefijo, guion y número (`T-17`).
-  - Operación (enum `operacion_unidad`): `local` o `foraneo`. La pantalla de Unidades se divide en Locales y Foráneos, y los reportes pueden separar el gasto por operación. Una unidad puede cambiar de operación.
+  - Operación (enum `operacion_unidad`): `local` o `foraneo`. Las camionetas no tienen operación: forman su propio grupo. La pantalla de Unidades se divide en Locales, Foráneos y Camionetas, y los reportes pueden separar el gasto por operación. Una unidad puede cambiar de operación.
   - Las cajas de los trailers son unidades individuales, con su propio número económico e historial de gastos, y guardan su longitud en pies (40, 50 o 53). No se registra qué caja lleva cada trailer.
   - Chofer: catálogo `choferes`; cada unidad tiene un chofer opcional.
   - Estatus (enum `estatus_unidad`): `activo`, `en_taller`, `por_llegar`, `baja`.
-  - Obligatorios: número económico, tipo y operación. Opcionales: placas, marca, modelo, año, VIN, chofer, longitud (solo cajas) y notas.
+  - Obligatorios: número económico, tipo y operación (excepto camionetas). Opcionales: placas, marca, modelo, año, VIN, chofer, longitud (solo cajas) y notas.
   - Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
 
 ---
@@ -78,7 +78,7 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
   - `categorias` (nombre único, activo) y `proveedores` (nombre único, telefono, notas, activo).
 - Seed de categorías dentro de la migración: Motor, Transmisión, Frenos, Suspensión, Eléctrico, Llantas, Carrocería, Mantenimiento preventivo, Otros.
 - CRUD de unidades, choferes y categorías (solo admin). Alta rápida de proveedor disponible para ambos roles.
-- Lista de unidades separada en Locales y Foráneos, con búsqueda por número económico y filtros por tipo, estatus y "sin chofer".
+- Lista de unidades separada en Locales, Foráneos y Camionetas, con búsqueda por número económico y filtros por tipo, estatus y "sin chofer".
 - Carga inicial única de la flotilla actual (fuera de migraciones), revisada antes de aplicarla.
 
 **Terminado cuando**
