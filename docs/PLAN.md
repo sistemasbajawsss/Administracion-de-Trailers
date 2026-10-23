@@ -91,6 +91,7 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 - Tabla `servicios`: unidad_id, fecha, kilometraje, descripcion, proveedor_id, created_by, updated_by.
 - Tabla `gastos`: servicio_id, categoria_id, concepto, monto `numeric(12,2)`.
 - Un servicio puede tener varios gastos (ej. frenos + aceite en la misma visita).
+- Si la categoría es "Otros (especificar)", el concepto del gasto es obligatorio y debe decir qué fue.
 - Formulario de captura mobile-first: elegir unidad, fecha, km, proveedor y agregar renglones de gasto.
 - Ficha de la unidad con su historial de servicios y total invertido.
 - Edición (D1): el capturista edita sus propios servicios y gastos; admin edita todos. Motivo obligatorio en cada edición.
