@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 import { getSupabaseEnv } from "@/lib/env";
 
@@ -10,8 +11,13 @@ import type { Database } from "./database.types";
 /**
  * Cliente de Supabase para Server Components, Server Actions y Route Handlers.
  * Crear uno nuevo por petición; nunca reutilizarlo entre peticiones.
+ *
+ * connection(): los datos de Supabase siempre se leen al momento de la petición.
+ * Sin esto, el prefetch parcial intenta prerenderizar con las cookies y choca con
+ * el Date.now() que usa getClaims() para revisar si el token expiró.
  */
 export async function createClient() {
+  await connection();
   const { url, publishableKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 
