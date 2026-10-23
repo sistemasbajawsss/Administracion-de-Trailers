@@ -68,6 +68,13 @@ export const restoreServiceSchema = z.object({
     .max(500, "Motivo: máximo 500 caracteres"),
 });
 
+/** Frase para eliminar para siempre un servicio ya eliminado. La BD exige la misma. */
+export const PURGE_SERVICE_PHRASE = "ELIMINAR REGISTRO";
+
+export const purgeServiceSchema = z.object({
+  confirmation: z.literal(PURGE_SERVICE_PHRASE, `Escribe ${PURGE_SERVICE_PHRASE} para confirmar`),
+});
+
 export const serviceFiltersSchema = z.object({
   q: z.string().trim().max(20).catch(""),
   desde: z.string().regex(DATE_PATTERN).optional().catch(undefined),

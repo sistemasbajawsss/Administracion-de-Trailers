@@ -3,6 +3,7 @@ import { formatCents, formatDate, formatDateTime } from "@/lib/utils/format";
 
 import { listDeletedServices } from "../queries";
 
+import { PurgeServiceButton } from "./purge-service-button";
 import { RestoreServiceDialog } from "./restore-service-dialog";
 
 /** Servicios eliminados que se pueden restaurar, del más reciente al más antiguo. */
@@ -44,10 +45,17 @@ export async function DeletedServiceList() {
                 )}
               </div>
             </div>
-            <div className="sm:shrink-0">
+            <div className="flex flex-wrap gap-2 sm:shrink-0">
               <RestoreServiceDialog
                 historyId={service.historyId}
                 label={`el servicio de ${unit} del ${formatDate(service.date)}`}
+              />
+              <PurgeServiceButton
+                historyId={service.historyId}
+                unitEconomicNumber={unit}
+                dateLabel={formatDate(service.date)}
+                expenseCount={service.expenseCount}
+                totalLabel={formatCents(service.totalCents)}
               />
             </div>
           </li>

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { normalizeAmount } from "@/lib/utils/format";
 
 import {
+  purgeServiceSchema,
   restoreServiceSchema,
   deleteServiceSchema,
   serviceEditSchema,
@@ -108,6 +109,27 @@ export async function deleteService(id: string, unitId: string, input: unknown):
   if (error) return fail(errorMessage(error, "No se pudo eliminar el servicio. Inténtalo de nuevo."));
 
   revalidateServices([unitId]);
+  return ok();
+}
+
+/**
+ * Borra para siempre la copia y la línea de cambios de un servicio ya eliminado
+ * (solo admin). Queda una nota en la bitácora de eliminaciones.
+ */
+export async function purgeService(historyId: number, input: unknown): Promise<ActionResult> {
+  const parsed = purgeServiceSchema.safeParse(input);
+  if (!parsed.success || !Number.isInteger(historyId)) return fail("Escribe ELIMINAR REGISTRO para confirmar.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("eliminar_servicio_definitivo", {
+    p_historial_id: historyId,
+    p_confirmacion: parsed.data.confirmation,
+  });
+  if (error) return fail(errorMessage(error, "No se pudo eliminar el servicio. Inténtalo de nuevo."));
+
+  revalidatePath("/servicios/eliminados");
   return ok();
 }
 
