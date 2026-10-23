@@ -8,11 +8,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import type { NavIcon as NavIconName } from "@/lib/navigation";
+import type { NavIcon as NavIconName } from "./navigation";
 
 const ICONS: Record<NavIconName, LucideIcon> = {
   inicio: House,
-  camiones: Truck,
+  unidades: Truck,
   servicios: Wrench,
   registrar: ClipboardPlus,
   reportes: ChartColumn,

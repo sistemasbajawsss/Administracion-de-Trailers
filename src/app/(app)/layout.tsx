@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import {
   AppNavigation,
   AppNavigationFallback,
-} from "@/components/app-shell/app-navigation";
+} from "@/components/layout/app-navigation";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (

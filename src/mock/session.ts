@@ -1,4 +1,4 @@
-// DATOS DE EJEMPLO — Sección 0A. Borrar toda la carpeta src/lib/mock/ en 0B.
+// DATOS DE EJEMPLO — Sección 0A. Borrar toda la carpeta src/mock/ en 0B.
 import "server-only";
 
 import { ROLES, type CurrentUser, type Role } from "@/lib/auth/types";

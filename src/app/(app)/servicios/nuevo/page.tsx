@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { EmptyState, PageHeader } from "@/components/app-shell/page-header";
+import { EmptyState } from "@/components/shared/empty-state";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const metadata: Metadata = { title: "Registrar servicio" };
 

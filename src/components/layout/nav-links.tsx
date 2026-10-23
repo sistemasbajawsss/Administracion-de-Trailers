@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 
-import type { NavItem } from "@/lib/navigation";
-
 import { NavIcon } from "./nav-icon";
+import type { NavItem } from "./navigation";
 
 function isActive(pathname: string, href: string, items: NavItem[]) {
   if (href === "/") return pathname === "/";

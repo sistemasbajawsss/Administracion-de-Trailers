@@ -3,7 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { isMockAuthEnabled } from "@/lib/env";
-import { getMockUser } from "@/lib/mock/session";
+import { getMockUser } from "@/mock/session";
 
 import type { CurrentUser, Role } from "./types";
 

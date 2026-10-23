@@ -47,7 +47,7 @@ src/
 │   ├── supabase/
 │   │   ├── server.ts            # Cliente para Server Components y Actions
 │   │   ├── client.ts            # Cliente para navegador (solo donde sea indispensable)
-│   │   ├── middleware.ts        # Refresco de sesión
+│   │   ├── proxy.ts             # Refresco de sesión
 │   │   └── database.types.ts    # GENERADO. Nunca editar a mano
 │   ├── auth/                    # getCurrentUser(), requireRole()
 │   ├── env.ts                   # Variables de entorno validadas con Zod
@@ -55,7 +55,7 @@ src/
 │   └── utils/                   # formatMoney, formatDate, cn
 │
 ├── mock/                        # Datos de ejemplo temporales (se borra al conectar BD)
-└── middleware.ts                # Protección de rutas
+└── proxy.ts                     # Protección de rutas (en Next.js 16 `middleware` se renombró a `proxy`)
 
 supabase/
 ├── migrations/                  # Una migración por cambio, nunca editar aplicadas

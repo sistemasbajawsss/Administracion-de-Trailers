@@ -2,10 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
-import { NAVIGATION } from "@/lib/navigation";
-
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
+import { NAVIGATION } from "./navigation";
 import { UserMenu } from "./user-menu";
 
 function Logo({ className }: { className?: string }) {

@@ -13,7 +13,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { loginSchema, type LoginInput } from "@/lib/validations/login";
+import { loginSchema, type LoginInput } from "@/features/auth/schemas";
 
 export function LoginForm() {
   const form = useForm<LoginInput>({

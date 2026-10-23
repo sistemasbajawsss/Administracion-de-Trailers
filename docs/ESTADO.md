@@ -24,7 +24,7 @@ Dividida en dos partes (ver `docs/PLAN.md`):
 - `npx supabase link`, `db push` de la migración y regenerar `src/lib/supabase/database.types.ts`.
 - Implementar en `src/lib/auth/get-current-user.ts` la lectura real (getClaims + tabla `perfiles`).
 - Login y cierre de sesión reales (`login-form.tsx` y `user-menu.tsx` hoy muestran un toast).
-- Eliminar `src/lib/mock/`, `USE_MOCK_AUTH` / `MOCK_ROLE` (en `.env.example`, `src/lib/env.ts` y `src/proxy.ts`).
+- Eliminar `src/mock/`, `USE_MOCK_AUTH` / `MOCK_ROLE` (en `.env.example`, `src/lib/env.ts` y `src/proxy.ts`).
 - Crear usuarios admin y capturista; dar rol admin con `raw_app_meta_data.rol = 'admin'` o actualizando `perfiles`.
 - Al usar la sesión real, las páginas pasan de estáticas a dinámicas; hoy, con el mock, el rol queda fijo en el build.
 
@@ -46,7 +46,8 @@ Dividida en dos partes (ver `docs/PLAN.md`):
 
 ## Existe actualmente
 - Tablas: — (`perfiles` escrita en migración, sin aplicar)
-- Rutas: `/login`, `/` (Inicio), `/camiones`, `/servicios`, `/reportes`, `/usuarios` (solo admin, placeholders), `/servicios/nuevo` (ambos roles, placeholder)
+- Rutas: `/login`, `/` (Inicio), `/unidades`, `/servicios`, `/dashboard`, `/admin/usuarios` (solo admin, placeholders), `/servicios/nuevo` (ambos roles, placeholder)
+- Código organizado según `docs/ARQUITECTURA.md`: `features/auth` (schemas, login-form, require-role), `components/layout`, `components/shared`, `mock/`.
 - Buckets: —
 
 ## Historial de secciones

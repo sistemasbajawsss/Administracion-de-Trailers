@@ -2,7 +2,7 @@ import type { Role } from "@/lib/auth/types";
 
 export type NavIcon =
   | "inicio"
-  | "camiones"
+  | "unidades"
   | "servicios"
   | "registrar"
   | "reportes"
@@ -17,10 +17,11 @@ export type NavItem = {
 export const NAVIGATION: Record<Role, NavItem[]> = {
   admin: [
     { href: "/", label: "Inicio", icon: "inicio" },
-    { href: "/camiones", label: "Camiones", icon: "camiones" },
+    // Ruta "unidades" mientras se resuelve D3; el texto visible sigue siendo "Camiones".
+    { href: "/unidades", label: "Camiones", icon: "unidades" },
     { href: "/servicios", label: "Servicios", icon: "servicios" },
-    { href: "/reportes", label: "Reportes", icon: "reportes" },
-    { href: "/usuarios", label: "Usuarios", icon: "usuarios" },
+    { href: "/dashboard", label: "Reportes", icon: "reportes" },
+    { href: "/admin/usuarios", label: "Usuarios", icon: "usuarios" },
   ],
   capturista: [
     { href: "/", label: "Inicio", icon: "inicio" },

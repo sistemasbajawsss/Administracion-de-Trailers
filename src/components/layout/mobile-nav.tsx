@@ -12,9 +12,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { NavItem } from "@/lib/navigation";
-
 import { NavLinks } from "./nav-links";
+import type { NavItem } from "./navigation";
 
 export function MobileNav({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);

@@ -36,12 +36,12 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 - `.env.example` sin valores reales; `.env.local` excluido por `.gitignore`.
 - Pantalla de `/login` (correo y contraseña) con UI y validación Zod, sin funcionalidad real de autenticación.
 - Layout base con navegación según rol y botón de cierre de sesión (sin funcionalidad real).
-- Datos de ejemplo (usuario/rol simulado) aislados en `src/lib/mock/`, nunca dentro de componentes; se eliminan en 0B.
+- Datos de ejemplo (usuario/rol simulado) aislados en `src/mock/`, nunca dentro de componentes; se eliminan en 0B.
 - Archivos `CLAUDE.md`, `docs/PLAN.md` y `docs/ESTADO.md` en el repo.
 
 **Terminado cuando**
 - `npm run build` y `npm run lint` pasan sin errores.
-- `/login` y el layout se ven correctamente en celular y escritorio, con ambas navegaciones (admin y capturista) visibles usando los datos de `src/lib/mock/`.
+- `/login` y el layout se ven correctamente en celular y escritorio, con ambas navegaciones (admin y capturista) visibles usando los datos de `src/mock/`.
 - La migración existe en `supabase/migrations/` y no se ha aplicado.
 
 ### 0B — Con conexión a Supabase
@@ -50,8 +50,8 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 - Migración de 0A aplicada con `npx supabase db push` y tipos regenerados en `src/lib/supabase/database.types.ts`.
 - `.env.local` con URL y anon key reales.
 - Registro público deshabilitado en Supabase Auth.
-- Login, cierre de sesión y middleware funcionando contra Supabase.
-- Layout leyendo el rol real desde `perfiles`; se elimina `src/lib/mock/`.
+- Login, cierre de sesión y proxy funcionando contra Supabase.
+- Layout leyendo el rol real desde `perfiles`; se elimina `src/mock/`.
 - Usuarios de prueba creados manualmente: un admin y un capturista.
 
 **Terminado cuando**
