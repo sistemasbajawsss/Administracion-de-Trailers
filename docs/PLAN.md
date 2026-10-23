@@ -22,20 +22,41 @@
 ---
 
 ## Sección 0 — Fundación
+Se divide en dos partes porque el proyecto de Supabase en la nube aún no está disponible. Ambas se trabajan en la rama `seccion-0-fundacion`; la sección se cierra (merge a `main`) solo al terminar 0B.
+
+### 0A — Sin conexión a Supabase
 **Alcance**
 - Proyecto Next.js + TypeScript strict + Tailwind + shadcn/ui inicializado.
-- Supabase CLI configurado (`npx supabase init`) y proyecto en la nube enlazado con `npx supabase link` (sin Docker ni entorno local).
-- Variables de entorno en `.env.local` (URL y anon key) y `.env.example` sin valores reales; `.env.local` en `.gitignore`.
-- Migración: enum `rol_usuario` (`admin`, `capturista`) y tabla `perfiles` (id = `auth.users.id`, nombre, rol, activo, created_at). Trigger que crea el perfil al crear un usuario.
-- Funciones SQL de apoyo para RLS: `es_admin()` y `rol_actual()`.
-- Login con correo y contraseña; registro público deshabilitado.
-- Middleware que protege todas las rutas excepto `/login`.
-- Layout base con navegación según rol y cierre de sesión.
+- Supabase CLI configurado con `npx supabase init` (sin `link`, sin Docker ni entorno local).
+- Migración escrita pero NO aplicada: enum `rol_usuario` (`admin`, `capturista`) y tabla `perfiles` (id = `auth.users.id`, nombre, rol, activo, created_at). Trigger que crea el perfil al crear un usuario. RLS habilitado en `perfiles`.
+- Funciones SQL de apoyo para RLS: `es_admin()` y `rol_actual()` (en la misma migración, sin aplicar).
+- Clientes de Supabase (navegador y servidor) con `@supabase/ssr`, leyendo URL y anon key de `.env.local`.
+- Middleware que protege todas las rutas excepto `/login`, leyendo de `.env.local`.
+- `.env.example` sin valores reales; `.env.local` excluido por `.gitignore`.
+- Pantalla de `/login` (correo y contraseña) con UI y validación Zod, sin funcionalidad real de autenticación.
+- Layout base con navegación según rol y botón de cierre de sesión (sin funcionalidad real).
+- Datos de ejemplo (usuario/rol simulado) aislados en `src/lib/mock/`, nunca dentro de componentes; se eliminan en 0B.
 - Archivos `CLAUDE.md`, `docs/PLAN.md` y `docs/ESTADO.md` en el repo.
+
+**Terminado cuando**
+- `npm run build` y `npm run lint` pasan sin errores.
+- `/login` y el layout se ven correctamente en celular y escritorio, con ambas navegaciones (admin y capturista) visibles usando los datos de `src/lib/mock/`.
+- La migración existe en `supabase/migrations/` y no se ha aplicado.
+
+### 0B — Con conexión a Supabase
+**Alcance**
+- Proyecto en la nube enlazado con `npx supabase link`.
+- Migración de 0A aplicada con `npx supabase db push` y tipos regenerados en `src/lib/supabase/database.types.ts`.
+- `.env.local` con URL y anon key reales.
+- Registro público deshabilitado en Supabase Auth.
+- Login, cierre de sesión y middleware funcionando contra Supabase.
+- Layout leyendo el rol real desde `perfiles`; se elimina `src/lib/mock/`.
+- Usuarios de prueba creados manualmente: un admin y un capturista.
 
 **Terminado cuando**
 - Un admin y un capturista creados manualmente pueden entrar y ven navegaciones distintas.
 - Sin sesión, cualquier ruta redirige a `/login`.
+- RLS de `perfiles` probado con ambos roles.
 - Checklist de cierre de `CLAUDE.md` completo.
 
 ## Sección 1 — Catálogos
