@@ -16,7 +16,7 @@
 - Desarrollo directo contra Supabase en la nube (sin Docker). Proyecto `administracion-trailers-dev` aparte cuando haya datos reales.
 - D1: el capturista edita sus propios registros sin aprobación; cada edición pide motivo y queda en `historial_cambios` con su línea de cambios. Solo admin elimina.
 - D2: dominio final `flotilla.bajaws.com.mx`; mientras tanto, dominio gratuito de Vercel.
-- D3: `unidades` con tipo `trailer` / `caja` / `camion_rabon` / `camioneta`; las cajas de los trailers son unidades individuales, sin relación con el trailer que las jala. En la interfaz, "Unidades".
+- D3: `unidades` con tipo `trailer` (T-) / `caja` (R-) / `camion_rabon` (F-) / `pipa` (P-) / `camioneta` (C-), operación `local` / `foraneo`, chofer opcional (catálogo `choferes`) y longitud en pies para cajas. Las cajas son unidades individuales, sin relación con el trailer que las jala. Detalle en `docs/PLAN.md`.
 
 ## Decisiones pendientes
 - Ninguna.

@@ -20,7 +20,14 @@
 ## Decisiones tomadas
 - **D1 — Edición de registros** (resuelta 2026-10-23): el capturista puede editar sus propios servicios y gastos sin aprobación de un admin. Cada edición exige un motivo y queda en un historial de cambios (quién, cuándo, qué valores cambiaron y por qué). Los registros editados se marcan como "Editado" y muestran su línea de cambios. No hay estados `pendiente` / `aprobado`.
 - **D2 — Dominio** (resuelta 2026-10-23): dominio final `flotilla.bajaws.com.mx` (Cloudflare → Vercel). Mientras tanto se usa el dominio gratuito `*.vercel.app`.
-- **D3 — Unidades** (resuelta 2026-10-23): la tabla, el feature y la ruta se llaman `unidades`; en la interfaz, "Unidades". Cada unidad tiene un tipo: `trailer`, `caja`, `camion_rabon` o `camioneta` (enum `tipo_unidad`). Las cajas de los trailers se registran como unidades individuales, con su propio número económico y su propio historial de gastos. No se registra qué caja lleva cada trailer: cada unidad es independiente. Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
+- **D3 — Unidades** (resuelta 2026-10-23, ampliada el mismo día): la tabla, el feature y la ruta se llaman `unidades`; en la interfaz, "Unidades".
+  - Tipo (enum `tipo_unidad`) y prefijo obligatorio del número económico: `trailer` (T-), `camion_rabon` (F-), `pipa` (P-), `caja` (R-), `camioneta` (C-). Formato: prefijo, guion y número (`T-17`).
+  - Operación (enum `operacion_unidad`): `local` o `foraneo`. La pantalla de Unidades se divide en Locales y Foráneos, y los reportes pueden separar el gasto por operación. Una unidad puede cambiar de operación.
+  - Las cajas de los trailers son unidades individuales, con su propio número económico e historial de gastos, y guardan su longitud en pies (40, 50 o 53). No se registra qué caja lleva cada trailer.
+  - Chofer: catálogo `choferes`; cada unidad tiene un chofer opcional.
+  - Estatus (enum `estatus_unidad`): `activo`, `en_taller`, `por_llegar`, `baja`.
+  - Obligatorios: número económico, tipo y operación. Opcionales: placas, marca, modelo, año, VIN, chofer, longitud (solo cajas) y notas.
+  - Se pueden dar de alta más unidades de cualquier tipo; agregar un tipo nuevo requiere una migración.
 
 ---
 
@@ -64,15 +71,20 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 
 ## Sección 1 — Catálogos
 **Alcance**
-- Enum `tipo_unidad` (`trailer`, `caja`, `camion_rabon`, `camioneta`).
-- Tablas `unidades` (numero_economico único, tipo `tipo_unidad`, placas, marca, modelo, anio, vin, estatus: activo / en_taller / baja, notas), `categorias` (nombre único, activo) y `proveedores` (nombre, telefono, notas, activo).
-- Seed inicial de categorías: Motor, Transmisión, Frenos, Suspensión, Eléctrico, Llantas, Carrocería, Mantenimiento preventivo, Otros.
-- CRUD de unidades y categorías (solo admin). Alta rápida de proveedor disponible para ambos roles.
-- Lista de unidades con búsqueda por número económico y filtro por tipo.
+- Enums `tipo_unidad` (`trailer`, `caja`, `camion_rabon`, `pipa`, `camioneta`), `operacion_unidad` (`local`, `foraneo`) y `estatus_unidad` (`activo`, `en_taller`, `por_llegar`, `baja`).
+- Tablas:
+  - `choferes` (nombre único sin importar mayúsculas, telefono, activo).
+  - `unidades` (numero_economico único con prefijo según tipo, tipo, operacion, estatus, chofer_id opcional, longitud_pies solo para cajas, placas, marca, modelo, anio, vin único opcional, notas).
+  - `categorias` (nombre único, activo) y `proveedores` (nombre único, telefono, notas, activo).
+- Seed de categorías dentro de la migración: Motor, Transmisión, Frenos, Suspensión, Eléctrico, Llantas, Carrocería, Mantenimiento preventivo, Otros.
+- CRUD de unidades, choferes y categorías (solo admin). Alta rápida de proveedor disponible para ambos roles.
+- Lista de unidades separada en Locales y Foráneos, con búsqueda por número económico y filtros por tipo, estatus y "sin chofer".
+- Carga inicial única de la flotilla actual (fuera de migraciones), revisada antes de aplicarla.
 
 **Terminado cuando**
-- RLS impide que un capturista modifique unidades o categorías, incluso por API directa.
-- No se pueden repetir números económicos (en ningún tipo).
+- RLS impide que un capturista modifique unidades, choferes o categorías, incluso por API directa.
+- No se pueden repetir números económicos (en ningún tipo, sin importar mayúsculas o espacios) ni usar un prefijo que no corresponda al tipo.
+- La flotilla actual está cargada y coincide con la lista entregada.
 
 ## Sección 2 — Servicios y gastos
 **Alcance**
@@ -107,7 +119,7 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 
 ## Sección 4 — Dashboard y reportes (solo admin)
 **Alcance**
-- Total invertido por unidad, por tipo de unidad, por categoría, por proveedor y por mes, con filtros de rango de fechas.
+- Total invertido por unidad, por tipo de unidad, por operación (local / foráneo), por categoría, por proveedor y por mes, con filtros de rango de fechas.
 - Ranking de unidades con mayor gasto.
 - Gráficas con Recharts.
 - Exportación a Excel del periodo filtrado.

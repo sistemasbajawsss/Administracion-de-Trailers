@@ -1,6 +1,6 @@
 # CLAUDE.md — Administración Trailers
 
-Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ticket) de ~30 unidades (trailers, cajas de trailer, camiones rabones y camionetas) identificadas por su número económico interno. Objetivo: saber cuánto se invierte en cada unidad, por tipo, por categoría y por periodo.
+Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ticket) de ~38 unidades (trailers, cajas de trailer, camiones rabones, pipas y camionetas), de operación local o foránea, identificadas por su número económico interno (`T-17`, `R-39`…). Objetivo: saber cuánto se invierte en cada unidad, por tipo, por operación, por categoría y por periodo.
 
 ## Antes de empezar cualquier tarea
 
