@@ -27,5 +27,6 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
   capturista: [
     { href: "/", label: "Inicio", icon: "inicio" },
     { href: "/servicios/nuevo", label: "Registrar servicio", icon: "registrar" },
+    { href: "/servicios", label: "Mis servicios", icon: "servicios" },
   ],
 };

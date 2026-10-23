@@ -69,6 +69,10 @@ La dirección permitida es: `app → features → components/shared → lib`.
 - `app/` importa de `features/`, `components/` y `lib/`. Nunca al revés.
 - Un feature **no importa internals de otro feature**. Si dos features necesitan lo mismo,
   se mueve a `components/shared/` o `lib/`.
+  - Sí puede importar el `types.ts` de otro feature (tipos y etiquetas, p. ej. `UNIT_TYPE_LABELS`).
+  - Componentes públicos a propósito: `catalogos/components/supplier-quick-add` (alta rápida de
+    proveedor dentro del formulario de servicio).
+  - Nunca `queries.ts` ni `actions.ts` de otro feature: eso lo compone la página en `app/`.
 - `lib/` no importa de `features/` ni de `app/`.
 - `components/ui/` no conoce nada del negocio.
 

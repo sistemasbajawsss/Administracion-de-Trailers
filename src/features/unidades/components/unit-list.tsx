@@ -64,6 +64,7 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
   }
 
   const editHref = (id: string) => `/unidades/${id}/editar`;
+  const sheetHref = (id: string) => `/unidades/${id}`;
 
   return (
     <>
@@ -85,7 +86,13 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
             {units.map((unit) => (
               <TableRow key={unit.id}>
                 <TableCell className="py-3 pl-5">
-                  <EconomicNumber value={unit.economicNumber} muted={unit.status === "baja"} />
+                  <Link
+                    href={sheetHref(unit.id)}
+                    className="rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                    aria-label={`Ficha de ${unit.economicNumber}`}
+                  >
+                    <EconomicNumber value={unit.economicNumber} muted={unit.status === "baja"} />
+                  </Link>
                 </TableCell>
                 <TableCell className="text-base">
                   {unitDetail(unit)}
@@ -114,12 +121,12 @@ export async function UnitList({ filters }: { filters: UnitFilters }) {
         </Table>
       </div>
 
-      {/* Celular: lista tocable, cada renglón abre la edición */}
+      {/* Celular: lista tocable, cada renglón abre la ficha */}
       <ul className="divide-y overflow-hidden rounded-lg border bg-white md:hidden">
         {units.map((unit) => (
           <li key={unit.id}>
             <Link
-              href={editHref(unit.id)}
+              href={sheetHref(unit.id)}
               className="flex min-h-16 items-center gap-4 px-4 py-3 outline-none focus-visible:bg-muted active:bg-muted"
             >
               <span className="w-16 shrink-0">

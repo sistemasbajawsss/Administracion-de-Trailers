@@ -10,6 +10,9 @@ export type CatalogItem = {
 };
 
 export type DriverOption = { id: string; name: string };
+export type SupplierOption = { id: string; name: string };
+/** requiresConcept: el gasto debe decir qué fue (p. ej. "Otros (especificar)"). */
+export type CategoryOption = { id: string; name: string; requiresConcept: boolean };
 
 export const CATALOG_LABELS: Record<
   CatalogKind,
