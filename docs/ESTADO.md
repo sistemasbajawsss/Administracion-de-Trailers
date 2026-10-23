@@ -33,11 +33,13 @@ Dividida en dos partes (ver `docs/PLAN.md`):
 - Proyecto independiente en subdominio propio.
 - Roles: `admin` (Edgar y jefe) y `capturista` (solo registra montos y comprobantes).
 - Comprobantes: PDF o foto de ticket (sin XML de CFDI). Montos con IVA incluido.
+- Arquitectura por features definida en `docs/ARQUITECTURA.md`.
 - Desarrollo directo contra Supabase en la nube (sin Docker). Proyecto `administracion-trailers-dev` aparte cuando haya datos reales.
 
 ## Decisiones pendientes
 - D1: edición / aprobación de registros del capturista (antes de Sección 2).
 - D2: nombre del subdominio (antes del primer deploy).
+- D3: nombre de las unidades: camiones / trailers / unidades (antes de migraciones de catálogos).
 
 ## Bloqueos
 - Proyecto de Supabase en la nube pendiente de aprobación. Bloquea la Sección 0B.

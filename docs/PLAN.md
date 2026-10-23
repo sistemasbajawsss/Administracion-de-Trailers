@@ -18,6 +18,7 @@
 ## Decisiones pendientes
 - **D1**: ¿El capturista puede editar sus registros después de guardarlos? ¿Los registros requieren aprobación de un admin (estado `pendiente` / `aprobado`)? Se resuelve antes de la Sección 2.
 - **D2**: Nombre del subdominio. Se resuelve antes del primer deploy.
+- **D3**: Nombre de las unidades en tablas e interfaz (`camiones`, `trailers` o `unidades`). Se resuelve antes de escribir migraciones de catálogos. Mientras tanto, el feature y la ruta se llaman `unidades`.
 
 ---
 

@@ -4,9 +4,10 @@ Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ti
 
 ## Antes de empezar cualquier tarea
 
-- Lee `docs/ESTADO.md` para saber en qué sección vamos y qué ya existe.
-- Lee la sección correspondiente en `docs/PLAN.md`.
-- Trabaja SOLO dentro del alcance de la sección actual. Si algo requiere tocar código o tablas de una sección ya cerrada, detente y pregunta antes.
+1. Lee `docs/ESTADO.md` para saber en qué sección vamos y qué ya existe.
+2. Lee la sección correspondiente en `docs/PLAN.md`.
+3. Respeta la estructura y reglas de `docs/ARQUITECTURA.md`. Ningún archivo se crea fuera de ella; si algo no encaja, pregunta antes.
+4. Trabaja SOLO dentro del alcance de la sección actual. Si algo requiere tocar código o tablas de una sección ya cerrada, detente y pregunta antes.
 
 ## Stack
 
