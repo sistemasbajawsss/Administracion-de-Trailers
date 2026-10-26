@@ -55,12 +55,12 @@ function ChangeLine({ change }: { change: HistoryChange }) {
  * Línea de cambios (D1): quién, cuándo, por qué y qué valores cambiaron.
  * El alta inicial se resume en un solo renglón.
  */
-export async function ChangeHistory({ serviceId }: { serviceId: string }) {
+export async function ChangeHistory({ serviceId, className = "mt-10" }: { serviceId: string; className?: string }) {
   const entries = await getServiceHistory(serviceId);
   if (entries.length === 0) return null;
 
   return (
-    <section aria-labelledby="historial" className="mt-10">
+    <section aria-labelledby="historial" className={className}>
       <h2 id="historial" className="mb-4 text-2xl font-semibold">Línea de cambios</h2>
       <ol className="relative space-y-6 border-l-2 border-border pl-6">
         {entries.map((entry, index) => {
@@ -98,6 +98,6 @@ export async function ChangeHistory({ serviceId }: { serviceId: string }) {
   );
 }
 
-export function ChangeHistorySkeleton() {
-  return <div className="mt-10 h-40 animate-pulse rounded-lg bg-muted" aria-busy="true" aria-label="Cargando línea de cambios" />;
+export function ChangeHistorySkeleton({ className = "mt-10" }: { className?: string }) {
+  return <div className={`h-40 animate-pulse rounded-lg bg-muted ${className}`} aria-busy="true" aria-label="Cargando línea de cambios" />;
 }

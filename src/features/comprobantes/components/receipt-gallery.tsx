@@ -34,9 +34,10 @@ export function ReceiptGallery({
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {/* Miniaturas compactas; el comprobante se ve en grande en el visor. */}
+      <ul className="flex flex-wrap gap-3">
         {receipts.map((receipt, index) => (
-          <li key={receipt.id} className="flex flex-col">
+          <li key={receipt.id} className="flex w-28 flex-col">
             <button
               type="button"
               onClick={() => setViewing(index)}
@@ -49,9 +50,9 @@ export function ReceiptGallery({
             >
               {receipt.mimeType === "application/pdf" ? (
                 <>
-                  <FileText className="size-8 text-brand-ink" aria-hidden="true" />
-                  <span className="font-heading text-3xl font-bold tracking-wide text-brand-ink">PDF</span>
-                  <span className="text-sm text-muted-foreground">Toca para ver</span>
+                  <FileText className="size-6 text-brand-ink" aria-hidden="true" />
+                  <span className="font-heading text-2xl font-bold tracking-wide text-brand-ink">PDF</span>
+                  <span className="text-xs text-muted-foreground">Toca para ver</span>
                 </>
               ) : (
                 <Thumbnail receipt={receipt} />

@@ -50,22 +50,33 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
         </div>
       </div>
 
-      <h1 className="sr-only">
-        Servicio de {service.unit.economicNumber} del {formatDate(service.date)}
-      </h1>
-      <ServiceDetailView service={service} />
+      {/*
+        Pantallas anchas: ticket y comprobantes a la izquierda; la línea de cambios a
+        la derecha, fija al bajar y con su propio scroll, para verla al entrar.
+        Celular: una columna, como antes.
+      */}
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-8">
+        <div className="min-w-0">
+          <h1 className="sr-only">
+            Servicio de {service.unit.economicNumber} del {formatDate(service.date)}
+          </h1>
+          <ServiceDetailView service={service} />
 
-      <Suspense fallback={<ReceiptsSectionSkeleton />}>
-        <ReceiptsSection
-          serviceId={service.id}
-          title={`${service.unit.economicNumber} · ${formatDate(service.date)}`}
-          canEdit={canEdit}
-        />
-      </Suspense>
+          <Suspense fallback={<ReceiptsSectionSkeleton />}>
+            <ReceiptsSection
+              serviceId={service.id}
+              title={`${service.unit.economicNumber} · ${formatDate(service.date)}`}
+              canEdit={canEdit}
+            />
+          </Suspense>
+        </div>
 
-      <Suspense fallback={<ChangeHistorySkeleton />}>
-        <ChangeHistory serviceId={service.id} />
-      </Suspense>
+        <aside className="xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto xl:overscroll-contain">
+          <Suspense fallback={<ChangeHistorySkeleton className="mt-10 xl:mt-0" />}>
+            <ChangeHistory serviceId={service.id} className="mt-10 xl:mt-0 xl:rounded-xl xl:border xl:bg-white xl:p-5" />
+          </Suspense>
+        </aside>
+      </div>
     </>
   );
 }
