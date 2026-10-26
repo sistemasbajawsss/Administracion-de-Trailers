@@ -154,7 +154,9 @@ export function ReceiptPicker({
           size="touch"
           disabled={disabled || available <= 0}
           onClick={() => cameraInput.current?.click()}
-          className="sm:flex-1"
+          // La cámara directa (capture) solo existe en celulares y tablets; en una
+          // computadora el navegador abre el explorador de archivos, así que se oculta.
+          className="hidden sm:flex-1 pointer-coarse:inline-flex"
         >
           <Camera aria-hidden="true" />
           Tomar foto
