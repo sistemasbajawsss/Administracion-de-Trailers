@@ -101,3 +101,14 @@ export type UnitTotals = {
   expenseCount: number;
   lastServiceDate: string | null;
 };
+
+/** Servicio en las listas cortas de Inicio (pendientes y últimos capturados). */
+export type ServiceBrief = {
+  id: string;
+  date: string;
+  total: string;
+  economicNumber: string;
+  unitType: UnitType;
+  author: string | null;
+  receiptCount: number;
+};

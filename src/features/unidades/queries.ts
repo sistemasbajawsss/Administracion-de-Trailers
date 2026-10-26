@@ -103,3 +103,18 @@ export async function getUnit(id: string): Promise<UnitDetail | null> {
 
   return { ...toListItem(data), driverId: data.chofer_id, year: data.anio, vin: data.vin };
 }
+
+/** Unidades en taller ahora mismo (Inicio del admin y el gerente), en orden natural. */
+export async function listUnitsInShop(): Promise<UnitListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("unidades")
+    .select(LIST_COLUMNS)
+    .eq("estatus", "en_taller")
+    .order("tipo")
+    .order("numero_orden")
+    .returns<UnitRow[]>();
+
+  if (error) throw new Error("No se pudieron cargar las unidades en taller");
+  return data.map(toListItem);
+}
