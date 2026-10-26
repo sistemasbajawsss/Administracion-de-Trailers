@@ -7,10 +7,31 @@ import { useEffect, useRef, useState } from "react";
 const MAX_PIXEL_RATIO = 2;
 const MAX_PAGES = 20;
 
+type Pdfjs = typeof import("pdfjs-dist");
+let pdfjsReady: Promise<{ pdfjs: Pdfjs; worker: InstanceType<Pdfjs["PDFWorker"]> }> | null = null;
+
+/**
+ * Carga pdf.js y arranca su worker una sola vez por visita; se reutiliza en
+ * cada PDF que se abra. Se llama antes de tiempo (al acercarse a "Ver factura").
+ */
+export function loadPdfjs() {
+  pdfjsReady ??= import("pdfjs-dist")
+    .then((pdfjs) => {
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+      return { pdfjs, worker: new pdfjs.PDFWorker() };
+    })
+    .catch((error) => {
+      pdfjsReady = null;
+      throw error;
+    });
+  return pdfjsReady;
+}
+
 /**
  * PDF dibujado con pdf.js dentro del modal: funciona igual en Android, iPhone y
  * computadora (los navegadores de Android no muestran PDF incrustados).
- * pdf.js se descarga solo la primera vez que alguien abre un PDF.
+ * pdf.js se descarga solo la primera vez que alguien abre un PDF (o se acerca a
+ * "Ver factura"); el PDF se baja al mismo tiempo, no después.
  */
 export function PdfViewer({ url, title }: { url: string; title: string }) {
   const pagesRef = useRef<HTMLDivElement>(null);
@@ -26,16 +47,16 @@ export function PdfViewer({ url, title }: { url: string; title: string }) {
 
     (async () => {
       try {
-        const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
-
-        // Se baja con fetch (pasa por /comprobantes/[id] → URL firmada) y se le da a pdf.js.
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("download");
-        const data = new Uint8Array(await response.arrayBuffer());
+        // El PDF se baja con fetch (pasa por /comprobantes/[id] → URL firmada)
+        // mientras pdf.js termina de cargar.
+        const download = fetch(url).then(async (response) => {
+          if (!response.ok) throw new Error("download");
+          return new Uint8Array(await response.arrayBuffer());
+        });
+        const [{ pdfjs, worker }, data] = await Promise.all([loadPdfjs(), download]);
         if (cancelled) return;
 
-        const task = pdfjs.getDocument({ data });
+        const task = pdfjs.getDocument({ data, worker });
         destroy = () => void task.destroy();
         const pdf = await task.promise;
         if (cancelled) return;

@@ -499,6 +499,7 @@ export type Database = {
           numero_economico: string | null
           servicio_creado: string | null
           servicio_id: string | null
+          tiene_pdf: boolean | null
           tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
           unidad_id: string | null
         }
@@ -644,6 +645,7 @@ export type Database = {
           numero_economico: string | null
           servicio_creado: string | null
           servicio_id: string | null
+          tiene_pdf: boolean | null
           tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
           unidad_id: string | null
         }[]

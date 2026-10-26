@@ -36,6 +36,8 @@ export type ExpenseListItem = {
   /** Monto en texto exacto de la BD. */
   amount: string;
   receiptCount: number;
+  /** Algún comprobante es PDF (para adelantar la carga del visor). */
+  hasPdf: boolean;
   economicNumber: string | null;
 };
 

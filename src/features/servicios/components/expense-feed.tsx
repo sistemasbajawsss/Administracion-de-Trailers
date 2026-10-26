@@ -135,6 +135,7 @@ export function ExpenseFeed({
                 serviceId={item.serviceId}
                 title={`${item.economicNumber ?? "Unidad"} · ${formatDate(item.date)}`}
                 count={item.receiptCount}
+                hasPdf={item.hasPdf}
               />
             </span>
           </li>

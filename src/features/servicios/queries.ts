@@ -130,7 +130,7 @@ export async function listExpenses(query: ExpenseQuery, offset = 0): Promise<Exp
   const supabase = await createClient();
   const { data, error } = await supabase
     .rpc("listar_gastos", { ...expenseArgs(query), p_limite: EXPENSES_BATCH_SIZE, p_desde_renglon: offset })
-    .select("id, servicio_id, fecha, categoria, concepto, monto::text, num_comprobantes, numero_economico")
+    .select("id, servicio_id, fecha, categoria, concepto, monto::text, num_comprobantes, tiene_pdf, numero_economico")
     .returns<
       {
         id: string;
@@ -140,6 +140,7 @@ export async function listExpenses(query: ExpenseQuery, offset = 0): Promise<Exp
         concepto: string | null;
         monto: string;
         num_comprobantes: number;
+        tiene_pdf: boolean;
         numero_economico: string | null;
       }[]
     >();
@@ -153,6 +154,7 @@ export async function listExpenses(query: ExpenseQuery, offset = 0): Promise<Exp
     concept: row.concepto,
     amount: row.monto,
     receiptCount: row.num_comprobantes,
+    hasPdf: row.tiene_pdf,
     economicNumber: row.numero_economico,
   }));
 }

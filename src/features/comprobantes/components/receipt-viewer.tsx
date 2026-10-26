@@ -21,6 +21,11 @@ const PdfViewer = dynamic(() => import("./pdf-viewer").then((m) => m.PdfViewer),
   ),
 });
 
+/** Empieza a cargar el visor de PDF y pdf.js antes de que se toque el botón. */
+export function preloadPdfViewer() {
+  void import("./pdf-viewer").then((m) => m.loadPdfjs()).catch(() => {});
+}
+
 /** Toda petición pasa por /comprobantes/[id]: sesión + RLS + URL firmada de 60 s. */
 export const receiptFileUrl = (id: string, download = false) => `/comprobantes/${id}${download ? "?descargar=1" : ""}`;
 
