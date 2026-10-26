@@ -52,9 +52,9 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
       </div>
 
       {/*
-        Pantallas anchas: todo cabe en la ventana, sin scroll de página. Ticket a la
-        izquierda; comprobantes y línea de cambios a la derecha. Cada columna tiene su
-        propio scroll solo si el servicio tiene muchos gastos o cambios.
+        Pantallas anchas: todo cabe en la ventana, sin scroll de página. Ticket y,
+        debajo, comprobantes a la izquierda; línea de cambios a la derecha. Cada columna
+        tiene su propio scroll solo si el servicio tiene muchos gastos o cambios.
         (9.5rem = márgenes de la página + barra de Volver / Editar.)
         Celular: una columna, como antes.
       */}
@@ -64,17 +64,18 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
             Servicio de {service.unit.economicNumber} del {formatDate(service.date)}
           </h1>
           <ServiceDetailView service={service} />
-        </div>
 
-        <div className="min-w-0 xl:space-y-6 xl:overflow-y-auto xl:overscroll-contain">
-          <Suspense fallback={<ReceiptsSectionSkeleton className="mt-10 xl:mt-0" />}>
+          <Suspense fallback={<ReceiptsSectionSkeleton className="mt-10 xl:mt-6" />}>
             <ReceiptsSection
               serviceId={service.id}
               title={`${service.unit.economicNumber} · ${formatDate(service.date)}`}
               canEdit={canEdit}
-              className="mt-10 xl:mt-0 xl:rounded-xl xl:border xl:bg-white xl:p-5"
+              className="mt-10 xl:mt-6"
             />
           </Suspense>
+        </div>
+
+        <div className="min-w-0 xl:overflow-y-auto xl:overscroll-contain">
           <Suspense fallback={<ChangeHistorySkeleton className="mt-10 xl:mt-0" />}>
             <ChangeHistory serviceId={service.id} className="mt-10 xl:mt-0 xl:rounded-xl xl:border xl:bg-white xl:p-5" />
           </Suspense>
