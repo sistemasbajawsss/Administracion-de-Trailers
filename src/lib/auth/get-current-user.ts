@@ -5,15 +5,21 @@ import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 
-import type { CurrentUser, Role } from "./types";
+import { requiresMfa, type CurrentUser, type Role } from "./types";
+
+export type SessionUser = CurrentUser & {
+  /** La sesión ya pasó el segundo paso (aal2 en el JWT). */
+  mfaVerified: boolean;
+};
 
 /**
- * Único punto de lectura del usuario actual (Data Access Layer).
+ * Usuario con sesión, haya pasado o no el segundo paso. Solo para /verificacion;
+ * el resto de la app usa getCurrentUser().
  * Valida el JWT con getClaims() y toma nombre y rol de la tabla perfiles.
  * Sin sesión → /login. Perfil desactivado → /login?motivo=inactivo.
  * cache() evita repetir la consulta dentro de la misma petición.
  */
-export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
+export const getSessionUser = cache(async (): Promise<SessionUser> => {
   const supabase = await createClient();
 
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
@@ -40,7 +46,21 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     name: perfil.nombre,
     email: typeof claims.email === "string" ? claims.email : "",
     role: perfil.rol,
+    mfaVerified: claims.aal === "aal2",
   };
+});
+
+/**
+ * Único punto de lectura del usuario actual (Data Access Layer).
+ * Admin y gerente sin el segundo paso → /verificacion (D6). La base de datos
+ * tampoco les reconoce el rol hasta entonces.
+ */
+export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
+  const { mfaVerified, ...user } = await getSessionUser();
+  if (requiresMfa(user.role) && !mfaVerified) {
+    redirect("/verificacion");
+  }
+  return user;
 });
 
 /**
