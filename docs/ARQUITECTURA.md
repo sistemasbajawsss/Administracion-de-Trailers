@@ -74,7 +74,8 @@ La dirección permitida es: `app → features → components/shared → lib`.
   - Sí puede importar el `types.ts` de otro feature (tipos y etiquetas, p. ej. `UNIT_TYPE_LABELS`).
   - Componentes públicos a propósito: `catalogos/components/supplier-quick-add` (alta rápida de
     proveedor dentro del formulario de servicio), `comprobantes/components/receipt-picker` y
-    `comprobantes/components/upload-receipts` (elegir y subir comprobantes en el servicio nuevo).
+    `comprobantes/components/upload-receipts` (elegir y subir comprobantes en el servicio nuevo),
+    `comprobantes/components/view-receipts-button` ("Ver factura" en la lista de gastos).
   - Nunca `queries.ts` ni `actions.ts` de otro feature: eso lo compone la página en `app/`.
 - `lib/` no importa de `features/` ni de `app/`.
 - `components/ui/` no conoce nada del negocio.
@@ -132,6 +133,7 @@ Para ver un archivo, la app nunca guarda URLs firmadas: enlaza a `/comprobantes/
 | Archivos | Navegador → Supabase Storage | Ver "Excepción: subida de comprobantes". |
 
 - NO crear endpoints `/api/*` para que la propia app lea o escriba datos.
+- Excepción, lecturas que pide el navegador después de cargar la página: la siguiente tanda del scroll infinito (`servicios/actions.ts › loadMoreExpenses`) y los comprobantes al abrir el visor (`comprobantes/actions.ts › getServiceReceipts`). Son Server Actions que solo llaman a `queries.ts` con la sesión del usuario (RLS aplica) y validan su entrada con Zod.
 - NO consultar Supabase desde el navegador (`lib/supabase/client.ts`) salvo para Storage o algo que realmente lo requiera.
 - La cookie de sesión es `httpOnly`: el navegador no tiene sesión de Supabase. Lo que haga desde ahí (subir comprobantes) usa URLs firmadas que genera una Server Action.
 

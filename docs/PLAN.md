@@ -147,6 +147,19 @@ Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca prote
 - Un archivo que no es PDF ni imagen aunque tenga esa extensión se rechaza.
 - Eliminar y restaurar un servicio conserva sus comprobantes; eliminarlo para siempre borra los archivos.
 
+### 3B — Lista de gastos (pedida por el usuario el 2026-10-26)
+**Alcance**
+- En la ficha de la unidad y en Servicios (incluye "Mis servicios"): un renglón por gasto con fecha, categoría (y concepto), monto y botón "Ver factura". En Servicios también la unidad.
+- Buscador por categoría o concepto, rango de fechas y, en Servicios, número económico; todo en la URL. Total y número de gastos de lo filtrado, sumados en la BD.
+- La lista vive en un cuadro con su propio scroll (unos 10 renglones visibles) y carga tandas de 25 al acercarse al fondo.
+- "Ver factura" abre un modal sin salir de la página: fotos y PDF (pdf.js, se descarga solo al abrir un PDF; funciona en Android). Varios comprobantes: anterior / siguiente. El detalle del servicio usa el mismo visor.
+- BD: vista `gastos_detalle` y funciones `listar_gastos()` / `resumen_gastos()` (security invoker, filtros en SQL sin comodines del usuario).
+
+**Terminado cuando**
+- Con más de 25 gastos, el scroll del cuadro carga el resto sin repetir ni saltar renglones.
+- El total filtrado cuadra con la suma en la BD; el capturista solo ve lo suyo.
+- Un PDF se ve dentro del modal en un celular Android.
+
 ## Sección 4 — Dashboard y reportes (solo admin)
 **Alcance**
 - Total invertido por unidad, por tipo de unidad, por operación (local / foráneo), por categoría, por proveedor y por mes, con filtros de rango de fechas.
