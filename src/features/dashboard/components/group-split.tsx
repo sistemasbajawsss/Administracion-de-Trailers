@@ -41,14 +41,14 @@ export function GroupSplit({ byGroup, total }: { byGroup: Report["byGroup"]; tot
             />
           ))}
       </div>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+      <ul className="mt-4 space-y-2.5">
         {parts.map((part) => (
-          <li key={part.group} className="flex items-start gap-2">
-            <span className="mt-1.5 size-3 shrink-0 rounded-sm" style={{ backgroundColor: GROUP_COLORS[part.group] }} aria-hidden="true" />
-            <span>
-              <span className="block font-medium">{GROUP_LABELS[part.group]}</span>
-              <span className="block tabular-nums">{formatMoney(part.total)}</span>
-              <span className="block text-sm text-muted-foreground">{percent.format(part.cents / grand)} del total</span>
+          <li key={part.group} className="flex items-center gap-2.5">
+            <span className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: GROUP_COLORS[part.group] }} aria-hidden="true" />
+            <span className="min-w-0 flex-1 font-medium">{GROUP_LABELS[part.group]}</span>
+            <span className="shrink-0 text-right tabular-nums">
+              <span className="font-semibold">{formatMoney(part.total)}</span>
+              <span className="ml-2 inline-block w-12 text-sm text-muted-foreground">{percent.format(part.cents / grand)}</span>
             </span>
           </li>
         ))}
