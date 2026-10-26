@@ -147,6 +147,57 @@ export type Database = {
         }
         Relationships: []
       }
+      comprobantes: {
+        Row: {
+          created_at: string
+          created_by: string
+          hash_sha256: string
+          id: string
+          nombre_archivo: string
+          ruta_archivo: string
+          servicio_id: string
+          tamano_bytes: number
+          tipo_mime: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          hash_sha256: string
+          id?: string
+          nombre_archivo: string
+          ruta_archivo: string
+          servicio_id: string
+          tamano_bytes: number
+          tipo_mime: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          hash_sha256?: string
+          id?: string
+          nombre_archivo?: string
+          ruta_archivo?: string
+          servicio_id?: string
+          tamano_bytes?: number
+          tipo_mime?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprobantes_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprobantes_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos: {
         Row: {
           categoria_id: string
@@ -499,17 +550,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      archivo_comprobante_en_uso: { Args: { p_ruta: string }; Returns: boolean }
+      buscar_comprobante_duplicado: {
+        Args: { p_hash: string }
+        Returns: {
+          fecha: string
+          numero_economico: string
+          puede_ver: boolean
+          servicio_id: string
+        }[]
+      }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
         Returns: undefined
       }
       eliminar_servicio_definitivo: {
         Args: { p_confirmacion: string; p_historial_id: number }
-        Returns: undefined
+        Returns: string[]
       }
       eliminar_unidad: {
         Args: { p_confirmacion: string; p_unidad_id: string }
-        Returns: undefined
+        Returns: string[]
       }
       es_admin: { Args: never; Returns: boolean }
       prefijo_tipo_unidad: {
@@ -518,6 +579,10 @@ export type Database = {
       }
       puede_capturar: { Args: never; Returns: boolean }
       puede_ver_todo: { Args: never; Returns: boolean }
+      quitar_comprobante: {
+        Args: { p_comprobante_id: string; p_motivo: string }
+        Returns: string
+      }
       registrar_servicio: {
         Args: {
           p_descripcion: string
