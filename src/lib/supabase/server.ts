@@ -6,6 +6,7 @@ import { connection } from "next/server";
 
 import { getSupabaseEnv } from "@/lib/env";
 
+import { SESSION_COOKIE_OPTIONS } from "./cookie-options";
 import type { Database } from "./database.types";
 
 /**
@@ -22,6 +23,7 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(url, publishableKey, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return cookieStore.getAll();
