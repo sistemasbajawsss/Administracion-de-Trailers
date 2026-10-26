@@ -3,7 +3,17 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 5 — Extras (opcional)** · 5A (usuarios) cerrada; siguientes extras por decidir. Antes de producción: borrar datos de prueba, ajustes de Supabase, deploy en Vercel y prueba de carga.
+**Pausa (2026-10-26).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4 y 5A, todo en `main` y en GitHub. Siguiente paso propuesto: **salir a producción** (el usuario aún no lo aprueba; retomar presentándolo).
+
+### Próximos pasos para retomar
+1. **Preparar el deploy (lo hace Claude):** revisar que la configuración sirva en Vercel (región `pdx1` igual que Supabase, variables de entorno, build) y dejar una guía paso a paso en `docs/`.
+2. **Vercel (lo hace el usuario):** conectar el repositorio de GitHub; variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SERVICE_ROLE_KEY` (secreta); plan Pro (Hobby no permite uso comercial) con límite de gasto.
+3. **Dominio:** `flotilla.bajaws.com.mx` en Cloudflare apuntando a Vercel, SSL en Full (strict). Claude pasa el registro DNS exacto.
+4. **Supabase:** Site URL / Redirect URLs con el dominio; activar contraseñas filtradas, política de contraseñas, cierre por inactividad, Enforce SSL y confirmar Spend cap (lista en "Seguridad").
+5. **Prueba de carga** (~1,000 servicios por unidad, en transacción sin commit) contra la base real.
+6. **Limpieza:** borrar los 700 servicios `[PRUEBA]` con sus gastos, historial y PDF en Storage (~970 MB).
+7. **Arranque:** crear el gerente y los capturistas reales en Admin → Usuarios.
+8. **Extras después de arrancar** (por decidir): mantenimientos preventivos con alertas; bitácora de catálogos y usuarios.
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
