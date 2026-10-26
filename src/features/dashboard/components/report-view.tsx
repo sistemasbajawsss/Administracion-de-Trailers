@@ -11,6 +11,7 @@ import { GROUP_LABELS, monthLongLabel, type ReportFilters, type ResolvedPeriod }
 import { GroupSplit } from "./group-split";
 import { KpiRow } from "./kpi-row";
 import { MonthlyChartLoader } from "./monthly-chart-loader";
+import { PrintMonthlyBars } from "./print-monthly-bars";
 import { RankedBars } from "./ranked-bars";
 
 function Panel({ title, description, children, className = "" }: {
@@ -20,7 +21,7 @@ function Panel({ title, description, children, className = "" }: {
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border bg-white p-5 print:break-inside-avoid ${className}`}>
+    <section className={`rounded-xl border bg-white p-5 print:break-inside-avoid print:p-3 ${className}`}>
       <h2 className="font-heading text-xl font-semibold">{title}</h2>
       {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       <div className="mt-4">{children}</div>
@@ -71,13 +72,28 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
   }));
 
   return (
-    <div className="space-y-6 print:space-y-4">
+    <div className="space-y-6 print:space-y-3">
       <PrintHeader period={period} filters={filters} />
       <KpiRow report={report} periodLabel={period.label} />
 
-      <div className="grid gap-6 lg:grid-cols-3 print:grid-cols-3 print:gap-4">
-        <Panel title="Gasto por mes" description={range} className="lg:col-span-2 print:col-span-2">
-          <MonthlyChartLoader data={months} />
+      {/*
+        Una cuadrícula de 6 columnas para todo; cada tarjeta dice cuánto ocupa:
+        - Pantalla ancha: mes 4 + grupos 2 / categorías 3 + unidades 3 / proveedores 6.
+        - Hoja vertical: mes 6 / grupos 3 + proveedores 3 / categorías 3 + unidades 3.
+        - Hoja horizontal: mes 4 + grupos 2 (hoja 1) / categorías, unidades y proveedores 2 + 2 + 2 (hoja 2).
+      */}
+      <div className="grid gap-6 lg:grid-cols-6 print:grid-cols-6 print:gap-3">
+        <Panel
+          title="Gasto por mes"
+          description={range}
+          className="lg:col-span-4 print:order-1 print:portrait:col-span-6 print:landscape:col-span-4"
+        >
+          <div className="print:hidden">
+            <MonthlyChartLoader data={months} />
+          </div>
+          <div className="hidden print:block">
+            <PrintMonthlyBars months={months} />
+          </div>
           <details className="mt-3 text-sm print:hidden">
             <summary className="inline-flex min-h-11 cursor-pointer items-center font-medium text-muted-foreground hover:text-foreground">
               Ver como tabla
@@ -103,19 +119,25 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
           </details>
         </Panel>
 
-        <Panel title="Por grupo y tipo" description="Parte del total.">
+        <Panel
+          title="Por grupo y tipo"
+          description="Parte del total."
+          className="lg:col-span-2 print:order-2 print:portrait:col-span-3 print:landscape:col-span-2"
+        >
           <GroupSplit byGroup={report.byGroup} total={report.total} />
-          <div className="mt-5 border-t pt-5">
+          <div className="mt-5 border-t pt-5 print:mt-3 print:pt-3">
             <RankedBars
               grandTotal={report.total}
               items={report.byType.map((t) => ({ key: t.type, label: UNIT_TYPE_LABELS[t.type], total: t.total }))}
             />
           </div>
         </Panel>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
-        <Panel title="Por categoría" description="En qué se va el dinero.">
+        <Panel
+          title="Por categoría"
+          description="En qué se va el dinero."
+          className="lg:col-span-3 print:order-4 print:col-span-3 print:landscape:order-3 print:landscape:col-span-2 print:landscape:break-before-page"
+        >
           <RankedBars
             grandTotal={report.total}
             limit={8}
@@ -128,7 +150,11 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
           />
         </Panel>
 
-        <Panel title="Unidades con más gasto" description="Toca una para ver su ficha.">
+        <Panel
+          title="Unidades con más gasto"
+          description="Toca una para ver su ficha."
+          className="lg:col-span-3 print:order-5 print:col-span-3 print:landscape:order-4 print:landscape:col-span-2"
+        >
           <RankedBars
             grandTotal={report.total}
             limit={8}
@@ -141,20 +167,24 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
             }))}
           />
         </Panel>
-      </div>
 
-      <Panel title="Proveedores y talleres" description="Dónde se hacen los servicios.">
-        <RankedBars
-          grandTotal={report.total}
-          columns={2}
-          items={report.bySupplier.map((p) => ({
-            key: p.id ?? "sin-proveedor",
-            label: p.name,
-            detail: plural(p.services, "servicio", "servicios"),
-            total: p.total,
-          }))}
-        />
-      </Panel>
+        <Panel
+          title="Proveedores y talleres"
+          description="Dónde se hacen los servicios."
+          className="lg:col-span-6 print:order-3 print:portrait:col-span-3 print:landscape:order-5 print:landscape:col-span-2"
+        >
+          <RankedBars
+            grandTotal={report.total}
+            columns={2}
+            items={report.bySupplier.map((p) => ({
+              key: p.id ?? "sin-proveedor",
+              label: p.name,
+              detail: plural(p.services, "servicio", "servicios"),
+              total: p.total,
+            }))}
+          />
+        </Panel>
+      </div>
     </div>
   );
 }

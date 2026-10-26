@@ -153,12 +153,16 @@
 @utility brand-stripe {
   background-image: var(--brand-stripe);
 }
-/* Impresión (Reportes → "Imprimir o guardar PDF"): hoja carta, fondo blanco y
-   los colores de las gráficas y del total, que el navegador omite por defecto. */
+/* Impresión (Reportes → "Imprimir o guardar PDF"). Sin `size` en @page: con
+   él, Chrome bloquea la orientación y no se podría elegir vertical u horizontal.
+   La letra base baja a 11 px: todo lo que se mide en rem se reduce parejo y cabe
+   más por hoja. Los colores de las gráficas y del total se imprimen tal cual. */
 @media print {
   @page {
-    size: letter;
-    margin: 12mm;
+    margin: 10mm;
+  }
+  html {
+    font-size: 11px;
   }
   html,
   body {

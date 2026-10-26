@@ -90,7 +90,7 @@ function Rows({
         return (
           <li key={item.key}>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="min-w-0 truncate">
+              <span className="min-w-0 truncate print:whitespace-normal">
                 {label}
                 {item.detail && <span className="text-sm text-muted-foreground"> · {item.detail}</span>}
               </span>
