@@ -3,7 +3,7 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 2.5 — Seguridad** · Estado: en curso · Rama: `seccion-2-5-seguridad`. Después sigue la Sección 3 — Comprobantes.
+**Sección 3 — Comprobantes** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-3-comprobantes` (por crear)
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -32,7 +32,7 @@
 - Registro público deshabilitado en Supabase Auth (verificado `disable_signup=true`).
 - Usuarios: `sistemas@bajaws.com.mx` (admin) y `capturista@bajaws.com.mx` (capturista). Se crean en Authentication → Users con "Auto Confirm User"; el rol admin se asigna actualizando `perfiles`.
 - Windows: la política de ejecución de PowerShell del usuario es `RemoteSigned` (para `npm` / `npx`). El CLI de Supabase detecta a Claude Code como agente: los comandos interactivos (`login`, `link`) se ejecutan en una ventana de CMD aparte con `--agent no`.
-- No correr `npm run build` con `npm run dev` encendido: ambos escriben en `.next` y las Server Actions nuevas fallan en dev. Con el servidor encendido se verifica con `npx tsc --noEmit` y `npm run lint`. El proyecto está en OneDrive, que llegó a bloquear archivos de `.next` (EPERM); conviene excluir `.next` y `node_modules` de la sincronización.
+- No correr `npm run build` con `npm run dev` encendido: ambos escriben en `.next` y las Server Actions nuevas fallan en dev. Con el servidor encendido se verifica con `npx tsc --noEmit` y `npm run lint`; el build completo se corre en un worktree aparte (`git worktree add` en la carpeta temporal + `npm ci`, un `node_modules` enlazado no sirve con Turbopack). Para saber si el dev está encendido, revisar el puerto 3000 desde PowerShell (`netstat` en Git Bash no lo detectó). Si dev muestra "Jest worker encountered … child process exceptions", detenerlo, borrar `.next` y volver a levantarlo. El proyecto está en OneDrive, que llegó a bloquear archivos de `.next` (EPERM); conviene excluir `.next` y `node_modules` de la sincronización.
 - Un valor nuevo de enum va en su propia migración (no se puede usar en la misma transacción); para aplicar solo esa, se aparta temporalmente la siguiente migración.
 - SQL de prueba contra la nube: `npx supabase db query --linked -f <archivo>` (vía Management API). Los ensayos de migraciones van dentro de `begin; … rollback;`.
 
@@ -50,7 +50,7 @@
 ## Existe actualmente
 - Tablas:
   - `perfiles` (RLS: cada usuario lee el suyo; admin lee y edita todos; nadie inserta ni borra directamente).
-  - `choferes`, `unidades`, `categorias`, `proveedores` (RLS: capturista lee activos / unidades que no están de baja; admin y gerente ven todo; solo admin crea y edita; admin y capturista crean proveedores; nadie borra salvo `eliminar_unidad()`).
+  - `choferes`, `unidades`, `categorias`, `proveedores` (RLS: leer exige tener rol; capturista lee activos / unidades que no están de baja; admin y gerente ven todo; solo admin crea y edita; admin y capturista crean proveedores; nadie borra salvo `eliminar_unidad()`).
   - `unidades.numero_orden`: columna generada con el número del económico, para ordenar `T-2` antes de `T-10`.
   - `categorias.requiere_concepto`: marca de "Otros (especificar)"; el gasto debe llevar concepto.
   - `servicios`, `gastos` (RLS: capturista ve y edita los suyos; admin todo; gerente solo lee todo; solo admin elimina). Escritura por funciones `registrar_servicio()`, `actualizar_servicio()` (motivo obligatorio) y `eliminar_servicio()` (motivo obligatorio).
@@ -65,10 +65,25 @@
   - Admin y capturista: `/servicios/nuevo` (`?unidad=` preselecciona), `/servicios/[id]/editar`.
   - Admin y gerente: `/unidades`, `/unidades/[id]` (ficha con total invertido), `/dashboard` (placeholder).
   - Solo admin: `/unidades/nueva`, `/unidades/[id]/editar`, `/servicios/eliminados`, `/admin/catalogos`, `/admin/usuarios` (placeholder).
-- Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`.
+- Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`, `lib/supabase/cookie-options.ts` (cookies httpOnly). Encabezados de seguridad en `next.config.ts`.
 - Buckets: —
 
 ## Historial de secciones
+
+### Sección 2.5 — Seguridad (cerrada 2026-10-26)
+- Hecho:
+  - Encabezados de seguridad en todas las respuestas: CSP (sin dominios ajenos salvo Supabase), HSTS de 2 años, `X-Frame-Options: DENY` / `frame-ancestors none`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` (cámara solo para la app); sin `X-Powered-By`.
+  - Cookies de sesión `httpOnly`, `secure` en producción y `sameSite=lax`.
+  - Las políticas de lectura de choferes, unidades, categorías y proveedores exigen tener rol: un usuario desactivado con token vigente ya no ve nada.
+  - `npm audit`: 0 vulnerabilidades.
+  - Verificación en dos pasos (TOTP) para admin y gerente: se implementó, se probó en RLS y el usuario decidió quitarla (D6). Se revirtió el código y una migración nueva regresó `rol_actual()`; no quedó ningún factor dado de alta.
+- Tablas / migraciones nuevas: `20261026184334_verificacion_dos_pasos.sql` (segundo paso + lecturas con rol), `20261026204626_quitar_verificacion_dos_pasos.sql` (quita el segundo paso; se quedan las lecturas con rol).
+- Rutas nuevas: ninguna (`/verificacion` se creó y se quitó).
+- Verificado: build (en worktree aparte), lint y `tsc` sin errores; tipos regenerados; cada migración ensayada en transacción sin commit con admin, capturista, gerente simulado y capturista desactivado; encabezados revisados con `curl`; sin sesión todo redirige a `/login`; el usuario probó la app en el navegador.
+- Pendientes que pasan a la siguiente sección:
+  - Ajustes del dashboard de Supabase de la sección "Seguridad" de este archivo (los hace el usuario).
+  - La CSP se amplía en la Sección 3 para el visor y la compresión de comprobantes, sin comodines.
+  - Crear el usuario gerente y probar esa vista (viene de la Sección 2).
 
 ### Sección 2 — Servicios y gastos (cerrada 2026-10-23)
 - Hecho:
