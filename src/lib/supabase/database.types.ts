@@ -702,6 +702,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      listar_usuarios: {
+        Args: never
+        Returns: {
+          activo: boolean
+          correo: string
+          created_at: string
+          id: string
+          nombre: string
+          rol: Database["public"]["Enums"]["rol_usuario"]
+          ultimo_acceso: string
+        }[]
+      }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
       prefijo_tipo_unidad: {

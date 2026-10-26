@@ -1,19 +1,35 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
-import { RequireRole } from "@/features/auth/components/require-role";
+import { UsersView } from "@/features/usuarios/components/users-view";
+import { listUsers } from "@/features/usuarios/queries";
+import { requireRole } from "@/lib/auth/get-current-user";
 
 export const metadata: Metadata = { title: "Usuarios" };
 
+async function Users() {
+  const user = await requireRole("admin");
+  const users = await listUsers();
+  return <UsersView users={users} currentUserId={user.id} />;
+}
+
+function UsersSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Cargando usuarios">
+      <div className="mb-4 h-11 w-80 max-w-full animate-pulse rounded-md bg-muted" />
+      <div className="h-64 animate-pulse rounded-xl bg-muted" />
+    </div>
+  );
+}
+
 export default function UsuariosPage() {
   return (
-    <RequireRole role="admin">
+    <>
       <PageHeader title="Usuarios" description="Personas con acceso al sistema y su rol." />
-      <EmptyState
-        title="Gestión de usuarios pendiente"
-        description="Por ahora los usuarios se crean directamente en Supabase."
-      />
-    </RequireRole>
+      <Suspense fallback={<UsersSkeleton />}>
+        <Users />
+      </Suspense>
+    </>
   );
 }

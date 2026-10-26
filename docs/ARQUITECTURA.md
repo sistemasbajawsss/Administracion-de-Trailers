@@ -31,6 +31,7 @@ src/
 │   ├── catalogos/               # categorías y proveedores
 │   ├── servicios/               # servicios y sus gastos
 │   ├── comprobantes/
+│   ├── usuarios/                # alta, rol, desactivar, contraseña (solo admin)
 │   └── dashboard/
 │       ├── components/          # Componentes propios del feature
 │       ├── queries.ts           # Lecturas (solo servidor)
@@ -50,6 +51,7 @@ src/
 │   │   ├── proxy.ts             # Refresco de sesión
 │   │   ├── cookie-options.ts    # Cookies de sesión httpOnly / secure
 │   │   ├── storage.ts           # Bucket de comprobantes y borrado de archivos
+│   │   ├── admin.ts             # Cliente service_role (server-only): Auth Admin API para usuarios
 │   │   └── database.types.ts    # GENERADO. Nunca editar a mano
 │   ├── auth/                    # getCurrentUser(), requireRole()
 │   ├── env.ts                   # Variables de entorno validadas con Zod

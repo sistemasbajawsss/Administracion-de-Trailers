@@ -175,6 +175,20 @@ Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca prote
 - Las gráficas se leen bien en el celular.
 
 ## Sección 5 — Extras (opcional)
+
+### 5A — Gestión de usuarios (aprobada 2026-10-26)
+**Alcance**
+- `/admin/usuarios` (solo admin): lista con nombre, correo, rol, activo y último acceso, con buscador.
+- Nuevo usuario: correo, nombre, rol y contraseña inicial (escrita o generada por la app y mostrada una sola vez). Sin correo de invitación: el correo de fábrica de Supabase tiene límite bajo y cae en spam.
+- Editar nombre y rol; desactivar o reactivar; restablecer contraseña.
+- Protecciones en la BD: nadie se quita a sí mismo el rol de admin ni se desactiva, y siempre queda al menos un admin activo.
+- La llave `service_role` solo en el servidor (`SUPABASE_SERVICE_ROLE_KEY` en `.env.local` y en Vercel), en `lib/supabase/admin.ts` con `server-only`.
+
+**Terminado cuando**
+- Un admin crea un usuario de cada rol y ese usuario entra con la contraseña inicial.
+- Un capturista o gerente no puede ver la lista ni crear, editar o desactivar usuarios, ni por API directa.
+- No se puede dejar el sistema sin admin activo.
+
+### Otros extras (por decidir)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.
 - Bitácora de auditoría para el resto de las tablas (catálogos y usuarios). Servicios y gastos ya la tienen desde la Sección 2.
-- Gestión de usuarios desde la interfaz (invitar, desactivar, cambiar rol).
