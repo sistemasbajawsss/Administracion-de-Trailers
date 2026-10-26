@@ -77,7 +77,10 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
           <Suspense fallback={<ChangeHistorySkeleton className="mt-10 xl:mt-0" />}>
             <ChangeHistory
               serviceId={service.id}
-              className="mt-10 xl:mt-0 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto xl:overscroll-contain xl:rounded-xl xl:border xl:bg-white xl:p-5"
+              // 9rem = margen de arriba de la página (2.5) + barra de Volver / Editar (3) +
+              // su separación (1) + margen de abajo (2.5): la tarjeta termina justo en el
+              // borde de la ventana y lo que se desliza son los cambios, no la página.
+              className="mt-10 xl:mt-0 xl:max-h-[calc(100dvh-9rem)] xl:overflow-y-auto xl:overscroll-contain xl:rounded-xl xl:border xl:bg-white xl:p-5 xl:[scrollbar-gutter:stable]"
             />
           </Suspense>
         </aside>
