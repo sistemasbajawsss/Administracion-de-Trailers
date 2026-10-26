@@ -3,16 +3,18 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
-import { requireRole } from "@/lib/auth/get-current-user";
+import { getCurrentUser, requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 import { RECEIPTS_BUCKET, removeReceiptFiles } from "@/lib/supabase/storage";
 import { MAX_RECEIPT_BYTES, detectFileType, extensionFor, type ReceiptMimeType } from "@/lib/utils/files";
 
+import { listReceipts } from "./queries";
 import { duplicateCheckSchema, receiptRegisterSchema, receiptUploadSchema, removeReceiptSchema } from "./schemas";
-import type { DuplicateReceipt, ReceiptUploadTicket } from "./types";
+import type { DuplicateReceipt, Receipt, ReceiptUploadTicket } from "./types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -158,4 +160,21 @@ export async function removeReceipt(receiptId: string, serviceId: string, input:
   await removeReceiptFiles(supabase, [path]);
   revalidateService(serviceId);
   return ok();
+}
+
+/**
+ * Comprobantes de un servicio para el visor ("Ver factura"). Es una lectura: se
+ * pide al abrir el modal para no cargar los de toda la lista. RLS aplica.
+ */
+export async function getServiceReceipts(serviceId: unknown): Promise<ActionResult<Receipt[]>> {
+  const parsed = z.uuid().safeParse(serviceId);
+  if (!parsed.success) return fail("No se encontró el servicio.");
+
+  await getCurrentUser();
+
+  try {
+    return ok(await listReceipts(parsed.data));
+  } catch {
+    return fail("No se pudieron cargar los comprobantes. Inténtalo de nuevo.");
+  }
 }

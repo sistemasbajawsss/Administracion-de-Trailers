@@ -56,7 +56,11 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
       <ServiceDetailView service={service} />
 
       <Suspense fallback={<ReceiptsSectionSkeleton />}>
-        <ReceiptsSection serviceId={service.id} canEdit={canEdit} />
+        <ReceiptsSection
+          serviceId={service.id}
+          title={`${service.unit.economicNumber} · ${formatDate(service.date)}`}
+          canEdit={canEdit}
+        />
       </Suspense>
 
       <Suspense fallback={<ChangeHistorySkeleton />}>

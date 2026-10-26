@@ -75,8 +75,10 @@ export const purgeServiceSchema = z.object({
   confirmation: z.literal(PURGE_SERVICE_PHRASE, `Escribe ${PURGE_SERVICE_PHRASE} para confirmar`),
 });
 
+/** Filtros de la lista de gastos (en la URL). q: número económico; buscar: categoría o concepto. */
 export const serviceFiltersSchema = z.object({
   q: z.string().trim().max(20).catch(""),
+  buscar: z.string().trim().max(60).catch(""),
   desde: z.string().regex(DATE_PATTERN).optional().catch(undefined),
   hasta: z.string().regex(DATE_PATTERN).optional().catch(undefined),
   pagina: z.coerce.number().int().min(1).catch(1),

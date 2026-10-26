@@ -8,7 +8,8 @@ import { z } from "zod";
 import { BackButton } from "@/components/shared/back-button";
 import { buttonVariants } from "@/components/ui/button";
 import { RequireRole } from "@/features/auth/components/require-role";
-import { ServiceList, ServiceListSkeleton } from "@/features/servicios/components/service-list";
+import { ExpenseList, ExpenseListSkeleton } from "@/features/servicios/components/expense-list";
+import { ServiceFilters } from "@/features/servicios/components/service-filters";
 import { getUnitTotals } from "@/features/servicios/queries";
 import { serviceFiltersSchema } from "@/features/servicios/schemas";
 import { DeleteUnitZone } from "@/features/unidades/components/delete-unit-zone";
@@ -89,9 +90,10 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
         </div>
       </dl>
 
-      <h2 className="mb-4 text-2xl font-semibold">Historial de servicios</h2>
-      <Suspense fallback={<ServiceListSkeleton />}>
-        <ServiceList filters={{ ...filters, q: "", desde: undefined, hasta: undefined }} unitId={unit.id} pathname={`/unidades/${unit.id}`} />
+      <h2 className="mb-4 text-2xl font-semibold">Gastos</h2>
+      <ServiceFilters unitSearch={false} />
+      <Suspense fallback={<ExpenseListSkeleton />}>
+        <ExpenseList filters={filters} unitId={unit.id} />
       </Suspense>
 
       {isAdmin && (

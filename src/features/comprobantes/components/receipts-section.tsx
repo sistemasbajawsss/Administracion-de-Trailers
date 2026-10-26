@@ -6,7 +6,16 @@ import { ReceiptGallery } from "./receipt-gallery";
 import { ReceiptUploader } from "./receipt-uploader";
 
 /** Comprobantes en el detalle del servicio: ver todos, y agregar o quitar si se puede editar. */
-export async function ReceiptsSection({ serviceId, canEdit }: { serviceId: string; canEdit: boolean }) {
+export async function ReceiptsSection({
+  serviceId,
+  title,
+  canEdit,
+}: {
+  serviceId: string;
+  /** "T-17 · 12/10/2026" (título del visor). */
+  title: string;
+  canEdit: boolean;
+}) {
   const receipts = await listReceipts(serviceId);
 
   return (
@@ -17,7 +26,7 @@ export async function ReceiptsSection({ serviceId, canEdit }: { serviceId: strin
       </h2>
 
       {receipts.length > 0 ? (
-        <ReceiptGallery receipts={receipts} serviceId={serviceId} canEdit={canEdit} />
+        <ReceiptGallery receipts={receipts} serviceId={serviceId} title={title} canEdit={canEdit} />
       ) : (
         <p className="mb-4 text-muted-foreground">
           {canEdit ? "Este servicio no tiene comprobante. Toma una foto del ticket o sube el PDF." : "Sin comprobantes."}

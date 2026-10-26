@@ -8,6 +8,8 @@ import { formatDate, formatKm, formatMoney, toCents } from "@/lib/utils/format";
 import type { ServiceFilters } from "./schemas";
 import type {
   DeletedService,
+  ExpenseListItem,
+  ExpenseSummary,
   FieldChange,
   HistoryChange,
   HistoryEntry,
@@ -16,8 +18,6 @@ import type {
   UnitOption,
   UnitTotals,
 } from "./types";
-
-export const SERVICES_PAGE_SIZE = 20;
 
 // Los montos se piden como texto (::text) para no convertirlos a float.
 const LIST_COLUMNS =
@@ -45,32 +45,6 @@ function toListItem(row: ServiceRow): ServiceListItem {
     unit: { id: row.unidad.id, economicNumber: row.unidad.numero_economico, type: row.unidad.tipo },
     supplierName: row.proveedor?.nombre ?? null,
   };
-}
-
-/**
- * Servicios paginados, más recientes primero. RLS decide el alcance:
- * el capturista solo recibe los suyos; el admin, todos.
- */
-export async function listServices(filters: ServiceFilters & { unitId?: string }) {
-  const supabase = await createClient();
-  const from = (filters.pagina - 1) * SERVICES_PAGE_SIZE;
-
-  let query = supabase
-    .from("servicios_resumen")
-    .select(LIST_COLUMNS, { count: "exact" })
-    .order("fecha", { ascending: false })
-    .order("created_at", { ascending: false })
-    .range(from, from + SERVICES_PAGE_SIZE - 1);
-
-  if (filters.unitId) query = query.eq("unidad_id", filters.unitId);
-  if (filters.q) query = query.ilike("unidad.numero_economico", `%${filters.q}%`);
-  if (filters.desde) query = query.gte("fecha", filters.desde);
-  if (filters.hasta) query = query.lte("fecha", filters.hasta);
-
-  const { data, count, error } = await query.returns<ServiceRow[]>();
-  if (error) throw new Error("No se pudieron cargar los servicios");
-
-  return { services: data.map(toListItem), total: count ?? 0 };
 }
 
 export async function getService(id: string): Promise<ServiceDetail | null> {
@@ -124,6 +98,76 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
       amount: e.monto,
     })),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Lista de gastos (un renglón por gasto), por tandas
+// ---------------------------------------------------------------------------
+
+/** Renglones por tanda del scroll infinito. */
+export const EXPENSES_BATCH_SIZE = 25;
+
+export type ExpenseQuery = Pick<ServiceFilters, "q" | "buscar" | "desde" | "hasta"> & { unitId?: string };
+
+const nullable = <T,>(value: T | null | undefined) => (value ?? null) as T;
+
+/** Los filtros como argumentos de listar_gastos / resumen_gastos (todo filtra en SQL). */
+function expenseArgs(query: ExpenseQuery) {
+  return {
+    p_unidad_id: nullable(query.unitId),
+    p_numero: nullable(query.q || null),
+    p_busqueda: nullable(query.buscar || null),
+    p_desde: nullable(query.desde),
+    p_hasta: nullable(query.hasta),
+  };
+}
+
+/**
+ * Una tanda de gastos, del más reciente al más viejo. RLS decide el alcance
+ * (el capturista solo recibe los suyos).
+ */
+export async function listExpenses(query: ExpenseQuery, offset = 0): Promise<ExpenseListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("listar_gastos", { ...expenseArgs(query), p_limite: EXPENSES_BATCH_SIZE, p_desde_renglon: offset })
+    .select("id, servicio_id, fecha, categoria, concepto, monto::text, num_comprobantes, numero_economico")
+    .returns<
+      {
+        id: string;
+        servicio_id: string;
+        fecha: string;
+        categoria: string | null;
+        concepto: string | null;
+        monto: string;
+        num_comprobantes: number;
+        numero_economico: string | null;
+      }[]
+    >();
+
+  if (error) throw new Error("No se pudieron cargar los gastos");
+  return data.map((row) => ({
+    id: row.id,
+    serviceId: row.servicio_id,
+    date: row.fecha,
+    category: row.categoria ?? "Categoría",
+    concept: row.concepto,
+    amount: row.monto,
+    receiptCount: row.num_comprobantes,
+    economicNumber: row.numero_economico,
+  }));
+}
+
+/** Total y número de gastos con los mismos filtros de la lista. */
+export async function getExpenseSummary(query: ExpenseQuery): Promise<ExpenseSummary> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("resumen_gastos", expenseArgs(query))
+    .select("total::text, num_gastos")
+    .returns<{ total: string; num_gastos: number }[]>()
+    .single();
+
+  if (error) throw new Error("No se pudo calcular el total");
+  return { total: data.total, count: data.num_gastos };
 }
 
 /** Unidades para elegir en el formulario: todas menos las de baja, en orden natural. */

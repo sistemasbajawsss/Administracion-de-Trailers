@@ -1,64 +1,62 @@
 "use client";
 
-import { Download, ExternalLink, FileText, ImageOff, Trash2 } from "lucide-react";
+import { FileText, ImageOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { formatFileSize } from "@/lib/utils/files";
-import { formatDateTime } from "@/lib/utils/format";
 
 import type { Receipt } from "../types";
 
 import { RemoveReceiptDialog } from "./remove-receipt-dialog";
-
-/** Toda petición pasa por /comprobantes/[id]: sesión + RLS + URL firmada de 60 s. */
-const fileUrl = (id: string, download = false) => `/comprobantes/${id}${download ? "?descargar=1" : ""}`;
+import { ReceiptViewer, receiptFileUrl } from "./receipt-viewer";
 
 /**
- * Comprobantes del servicio: fotos en miniatura (se abren en grande) y PDF como
- * hoja (se abre en otra pestaña). Quitar solo si el usuario puede editar.
+ * Comprobantes del servicio: fotos en miniatura y PDF como hoja. Cualquiera se
+ * abre en el visor (modal) sin salir de la página. Quitar solo si se puede editar.
  */
 export function ReceiptGallery({
   receipts,
   serviceId,
+  title,
   canEdit,
 }: {
   receipts: Receipt[];
   serviceId: string;
+  /** "T-17 · 12/10/2026". */
+  title: string;
   canEdit: boolean;
 }) {
-  const [viewing, setViewing] = useState<Receipt | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [removing, setRemoving] = useState<Receipt | null>(null);
+  const tileClass =
+    "aspect-[4/5] overflow-hidden rounded-lg border outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
   return (
     <>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {receipts.map((receipt) => (
+        {receipts.map((receipt, index) => (
           <li key={receipt.id} className="flex flex-col">
-            {receipt.mimeType === "application/pdf" ? (
-              <a
-                href={fileUrl(receipt.id)}
-                target="_blank"
-                rel="noopener"
-                className="group flex aspect-[4/5] flex-col justify-between rounded-lg border bg-white p-3 shadow-[0_1px_0_var(--border),0_2px_0_var(--border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <FileText className="size-8 text-brand-ink" aria-hidden="true" />
-                <span className="font-heading text-3xl font-bold tracking-wide text-brand-ink">PDF</span>
-                <span className="flex items-center gap-1 text-sm text-muted-foreground group-hover:text-foreground">
-                  Abrir <ExternalLink className="size-3.5" aria-hidden="true" />
-                </span>
-              </a>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setViewing(receipt)}
-                className="aspect-[4/5] overflow-hidden rounded-lg border bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                aria-label={`Ver ${receipt.fileName}`}
-              >
+            <button
+              type="button"
+              onClick={() => setViewing(index)}
+              aria-label={`Ver ${receipt.fileName}`}
+              className={
+                receipt.mimeType === "application/pdf"
+                  ? `${tileClass} flex flex-col justify-between bg-white p-3 text-left shadow-[0_1px_0_var(--border),0_2px_0_var(--border)]`
+                  : `${tileClass} bg-muted`
+              }
+            >
+              {receipt.mimeType === "application/pdf" ? (
+                <>
+                  <FileText className="size-8 text-brand-ink" aria-hidden="true" />
+                  <span className="font-heading text-3xl font-bold tracking-wide text-brand-ink">PDF</span>
+                  <span className="text-sm text-muted-foreground">Toca para ver</span>
+                </>
+              ) : (
                 <Thumbnail receipt={receipt} />
-              </button>
-            )}
+              )}
+            </button>
             <p className="mt-2 truncate text-sm font-medium" title={receipt.fileName}>
               {receipt.fileName}
             </p>
@@ -79,35 +77,16 @@ export function ReceiptGallery({
         ))}
       </ul>
 
-      <Dialog open={Boolean(viewing)} onOpenChange={(open) => !open && setViewing(null)}>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-3xl">
-          {viewing && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="pr-8 font-heading text-xl break-all">{viewing.fileName}</DialogTitle>
-                <DialogDescription>Agregado el {formatDateTime(viewing.createdAt)}</DialogDescription>
-              </DialogHeader>
-              {/* La imagen viene de una URL firmada de Storage: next/image no aplica. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={fileUrl(viewing.id)}
-                alt={`Comprobante ${viewing.fileName}`}
-                className="mx-auto max-h-[65dvh] w-auto rounded-md bg-muted object-contain"
-              />
-              <DialogFooter className="flex-col gap-2 sm:flex-row">
-                <a href={fileUrl(viewing.id)} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "touch" })}>
-                  <ExternalLink aria-hidden="true" />
-                  Abrir en otra pestaña
-                </a>
-                <a href={fileUrl(viewing.id, true)} className={buttonVariants({ variant: "outline", size: "touch" })}>
-                  <Download aria-hidden="true" />
-                  Descargar
-                </a>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {viewing !== null && (
+        <ReceiptViewer
+          open
+          onOpenChange={(open) => !open && setViewing(null)}
+          serviceId={serviceId}
+          title={title}
+          receipts={receipts}
+          initialIndex={viewing}
+        />
+      )}
 
       {removing && (
         <RemoveReceiptDialog
@@ -136,7 +115,7 @@ function Thumbnail({ receipt }: { receipt: Receipt }) {
     // URL firmada de Storage detrás de /comprobantes/[id]: next/image no aplica.
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={fileUrl(receipt.id)}
+      src={receiptFileUrl(receipt.id)}
       alt=""
       loading="lazy"
       onError={() => setFailed(true)}
