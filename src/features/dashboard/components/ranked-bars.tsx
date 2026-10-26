@@ -41,19 +41,23 @@ export function RankedBars({
   const max = Math.max(...items.map((item) => toCents(item.total) ?? 0), 1);
   const visible = limit ? items.slice(0, limit) : items;
   const hidden = limit ? items.slice(limit) : [];
-  const listClass = columns === 2 ? "grid gap-x-10 gap-y-3 lg:grid-cols-2" : "space-y-3";
+  const listClass = columns === 2 ? "grid gap-x-10 gap-y-3 lg:grid-cols-2 print:grid-cols-2" : "space-y-3";
 
   return (
     <>
       <Rows items={visible} grand={grand} max={max} className={listClass} />
       {hidden.length > 0 && (
-        <details className="group mt-3">
+        <details className="group mt-3 print:hidden">
           <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-muted-foreground hover:text-foreground">
             <span className="group-open:hidden">Ver {hidden.length === 1 ? "la otra" : `las otras ${hidden.length}`}</span>
             <span className="hidden group-open:inline">Ver menos</span>
           </summary>
           <Rows items={hidden} grand={grand} max={max} className={`${listClass} mt-2`} start={visible.length + 1} />
         </details>
+      )}
+      {/* En papel no hay "Ver más": la lista sale completa. */}
+      {hidden.length > 0 && (
+        <Rows items={hidden} grand={grand} max={max} className={`${listClass} mt-3 hidden print:block`} start={visible.length + 1} />
       )}
     </>
   );

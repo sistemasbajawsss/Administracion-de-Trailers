@@ -1,8 +1,9 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
-import { formatDate, formatMoney, toCents } from "@/lib/utils/format";
+import { formatDate, formatDateTime, formatMoney, toCents } from "@/lib/utils/format";
 
 import { getReport } from "../queries";
 import { GROUP_LABELS, monthLongLabel, type ReportFilters, type ResolvedPeriod } from "../schemas";
@@ -19,11 +20,30 @@ function Panel({ title, description, children, className = "" }: {
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border bg-white p-5 ${className}`}>
+    <section className={`rounded-xl border bg-white p-5 print:break-inside-avoid ${className}`}>
       <h2 className="font-heading text-xl font-semibold">{title}</h2>
       {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+/** Encabezado que solo sale en papel / PDF: qué es, de cuándo y con qué filtros. */
+function PrintHeader({ period, filters }: { period: ResolvedPeriod; filters: ReportFilters }) {
+  const details = [
+    `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`,
+    filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos los grupos",
+    filters.tipo ? UNIT_TYPE_LABELS[filters.tipo] : "Todos los tipos",
+  ];
+  return (
+    <header className="hidden items-end justify-between gap-6 border-b-2 border-brand-ink pb-3 print:flex">
+      <div>
+        <p className="font-heading text-2xl font-bold">Reporte de gastos de la flotilla</p>
+        <p className="text-sm">{details.join(" · ")}</p>
+        <p className="text-xs text-muted-foreground">Generado el {formatDateTime(new Date().toISOString())}</p>
+      </div>
+      <Image src="/brand/logo.png" alt="Baja Wastewater Solutions" width={397} height={141} className="h-auto w-36" />
+    </header>
   );
 }
 
@@ -51,13 +71,14 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 print:space-y-4">
+      <PrintHeader period={period} filters={filters} />
       <KpiRow report={report} periodLabel={period.label} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title="Gasto por mes" description={range} className="lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-3 print:grid-cols-3 print:gap-4">
+        <Panel title="Gasto por mes" description={range} className="lg:col-span-2 print:col-span-2">
           <MonthlyChartLoader data={months} />
-          <details className="mt-3 text-sm">
+          <details className="mt-3 text-sm print:hidden">
             <summary className="inline-flex min-h-11 cursor-pointer items-center font-medium text-muted-foreground hover:text-foreground">
               Ver como tabla
             </summary>
@@ -93,7 +114,7 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
         </Panel>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
         <Panel title="Por categoría" description="En qué se va el dinero.">
           <RankedBars
             grandTotal={report.total}

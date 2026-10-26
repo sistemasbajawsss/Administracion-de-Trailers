@@ -34,7 +34,7 @@ export function KpiRow({ report, periodLabel }: { report: Report; periodLabel: s
   const perUnit = report.units ? Math.round(totalCents / report.units) : 0;
 
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-4 print:break-inside-avoid print:grid-cols-4">
       <div className="col-span-2 bg-brand-ink px-5 py-5 text-white">
         <dt className="text-sm text-white/75">Total invertido · {periodLabel}</dt>
         <dd>

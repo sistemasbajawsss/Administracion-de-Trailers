@@ -28,7 +28,9 @@ async function Report({ searchParams }: { searchParams: PageProps<"/dashboard">[
 export default function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   return (
     <RequireRole role={VIEW_ALL_ROLES}>
-      <PageHeader title="Reportes" description="Cuánto se invierte, en qué, en cuáles unidades y cuándo." />
+      <div className="print:hidden">
+        <PageHeader title="Reportes" description="Cuánto se invierte, en qué, en cuáles unidades y cuándo." />
+      </div>
       <Suspense fallback={<ReportViewSkeleton />}>
         <Report searchParams={searchParams} />
       </Suspense>

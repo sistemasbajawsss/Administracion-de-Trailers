@@ -11,6 +11,8 @@ import { UNIT_TYPES, UNIT_TYPE_LABELS } from "@/features/unidades/types";
 
 import { GROUPS, GROUP_LABELS, PERIOD_LABELS, type Period } from "../schemas";
 
+import { PrintButton } from "./print-button";
+
 const ALL = "todos";
 
 /**
@@ -43,7 +45,7 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
     }`;
 
   return (
-    <div className="mb-6 space-y-3">
+    <div className="mb-6 space-y-3 print:hidden">
       {/* Atajos de periodo: en el celular se desliza de lado. */}
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Periodo">
         {(Object.keys(PERIOD_LABELS) as Exclude<Period, "rango">[]).map((key) => (
@@ -130,13 +132,16 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
 
         {isPending && <LoaderCircle className="size-5 animate-spin self-center text-muted-foreground" aria-label="Actualizando" />}
 
-        <a
-          href={`/dashboard/exportar${exportParams.size ? `?${exportParams}` : ""}`}
-          className={`${buttonVariants({ variant: "outline", size: "touch" })} lg:ml-auto`}
-        >
-          <FileSpreadsheet aria-hidden="true" />
-          Exportar a Excel
-        </a>
+        <div className="flex flex-col gap-2 sm:flex-row lg:ml-auto">
+          <PrintButton />
+          <a
+            href={`/dashboard/exportar${exportParams.size ? `?${exportParams}` : ""}`}
+            className={buttonVariants({ variant: "outline", size: "touch" })}
+          >
+            <FileSpreadsheet aria-hidden="true" />
+            Exportar a Excel
+          </a>
+        </div>
       </div>
     </div>
   );
