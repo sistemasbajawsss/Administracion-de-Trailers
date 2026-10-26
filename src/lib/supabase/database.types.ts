@@ -536,6 +536,7 @@ export type Database = {
       }
       servicios_resumen: {
         Row: {
+          autor_nombre: string | null
           created_at: string | null
           created_by: string | null
           descripcion: string | null
@@ -543,6 +544,7 @@ export type Database = {
           fecha: string | null
           id: string | null
           kilometraje: number | null
+          num_comprobantes: number | null
           num_gastos: number | null
           proveedor_id: string | null
           total: number | null
@@ -700,6 +702,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
       prefijo_tipo_unidad: {
         Args: { tipo: Database["public"]["Enums"]["tipo_unidad"] }
