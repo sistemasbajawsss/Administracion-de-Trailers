@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import { HomeSummary, HomeSummarySkeleton } from "@/features/dashboard/components/home-summary";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 
 async function Welcome() {
@@ -14,19 +15,10 @@ async function Welcome() {
 
   return user.role !== "capturista" ? (
     <>
-      <PageHeader
-        title={`Hola, ${firstName}`}
-        description="Aquí verás cuánto se ha invertido en cada unidad."
-      />
-      <EmptyState
-        title="El resumen de gastos llega con los reportes"
-        description="Mientras tanto, consulta el total invertido en la ficha de cada unidad o la lista de servicios."
-        action={
-          <Link href="/unidades" className={cn(buttonVariants({ size: "touch" }), "w-full sm:w-auto")}>
-            Ver unidades
-          </Link>
-        }
-      />
+      <PageHeader title={`Hola, ${firstName}`} description="Así va el gasto de la flotilla este mes." />
+      <Suspense fallback={<HomeSummarySkeleton />}>
+        <HomeSummary />
+      </Suspense>
     </>
   ) : (
     <>
