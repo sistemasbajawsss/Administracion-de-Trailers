@@ -36,7 +36,7 @@ export async function AppNavigation({
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-sidebar lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-sidebar lg:flex print:hidden">
         <div className="px-5 pt-6 pb-8">
           <Logo className="h-auto w-40" />
         </div>
@@ -48,7 +48,7 @@ export async function AppNavigation({
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-white px-2 lg:hidden">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-white px-2 lg:hidden print:hidden">
         <MobileNav items={items} />
         <div className="flex flex-1 justify-center">
           <Logo className="h-auto w-28" />
@@ -64,8 +64,8 @@ export async function AppNavigation({
 export function AppNavigationFallback() {
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-sidebar lg:block" />
-      <header className="sticky top-0 h-16 border-b bg-white lg:hidden" />
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-sidebar lg:block print:hidden" />
+      <header className="sticky top-0 h-16 border-b bg-white lg:hidden print:hidden" />
     </>
   );
 }

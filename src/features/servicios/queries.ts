@@ -13,6 +13,7 @@ import type {
   FieldChange,
   HistoryChange,
   HistoryEntry,
+  ServiceBrief,
   ServiceDetail,
   ServiceListItem,
   UnitOption,
@@ -437,4 +438,63 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
     }
   }
   return entries;
+}
+
+// ---------------------------------------------------------------------------
+// Inicio: pendientes y últimos servicios
+// ---------------------------------------------------------------------------
+
+const BRIEF_COLUMNS =
+  "id, fecha, total::text, num_comprobantes, autor_nombre, unidad:unidades!inner(numero_economico, tipo)";
+
+type BriefRow = {
+  id: string;
+  fecha: string;
+  total: string;
+  num_comprobantes: number;
+  autor_nombre: string | null;
+  unidad: { numero_economico: string; tipo: UnitType };
+};
+
+const toBrief = (row: BriefRow): ServiceBrief => ({
+  id: row.id,
+  date: row.fecha,
+  total: row.total,
+  economicNumber: row.unidad.numero_economico,
+  unitType: row.unidad.tipo,
+  author: row.autor_nombre,
+  receiptCount: row.num_comprobantes,
+});
+
+/**
+ * Servicios sin factura, del más reciente al más viejo, y cuántos son en total.
+ * RLS decide el alcance: el capturista solo ve los suyos.
+ */
+export async function listServicesWithoutReceipts(limit = 50): Promise<{ services: ServiceBrief[]; total: number }> {
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("servicios_resumen")
+    .select(BRIEF_COLUMNS, { count: "exact" })
+    .eq("num_comprobantes", 0)
+    .order("fecha", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit)
+    .returns<BriefRow[]>();
+
+  if (error) throw new Error("No se pudieron cargar los servicios sin factura");
+  return { services: data.map(toBrief), total: count ?? 0 };
+}
+
+/** Los últimos servicios capturados (por momento de captura). RLS: el capturista, los suyos. */
+export async function listRecentServices(limit = 5): Promise<ServiceBrief[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("servicios_resumen")
+    .select(BRIEF_COLUMNS)
+    .order("created_at", { ascending: false })
+    .limit(limit)
+    .returns<BriefRow[]>();
+
+  if (error) throw new Error("No se pudieron cargar los últimos servicios");
+  return data.map(toBrief);
 }

@@ -1,52 +1,69 @@
-import { cn } from "cn";
-import { ClipboardPlus } from "lucide-react";
+import { BarChart3, ClipboardPlus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  HomePanelSkeleton,
+  PendingReceiptsPanel,
+  RecentServicesPanel,
+} from "@/features/servicios/components/home-panels";
+import { UnitsInShopPanel } from "@/features/unidades/components/units-in-shop";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+
+const newServiceLink = (className = "") => (
+  <Link href="/servicios/nuevo" className={`${buttonVariants({ size: "touch" })} ${className}`}>
+    <ClipboardPlus aria-hidden="true" />
+    Registrar servicio
+  </Link>
+);
 
 async function Welcome() {
   const user = await getCurrentUser();
   const firstName = user.name.split(" ")[0];
 
-  return user.role !== "capturista" ? (
+  if (user.role === "capturista") {
+    return (
+      <>
+        <PageHeader title={`Hola, ${firstName}`} description="Registra los servicios con su comprobante." />
+        {newServiceLink("mb-6 h-14 w-full px-6 text-lg sm:w-auto")}
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <PendingReceiptsPanel title="Te falta subir factura" showAuthor={false} />
+          </Suspense>
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <RecentServicesPanel />
+          </Suspense>
+        </div>
+      </>
+    );
+  }
+
+  // Admin y gerente: lo que falta por atender.
+  return (
     <>
       <PageHeader
         title={`Hola, ${firstName}`}
-        description="Aquí verás cuánto se ha invertido en cada unidad."
-      />
-      <EmptyState
-        title="El resumen de gastos llega con los reportes"
-        description="Mientras tanto, consulta el total invertido en la ficha de cada unidad o la lista de servicios."
-        action={
-          <Link href="/unidades" className={cn(buttonVariants({ size: "touch" }), "w-full sm:w-auto")}>
-            Ver unidades
-          </Link>
+        description="Lo que falta por atender en la flotilla."
+        actions={
+          <>
+            <Link href="/dashboard" className={buttonVariants({ variant: "outline", size: "touch" })}>
+              <BarChart3 aria-hidden="true" />
+              Ver reportes
+            </Link>
+            {user.role === "admin" && newServiceLink()}
+          </>
         }
       />
-    </>
-  ) : (
-    <>
-      <PageHeader
-        title={`Hola, ${firstName}`}
-        description="Registra los servicios y gastos de cada unidad con su comprobante."
-      />
-      <EmptyState
-        title="Aún no has registrado servicios"
-        description="Tus registros aparecerán aquí después de capturar el primero."
-        action={
-          <Link
-            href="/servicios/nuevo"
-            className={cn(buttonVariants({ size: "touch" }), "w-full sm:w-auto")}
-          >
-            <ClipboardPlus aria-hidden="true" />
-            Registrar servicio
-          </Link>
-        }
-      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+        <Suspense fallback={<HomePanelSkeleton />}>
+          <PendingReceiptsPanel title="Servicios sin factura" showAuthor />
+        </Suspense>
+        <Suspense fallback={<HomePanelSkeleton />}>
+          <UnitsInShopPanel />
+        </Suspense>
+      </div>
     </>
   );
 }

@@ -160,15 +160,19 @@ Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca prote
 - El total filtrado cuadra con la suma en la BD; el capturista solo ve lo suyo.
 - Un PDF se ve dentro del modal en un celular Android.
 
-## Sección 4 — Dashboard y reportes (solo admin)
+## Sección 4 — Dashboard y reportes (admin y gerente, D4)
 **Alcance**
-- Total invertido por unidad, por tipo de unidad, por operación (local / foráneo), por categoría, por proveedor y por mes, con filtros de rango de fechas.
-- Ranking de unidades con mayor gasto.
-- Gráficas con Recharts.
-- Exportación a Excel del periodo filtrado.
+- Filtros en la URL: periodo (atajos: este mes, mes pasado, últimos 3 / 6 / 12 meses, este año, o rango propio; por defecto últimos 12 meses), grupo (locales, foráneos, camionetas) y tipo de unidad.
+- Cifras clave: total invertido con comparación contra el periodo anterior del mismo largo, servicios, gastos y promedio por unidad.
+- Gráficas (Recharts, cargado solo en Reportes): gasto por mes, por categoría, por grupo y por tipo de unidad. Ranking de las 10 unidades con más gasto y de los 10 proveedores.
+- Exportar a Excel (`/dashboard/exportar`, route handler, `write-excel-file` en el servidor): detalle de gastos y resúmenes por unidad, categoría, mes y proveedor del periodo filtrado.
+- Inicio del admin y gerente: total del mes en curso, las 3 unidades con más gasto y enlace a Reportes.
+- BD: `reporte_gastos()` (todos los agrupados en una consulta, montos como texto) y `exportar_gastos()`; ambas exigen admin o gerente.
 
 **Terminado cuando**
-- Los totales del dashboard coinciden con la suma de gastos en BD para el mismo filtro.
+- Los totales del dashboard y del Excel coinciden con la suma de gastos en BD para el mismo filtro.
+- El capturista no puede entrar a Reportes ni descargar el Excel, ni por URL o API directa.
+- Las gráficas se leen bien en el celular.
 
 ## Sección 5 — Extras (opcional)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.

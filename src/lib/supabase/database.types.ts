@@ -536,6 +536,7 @@ export type Database = {
       }
       servicios_resumen: {
         Row: {
+          autor_nombre: string | null
           created_at: string | null
           created_by: string | null
           descripcion: string | null
@@ -543,6 +544,7 @@ export type Database = {
           fecha: string | null
           id: string | null
           kilometraje: number | null
+          num_comprobantes: number | null
           num_gastos: number | null
           proveedor_id: string | null
           total: number | null
@@ -622,6 +624,50 @@ export type Database = {
         Returns: string[]
       }
       es_admin: { Args: never; Returns: boolean }
+      exportar_gastos: {
+        Args: {
+          p_desde: string
+          p_grupo?: string
+          p_hasta: string
+          p_tipo?: Database["public"]["Enums"]["tipo_unidad"]
+        }
+        Returns: {
+          categoria: string
+          concepto: string
+          descripcion: string
+          fecha: string
+          grupo: string
+          monto: string
+          numero_economico: string
+          proveedor: string
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+        }[]
+      }
+      gastos_para_reporte: {
+        Args: {
+          p_desde: string
+          p_grupo: string
+          p_hasta: string
+          p_tipo: Database["public"]["Enums"]["tipo_unidad"]
+        }
+        Returns: {
+          categoria: string
+          categoria_id: string
+          concepto: string
+          descripcion: string
+          fecha: string
+          gasto_id: string
+          grupo: string
+          monto: number
+          numero_economico: string
+          numero_orden: number
+          proveedor: string
+          proveedor_id: string
+          servicio_id: string
+          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          unidad_id: string
+        }[]
+      }
       listar_gastos: {
         Args: {
           p_busqueda?: string
@@ -656,6 +702,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
       prefijo_tipo_unidad: {
         Args: { tipo: Database["public"]["Enums"]["tipo_unidad"] }
@@ -678,6 +725,16 @@ export type Database = {
         }
         Returns: string
       }
+      reporte_gastos: {
+        Args: {
+          p_desde: string
+          p_grupo?: string
+          p_hasta: string
+          p_limite_ranking?: number
+          p_tipo?: Database["public"]["Enums"]["tipo_unidad"]
+        }
+        Returns: Json
+      }
       restaurar_servicio: {
         Args: { p_historial_id: number; p_motivo: string }
         Returns: string
@@ -698,6 +755,10 @@ export type Database = {
       rol_actual: {
         Args: never
         Returns: Database["public"]["Enums"]["rol_usuario"]
+      }
+      validar_reporte: {
+        Args: { p_desde: string; p_grupo: string; p_hasta: string }
+        Returns: undefined
       }
     }
     Enums: {
