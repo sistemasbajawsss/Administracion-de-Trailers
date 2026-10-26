@@ -27,19 +27,24 @@ export async function ReceiptsSection({
         {receipts.length > 0 && <span className="text-muted-foreground tabular-nums">{receipts.length}</span>}
       </h2>
 
-      {receipts.length > 0 ? (
-        <ReceiptGallery receipts={receipts} serviceId={serviceId} title={title} canEdit={canEdit} />
-      ) : (
-        <p className="mb-4 text-muted-foreground">
-          {canEdit ? "Este servicio no tiene comprobante. Toma una foto del ticket o sube el PDF." : "Sin comprobantes."}
-        </p>
-      )}
-
-      {canEdit && receipts.length < MAX_RECEIPTS_PER_SERVICE && (
-        <div className={receipts.length > 0 ? "mt-6" : ""}>
-          <ReceiptUploader serviceId={serviceId} existingCount={receipts.length} />
+      {/* Comprobantes a la izquierda y "Elegir archivo" a la derecha, en el mismo renglón. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="min-w-0 flex-1">
+          {receipts.length > 0 ? (
+            <ReceiptGallery receipts={receipts} serviceId={serviceId} title={title} canEdit={canEdit} />
+          ) : (
+            <p className="text-muted-foreground">
+              {canEdit ? "Este servicio no tiene comprobante. Toma una foto del ticket o sube el PDF." : "Sin comprobantes."}
+            </p>
+          )}
         </div>
-      )}
+
+        {canEdit && receipts.length < MAX_RECEIPTS_PER_SERVICE && (
+          <div className="sm:w-80 sm:shrink-0">
+            <ReceiptUploader serviceId={serviceId} existingCount={receipts.length} />
+          </div>
+        )}
+      </div>
     </section>
   );
 }
