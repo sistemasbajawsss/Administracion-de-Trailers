@@ -485,6 +485,54 @@ export type Database = {
       }
     }
     Views: {
+      gastos_detalle: {
+        Row: {
+          categoria: string | null
+          categoria_id: string | null
+          concepto: string | null
+          created_at: string | null
+          created_by: string | null
+          fecha: string | null
+          id: string | null
+          monto: number | null
+          num_comprobantes: number | null
+          numero_economico: string | null
+          servicio_creado: string | null
+          servicio_id: string | null
+          tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
+          unidad_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicios_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servicios_resumen: {
         Row: {
           created_at: string | null
@@ -573,6 +621,40 @@ export type Database = {
         Returns: string[]
       }
       es_admin: { Args: never; Returns: boolean }
+      listar_gastos: {
+        Args: {
+          p_busqueda?: string
+          p_desde?: string
+          p_desde_renglon?: number
+          p_hasta?: string
+          p_limite?: number
+          p_numero?: string
+          p_unidad_id?: string
+        }
+        Returns: {
+          categoria: string | null
+          categoria_id: string | null
+          concepto: string | null
+          created_at: string | null
+          created_by: string | null
+          fecha: string | null
+          id: string | null
+          monto: number | null
+          num_comprobantes: number | null
+          numero_economico: string | null
+          servicio_creado: string | null
+          servicio_id: string | null
+          tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
+          unidad_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "gastos_detalle"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      patron_busqueda: { Args: { p_texto: string }; Returns: string }
       prefijo_tipo_unidad: {
         Args: { tipo: Database["public"]["Enums"]["tipo_unidad"] }
         Returns: string
@@ -597,6 +679,19 @@ export type Database = {
       restaurar_servicio: {
         Args: { p_historial_id: number; p_motivo: string }
         Returns: string
+      }
+      resumen_gastos: {
+        Args: {
+          p_busqueda?: string
+          p_desde?: string
+          p_hasta?: string
+          p_numero?: string
+          p_unidad_id?: string
+        }
+        Returns: {
+          num_gastos: number
+          total: number
+        }[]
       }
       rol_actual: {
         Args: never
