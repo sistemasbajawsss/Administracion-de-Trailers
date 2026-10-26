@@ -201,8 +201,7 @@ export default function UnitsPage({ searchParams }: PageProps<"/unidades">) {
 ```
 
 ## Seguridad
-- **Segundo paso (D6):** admin y gerente necesitan `aal2`. `getCurrentUser()` los manda a `/verificacion`; `getSessionUser()` (sin esa revisión) solo lo usa esa pantalla y sus actions. En la base, `rol_actual()` regresa null sin `aal2` y todas las políticas dependen de él.
-- **Toda política de lectura exige un rol** (`(select public.rol_actual()) is not null` o una función derivada). Tener sesión no basta: un usuario desactivado o sin segundo paso no ve nada.
+- **Toda política de lectura exige un rol** (`(select public.rol_actual()) is not null` o una función derivada). Tener sesión no basta: un usuario desactivado no ve nada.
 - **Encabezados** en `next.config.ts` (CSP, HSTS, anti-iframe). Si una pantalla necesita cargar algo de otro origen, se agrega solo ese origen a la directiva que corresponda, nunca comodines (`*`, `https:`).
 - `npm audit` sin altas ni críticas antes de cerrar cada sección.
 

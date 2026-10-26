@@ -32,7 +32,7 @@
 - **D5 — Eliminar una unidad por completo** (resuelta 2026-10-23, dentro de la Sección 2): además de darla de baja (reversible), el admin puede eliminar una unidad con todos sus servicios, gastos y línea de cambios. Exige escribir `ELIMINAR REGISTRO` en la pantalla y la función `eliminar_unidad()` vuelve a revisarlo. No se puede deshacer. Queda un renglón en `bitacora_eliminaciones` (número económico, tipo, servicios, gastos, total, quién y cuándo). Es la única excepción a "el historial no se puede alterar" de D1, junto con la siguiente.
   - Servicios eliminados (con motivo) quedan en **Servicios › Eliminados**: el admin los puede restaurar tal como estaban (`restaurar_servicio()`, con motivo) o eliminarlos para siempre escribiendo `ELIMINAR REGISTRO` (`eliminar_servicio_definitivo()`), lo que borra su copia y su línea de cambios y deja una nota en la bitácora.
 
-- **D6 — Verificación en dos pasos** (resuelta 2026-10-26, Sección 2.5): `admin` y `gerente` (los roles que ven el dinero de toda la flotilla) entran con contraseña + código de 6 dígitos de una app autenticadora (TOTP: Google Authenticator, Microsoft Authenticator, etc.). El capturista entra solo con contraseña para no frenar la captura en el taller. Se exige en la base de datos (`rol_actual()` no reconoce a un admin o gerente sin sesión verificada, `aal2`) y en el servidor (`getCurrentUser()` lo manda a `/verificacion`). Si alguien pierde su celular, el procedimiento de recuperación está en `docs/ESTADO.md`.
+- **D6 — Sin verificación en dos pasos** (resuelta 2026-10-26, Sección 2.5): se implementó un código de app autenticadora para admin y gerente y el usuario decidió quitarlo. Todos los roles entran solo con contraseña. La protección de la cuenta queda en la política de contraseñas, la protección contra contraseñas filtradas y el cierre por inactividad de Supabase Auth.
 
 ---
 
@@ -111,21 +111,22 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 - Un capturista no puede eliminar registros ni modificar el historial, incluso por API directa.
 
 ## Sección 2.5 — Seguridad
-Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca protegido. Toca código de secciones cerradas (configuración, login, funciones de rol) con autorización del usuario.
+Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca protegido. Toca código de secciones cerradas (configuración, clientes de Supabase, políticas de lectura) con autorización del usuario.
 
 **Alcance**
 - Encabezados de seguridad en todas las respuestas (`next.config.ts`): HSTS, Content-Security-Policy, `X-Frame-Options: DENY` / `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` (cámara solo para la propia app) y sin `X-Powered-By`.
 - Cookies de sesión `httpOnly`, `secure` (en producción) y `sameSite=lax`: ningún script del navegador puede leer el token.
-- Verificación en dos pasos (D6) para admin y gerente: alta del autenticador con código QR la primera vez y código de 6 dígitos en cada inicio de sesión. Exigida en RLS y en el servidor.
+- Las políticas de lectura de catálogos (choferes, unidades, categorías, proveedores) exigen tener rol, no solo sesión: un usuario desactivado deja de ver todo aunque su token siga vigente.
 - `npm audit` sin vulnerabilidades altas o críticas.
 - Ajustes del dashboard de Supabase que hace el usuario (no son migraciones): protección contra contraseñas filtradas, política de contraseñas, cierre de sesión por inactividad.
 
 **Terminado cuando**
 - Las respuestas de la app traen todos los encabezados de seguridad y la app funciona con la CSP activa.
 - La cookie de sesión aparece como `HttpOnly` en el navegador.
-- Un admin o gerente con contraseña correcta pero sin código no ve ni modifica nada, ni en pantalla ni por API directa.
-- El capturista sigue entrando solo con contraseña y todo le funciona igual.
+- Un usuario desactivado con sesión todavía vigente no ve ni modifica nada, ni por API directa.
+- Admin, capturista y gerente siguen entrando y trabajando igual que antes.
 - Checklist de cierre de `CLAUDE.md` completo.
+
 ## Sección 3 — Comprobantes
 **Alcance**
 - Bucket privado `comprobantes` en Supabase Storage con políticas por rol.

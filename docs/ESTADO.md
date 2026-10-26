@@ -17,7 +17,7 @@
 - D3: `unidades` con tipo `trailer` (T-) / `caja` (R-) / `camion_rabon` (F-) / `pipa` (P-) / `camioneta` (C-), operación `local` / `foraneo`, chofer opcional (catálogo `choferes`) y longitud en pies para cajas. Las cajas son unidades individuales, sin relación con el trailer que las jala. Detalle en `docs/PLAN.md`.
 - D4: rol `gerente` de solo lectura (ve unidades, servicios, gastos, historial y reportes de todos; no escribe nada).
 - D5: dar de baja una unidad es reversible; eliminarla por completo (con su historial) exige escribir `ELIMINAR REGISTRO` y deja nota en `bitacora_eliminaciones`. Los servicios eliminados se pueden restaurar o eliminar para siempre (también con `ELIMINAR REGISTRO`) desde Servicios › Eliminados.
-- D6: verificación en dos pasos (TOTP) obligatoria para admin y gerente; el capturista entra solo con contraseña.
+- D6: sin verificación en dos pasos (se implementó y el usuario decidió quitarla); todos entran solo con contraseña.
 
 ## Decisiones pendientes
 - Ninguna.
@@ -37,10 +37,7 @@
 - SQL de prueba contra la nube: `npx supabase db query --linked -f <archivo>` (vía Management API). Los ensayos de migraciones van dentro de `begin; … rollback;`.
 
 ## Seguridad
-- **Verificación en dos pasos (D6):** admin y gerente, con app autenticadora (TOTP). Sin el código, la app los manda a `/verificacion` y la base no les reconoce el rol (`rol_actual()` exige `aal2`): ven 0 registros y no pueden escribir, ni por API.
-- **Si alguien pierde el celular de su autenticador:** otro admin (o el dueño de la cuenta de Supabase) abre Supabase → SQL Editor y corre
-  `delete from auth.mfa_factors where user_id = (select id from auth.users where email = '<correo>');`
-  En su siguiente inicio de sesión, la persona vuelve a escanear un QR nuevo. Respaldo recomendado: al dar de alta, escanear el QR también con un segundo celular.
+- **Lecturas con rol:** toda política de lectura exige tener rol (`rol_actual()` no nulo). Un usuario desactivado con token vigente ve 0 registros y no puede escribir, ni por API.
 - **Cookies de sesión** `httpOnly`, `secure` en producción y `sameSite=lax` (`lib/supabase/cookie-options.ts`): ningún script del navegador lee el token.
 - **Encabezados** en `next.config.ts`: CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` (cámara solo para la app), sin `X-Powered-By`.
 - **Ajustes del dashboard de Supabase** (no son migraciones; los hace el usuario):
