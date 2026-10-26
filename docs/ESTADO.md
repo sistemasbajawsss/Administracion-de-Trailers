@@ -3,7 +3,7 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 3 — Comprobantes** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-3-comprobantes` (por crear)
+**Sección 4 — Dashboard y reportes** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-4-dashboard` (por crear)
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -18,6 +18,9 @@
 - D4: rol `gerente` de solo lectura (ve unidades, servicios, gastos, historial y reportes de todos; no escribe nada).
 - D5: dar de baja una unidad es reversible; eliminarla por completo (con su historial) exige escribir `ELIMINAR REGISTRO` y deja nota en `bitacora_eliminaciones`. Los servicios eliminados se pueden restaurar o eliminar para siempre (también con `ELIMINAR REGISTRO`) desde Servicios › Eliminados.
 - D6: sin verificación en dos pasos (se implementó y el usuario decidió quitarla); todos entran solo con contraseña.
+- D7: hasta 10 comprobantes por servicio; duplicado en otro servicio se avisa y se puede subir; agregar y quitar como editar (quitar con motivo); el gerente solo ve.
+- Categorías: todas aplican a todos los tipos de unidad (se propuso filtrarlas por tipo y el usuario lo descartó).
+- Fotos: se reducen en el navegador a 2000 px / JPEG 82 % (el usuario lo confirmó así).
 
 ## Decisiones pendientes
 - Ninguna.
@@ -56,19 +59,35 @@
   - `servicios`, `gastos` (RLS: capturista ve y edita los suyos; admin todo; gerente solo lee todo; solo admin elimina). Escritura por funciones `registrar_servicio()`, `actualizar_servicio()` (motivo obligatorio) y `eliminar_servicio()` (motivo obligatorio).
   - `historial_cambios` (lo llenan triggers; motivo obligatorio en todo cambio que no sea alta; nadie lo edita; solo se borra con `eliminar_unidad()` o `eliminar_servicio_definitivo()`).
   - `bitacora_eliminaciones` (unidades y servicios eliminados para siempre; solo admin la lee; nadie la edita).
-  - Vistas `servicios_resumen` (total, número de gastos, marca "editado") y `totales_por_unidad`, ambas `security_invoker`.
+  - `comprobantes` (D7; RLS: ve quien ve el servicio, agrega y quita quien lo puede editar; sin update; hasta 10 por servicio; `unique (servicio_id, hash_sha256)`). Entran en el historial y en la copia de un servicio eliminado.
+  - Vistas `servicios_resumen` (total, número de gastos, marca "editado"), `totales_por_unidad` y `gastos_detalle` (un renglón por gasto con fecha, unidad, categoría, número de comprobantes y `tiene_pdf`), todas `security_invoker`.
 - Enums: `rol_usuario` (admin, capturista, gerente), `tipo_unidad`, `operacion_unidad`, `estatus_unidad`, `accion_historial`.
-- Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()`, `eliminar_unidad()` (las llama la app).
-- Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones. Servicios de prueba capturados por el usuario.
+- Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()` y `eliminar_unidad()` (ambas regresan las rutas de archivos a borrar), `quitar_comprobante()`, `buscar_comprobante_duplicado()`, `listar_gastos()`, `resumen_gastos()` (las llama la app); `preparar_comprobante()` (trigger), `archivo_comprobante_en_uso()` y `patron_busqueda()` (apoyo de políticas y búsquedas).
+- Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones. Servicios de prueba capturados por el usuario, más **700 servicios `[PRUEBA] …`** (20 por unidad, 1,401 gastos, cada uno con una copia de `Informacion_Cita.pdf`, ~970 MB en Storage). Se borran antes de usar datos reales (servicios, historial y archivos).
 - Rutas:
+  - Todos con sesión: `/comprobantes/[id]` (route handler: revisa sesión y RLS y redirige a una URL firmada de 60 s; `?descargar=1`).
   - Todos: `/login`, `/` (Inicio), `/servicios` (capturista: "Mis servicios"), `/servicios/[id]`.
   - Admin y capturista: `/servicios/nuevo` (`?unidad=` preselecciona), `/servicios/[id]/editar`.
   - Admin y gerente: `/unidades`, `/unidades/[id]` (ficha con total invertido), `/dashboard` (placeholder).
   - Solo admin: `/unidades/nueva`, `/unidades/[id]/editar`, `/servicios/eliminados`, `/admin/catalogos`, `/admin/usuarios` (placeholder).
-- Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`, `lib/supabase/cookie-options.ts` (cookies httpOnly). Encabezados de seguridad en `next.config.ts`.
-- Buckets: —
+- Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`, `lib/supabase/cookie-options.ts` (cookies httpOnly), `lib/supabase/storage.ts` (bucket y borrado de archivos), `lib/utils/files.ts` (firma de bytes, reducir fotos, SHA-256). `features/comprobantes` (selector con cámara, subida, galería, visor en modal con pdf.js, quitar con motivo). `features/servicios` ahora tiene la lista de gastos (`expense-list`, `expense-feed` con scroll infinito) en lugar de la lista paginada de servicios. Encabezados de seguridad en `next.config.ts`. Dependencia nueva: `pdfjs-dist` 6.4.299 (se carga solo al abrir un PDF).
+- Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 3 — Comprobantes y lista de gastos (cerrada 2026-10-26)
+- Hecho:
+  - Comprobantes (D7): bucket privado, tabla con RLS, captura con cámara (solo en pantallas táctiles) o archivo, fotos reducidas en el navegador, SHA-256 y aviso de duplicado con "Subir de todos modos", revisión de firma de bytes y hash en el servidor, quitar con motivo en la línea de cambios.
+  - Visor en modal sin salir de la página: fotos y PDF con pdf.js (funciona en Android), varios comprobantes con anterior / siguiente, descargar. pdf.js se adelanta al acercarse a "Ver factura" solo si hay PDF.
+  - 3B: ficha de unidad y Servicios con lista de gastos (un renglón por gasto), buscador por categoría o concepto, fechas y unidad, total de lo filtrado, scroll infinito dentro de un cuadro (tandas de 25).
+  - Eliminar / restaurar / eliminar para siempre conservan o borran los comprobantes y sus archivos. Corregido `eliminar_unidad()`: ya borra la copia de los servicios de esa unidad que estaban en Eliminados.
+- Tablas / migraciones nuevas: `20261026213220_comprobantes.sql`, `20261026215401_gastos_detalle.sql`, `20261026221533_gastos_detalle_tiene_pdf.sql`.
+- Rutas nuevas: `/comprobantes/[id]`. `/servicios` y `/unidades/[id]` cambiaron a la lista de gastos.
+- Verificado: build (worktree aparte), lint, `tsc` y `npm audit` (0) sin errores; tipos regenerados; migraciones ensayadas en transacción sin commit (34 casos de comprobantes con los tres roles, Storage, límite de 10, duplicados, eliminar / restaurar / eliminar para siempre / eliminar unidad; lista y total de gastos con admin, capturista y anon, búsqueda con comodines y comillas); bucket no accesible por URL pública ni sin sesión; `/comprobantes/[id]` sin sesión → `/login`. El usuario abrió PDF en el visor y revisó la cámara en laptop.
+- Pendientes que pasan a la siguiente sección:
+  - El usuario cerró la sección sin probar en el navegador todos los flujos (subir desde formulario y detalle, aviso de duplicado, quitar, eliminar y restaurar con factura, scroll infinito con más de 25). Revisarlos si aparece algo.
+  - Borrar los 700 servicios `[PRUEBA]` con sus PDF antes de usar datos reales (sirven para el dashboard de la Sección 4).
+  - Ajustes del dashboard de Supabase de "Seguridad" (incluye confirmar el Spend cap) y crear el usuario gerente (vienen de antes).
 
 ### Sección 2.5 — Seguridad (cerrada 2026-10-26)
 - Hecho:
