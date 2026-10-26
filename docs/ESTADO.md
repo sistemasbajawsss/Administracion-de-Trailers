@@ -3,7 +3,7 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 3 — Comprobantes** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-3-comprobantes` (por crear)
+**Sección 2.5 — Seguridad** · Estado: en curso · Rama: `seccion-2-5-seguridad`. Después sigue la Sección 3 — Comprobantes.
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -17,6 +17,7 @@
 - D3: `unidades` con tipo `trailer` (T-) / `caja` (R-) / `camion_rabon` (F-) / `pipa` (P-) / `camioneta` (C-), operación `local` / `foraneo`, chofer opcional (catálogo `choferes`) y longitud en pies para cajas. Las cajas son unidades individuales, sin relación con el trailer que las jala. Detalle en `docs/PLAN.md`.
 - D4: rol `gerente` de solo lectura (ve unidades, servicios, gastos, historial y reportes de todos; no escribe nada).
 - D5: dar de baja una unidad es reversible; eliminarla por completo (con su historial) exige escribir `ELIMINAR REGISTRO` y deja nota en `bitacora_eliminaciones`. Los servicios eliminados se pueden restaurar o eliminar para siempre (también con `ELIMINAR REGISTRO`) desde Servicios › Eliminados.
+- D6: verificación en dos pasos (TOTP) obligatoria para admin y gerente; el capturista entra solo con contraseña.
 
 ## Decisiones pendientes
 - Ninguna.
@@ -33,6 +34,21 @@
 - Windows: la política de ejecución de PowerShell del usuario es `RemoteSigned` (para `npm` / `npx`). El CLI de Supabase detecta a Claude Code como agente: los comandos interactivos (`login`, `link`) se ejecutan en una ventana de CMD aparte con `--agent no`.
 - No correr `npm run build` con `npm run dev` encendido: ambos escriben en `.next` y las Server Actions nuevas fallan en dev. Con el servidor encendido se verifica con `npx tsc --noEmit` y `npm run lint`. El proyecto está en OneDrive, que llegó a bloquear archivos de `.next` (EPERM); conviene excluir `.next` y `node_modules` de la sincronización.
 - Un valor nuevo de enum va en su propia migración (no se puede usar en la misma transacción); para aplicar solo esa, se aparta temporalmente la siguiente migración.
+- SQL de prueba contra la nube: `npx supabase db query --linked -f <archivo>` (vía Management API). Los ensayos de migraciones van dentro de `begin; … rollback;`.
+
+## Seguridad
+- **Verificación en dos pasos (D6):** admin y gerente, con app autenticadora (TOTP). Sin el código, la app los manda a `/verificacion` y la base no les reconoce el rol (`rol_actual()` exige `aal2`): ven 0 registros y no pueden escribir, ni por API.
+- **Si alguien pierde el celular de su autenticador:** otro admin (o el dueño de la cuenta de Supabase) abre Supabase → SQL Editor y corre
+  `delete from auth.mfa_factors where user_id = (select id from auth.users where email = '<correo>');`
+  En su siguiente inicio de sesión, la persona vuelve a escanear un QR nuevo. Respaldo recomendado: al dar de alta, escanear el QR también con un segundo celular.
+- **Cookies de sesión** `httpOnly`, `secure` en producción y `sameSite=lax` (`lib/supabase/cookie-options.ts`): ningún script del navegador lee el token.
+- **Encabezados** en `next.config.ts`: CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` (cámara solo para la app), sin `X-Powered-By`.
+- **Ajustes del dashboard de Supabase** (no son migraciones; los hace el usuario):
+  - [ ] Authentication → Attack Protection: protección contra contraseñas filtradas.
+  - [ ] Authentication → Policies / Passwords: mínimo 12 caracteres con minúsculas, mayúsculas, números y símbolos.
+  - [ ] Authentication → Sessions: cierre por inactividad (8 h).
+  - [ ] Database → Settings: "Enforce SSL on incoming connections".
+- **Dominio (cuando se conecte `flotilla.bajaws.com.mx`):** Cloudflare con SSL en modo **Full (strict)**, nunca "Flexible".
 
 ## Existe actualmente
 - Tablas:
