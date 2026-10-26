@@ -52,14 +52,12 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
       </div>
 
       {/*
-        Pantallas anchas: todo cabe en la ventana, sin scroll de página. Ticket y,
-        debajo, comprobantes a la izquierda; línea de cambios a la derecha. Cada columna
-        tiene su propio scroll solo si el servicio tiene muchos gastos o cambios.
-        (9.5rem = márgenes de la página + barra de Volver / Editar.)
-        Celular: una columna, como antes.
+        Pantallas anchas: ticket y, debajo, comprobantes a la izquierda. La línea de
+        cambios queda fija a la derecha, a la vista al entrar, y es lo único con scroll
+        propio (cuando hay muchos cambios). Celular: una columna, como antes.
       */}
-      <div className="xl:grid xl:h-[calc(100dvh-9.5rem)] xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-6">
-        <div className="min-w-0 xl:overflow-y-auto xl:overscroll-contain">
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start xl:gap-6">
+        <div className="min-w-0">
           <h1 className="sr-only">
             Servicio de {service.unit.economicNumber} del {formatDate(service.date)}
           </h1>
@@ -75,11 +73,14 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
           </Suspense>
         </div>
 
-        <div className="min-w-0 xl:overflow-y-auto xl:overscroll-contain">
+        <aside className="min-w-0 xl:sticky xl:top-6">
           <Suspense fallback={<ChangeHistorySkeleton className="mt-10 xl:mt-0" />}>
-            <ChangeHistory serviceId={service.id} className="mt-10 xl:mt-0 xl:rounded-xl xl:border xl:bg-white xl:p-5" />
+            <ChangeHistory
+              serviceId={service.id}
+              className="mt-10 xl:mt-0 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto xl:overscroll-contain xl:rounded-xl xl:border xl:bg-white xl:p-5"
+            />
           </Suspense>
-        </div>
+        </aside>
       </div>
     </div>
   );
