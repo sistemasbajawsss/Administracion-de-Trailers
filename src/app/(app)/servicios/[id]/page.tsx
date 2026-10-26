@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { BackButton } from "@/components/shared/back-button";
 import { buttonVariants } from "@/components/ui/button";
+import { ReceiptsSection, ReceiptsSectionSkeleton } from "@/features/comprobantes/components/receipts-section";
 import { ChangeHistory, ChangeHistorySkeleton } from "@/features/servicios/components/change-history";
 import { DeleteServiceDialog } from "@/features/servicios/components/delete-service-dialog";
 import { ServiceDetailView } from "@/features/servicios/components/service-detail";
@@ -25,13 +26,15 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
   if (!service) notFound();
 
   const isAdmin = user.role === "admin";
+  // RLS ya limita al capturista a sus servicios; el gerente solo ve.
+  const canEdit = user.role !== "gerente";
 
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <BackButton fallback="/servicios" />
         <div className="flex gap-2">
-          {user.role !== "gerente" && (
+          {canEdit && (
             <Link href={`/servicios/${service.id}/editar`} className={buttonVariants({ variant: "outline", size: "touch" })}>
               <Pencil aria-hidden="true" />
               Editar
@@ -51,6 +54,14 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
         Servicio de {service.unit.economicNumber} del {formatDate(service.date)}
       </h1>
       <ServiceDetailView service={service} />
+
+      <Suspense fallback={<ReceiptsSectionSkeleton />}>
+        <ReceiptsSection
+          serviceId={service.id}
+          title={`${service.unit.economicNumber} · ${formatDate(service.date)}`}
+          canEdit={canEdit}
+        />
+      </Suspense>
 
       <Suspense fallback={<ChangeHistorySkeleton />}>
         <ChangeHistory serviceId={service.id} />

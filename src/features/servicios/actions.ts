@@ -1,21 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
+import { removeReceiptFiles } from "@/lib/supabase/storage";
 import { normalizeAmount } from "@/lib/utils/format";
 
+import { listExpenses } from "./queries";
 import {
   purgeServiceSchema,
   restoreServiceSchema,
   deleteServiceSchema,
   serviceEditSchema,
+  serviceFiltersSchema,
   serviceSchema,
   type ServiceInput,
 } from "./schemas";
+import type { ExpenseListItem } from "./types";
 
 /** Los tipos generados marcan los argumentos de las funciones como no nulos, pero aceptan null. */
 const nullable = <T,>(value: T | null) => value as T;
@@ -114,7 +119,8 @@ export async function deleteService(id: string, unitId: string, input: unknown):
 
 /**
  * Borra para siempre la copia y la línea de cambios de un servicio ya eliminado
- * (solo admin). Queda una nota en la bitácora de eliminaciones.
+ * (solo admin), y los archivos de sus comprobantes. Queda una nota en la bitácora
+ * de eliminaciones.
  */
 export async function purgeService(historyId: number, input: unknown): Promise<ActionResult> {
   const parsed = purgeServiceSchema.safeParse(input);
@@ -123,12 +129,13 @@ export async function purgeService(historyId: number, input: unknown): Promise<A
   await requireRole("admin");
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("eliminar_servicio_definitivo", {
+  const { data: receiptPaths, error } = await supabase.rpc("eliminar_servicio_definitivo", {
     p_historial_id: historyId,
     p_confirmacion: parsed.data.confirmation,
   });
   if (error) return fail(errorMessage(error, "No se pudo eliminar el servicio. Inténtalo de nuevo."));
 
+  await removeReceiptFiles(supabase, receiptPaths);
   revalidatePath("/servicios/eliminados");
   return ok();
 }
@@ -151,4 +158,29 @@ export async function restoreService(historyId: number, input: unknown): Promise
   revalidatePath("/unidades", "layout");
   revalidatePath("/");
   return ok({ id: data });
+}
+
+const moreExpensesSchema = z.object({
+  filters: serviceFiltersSchema.pick({ q: true, buscar: true, desde: true, hasta: true }),
+  unitId: z.uuid().optional(),
+  offset: z.number().int().min(0).max(100_000),
+});
+
+/**
+ * Siguiente tanda del scroll infinito de gastos. Es una lectura: llama a
+ * queries.ts con la sesión del usuario (RLS aplica), ver docs/ARQUITECTURA.md.
+ */
+export async function loadMoreExpenses(input: unknown): Promise<ActionResult<ExpenseListItem[]>> {
+  const parsed = moreExpensesSchema.safeParse(input);
+  if (!parsed.success) return fail("No se pudieron cargar más gastos.");
+
+  const user = await requireRole(["admin", "capturista", "gerente"]);
+  // La ficha de la unidad es solo para admin y gerente (la página también lo revisa).
+  if (parsed.data.unitId && user.role === "capturista") return fail("No tienes acceso a esta unidad.");
+
+  try {
+    return ok(await listExpenses({ ...parsed.data.filters, unitId: parsed.data.unitId }, parsed.data.offset));
+  } catch {
+    return fail("No se pudieron cargar más gastos. Inténtalo de nuevo.");
+  }
 }

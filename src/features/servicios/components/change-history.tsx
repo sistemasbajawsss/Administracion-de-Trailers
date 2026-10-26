@@ -25,7 +25,7 @@ function ChangeLine({ change }: { change: HistoryChange }) {
     case "service-deleted":
       return <p>Eliminó el servicio.</p>;
     case "service-restored":
-      return <p>Restauró el servicio con sus gastos.</p>;
+      return <p>Restauró el servicio con sus gastos y comprobantes.</p>;
     case "service-updated":
       return (
         <div>
@@ -37,6 +37,10 @@ function ChangeLine({ change }: { change: HistoryChange }) {
       return <p>Agregó el gasto <span className="font-medium">{change.summary}</span>.</p>;
     case "expense-removed":
       return <p>Quitó el gasto <span className="font-medium">{change.summary}</span>.</p>;
+    case "receipt-added":
+      return <p>Agregó el comprobante <span className="font-medium break-all">{change.fileName}</span>.</p>;
+    case "receipt-removed":
+      return <p>Quitó el comprobante <span className="font-medium break-all">{change.fileName}</span>.</p>;
     case "expense-updated":
       return (
         <div>

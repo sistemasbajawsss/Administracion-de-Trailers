@@ -26,6 +26,24 @@ export type ServiceListItem = {
   supplierName: string | null;
 };
 
+/** Renglón de la lista de gastos (un gasto, con la fecha de su servicio). */
+export type ExpenseListItem = {
+  id: string;
+  serviceId: string;
+  date: string;
+  category: string;
+  concept: string | null;
+  /** Monto en texto exacto de la BD. */
+  amount: string;
+  receiptCount: number;
+  /** Algún comprobante es PDF (para adelantar la carga del visor). */
+  hasPdf: boolean;
+  economicNumber: string | null;
+};
+
+/** Total y número de gastos con los mismos filtros (sumado en la BD). */
+export type ExpenseSummary = { total: string; count: number };
+
 export type ExpenseLine = {
   id: string;
   categoryId: string;
@@ -52,7 +70,9 @@ export type HistoryChange =
   | { kind: "service-restored" }
   | { kind: "expense-added"; summary: string }
   | { kind: "expense-removed"; summary: string }
-  | { kind: "expense-updated"; summary: string; changes: FieldChange[] };
+  | { kind: "expense-updated"; summary: string; changes: FieldChange[] }
+  | { kind: "receipt-added"; fileName: string }
+  | { kind: "receipt-removed"; fileName: string };
 
 /** Cambios hechos en una misma operación (mismo momento, autor y motivo). */
 export type HistoryEntry = {

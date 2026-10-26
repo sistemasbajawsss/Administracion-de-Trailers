@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { createClient } from "@/lib/supabase/server";
+import { removeReceiptFiles } from "@/lib/supabase/storage";
 
 import { deleteUnitSchema, normalizeEconomicNumber, unitSchema, type UnitInput } from "./schemas";
 
@@ -88,13 +89,16 @@ export async function deleteUnit(id: string, input: unknown): Promise<ActionResu
   await requireRole("admin");
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("eliminar_unidad", {
+  const { data: receiptPaths, error } = await supabase.rpc("eliminar_unidad", {
     p_unidad_id: id,
     p_confirmacion: parsed.data.confirmation,
   });
   if (error?.code === "P0002") return fail("La unidad ya no existe.");
   if (error?.code === "42501") return fail("Solo un administrador puede eliminar unidades.");
   if (error) return fail("No se pudo eliminar la unidad. Inténtalo de nuevo.");
+
+  // Archivos de comprobantes de sus servicios (vigentes y en Eliminados).
+  await removeReceiptFiles(supabase, receiptPaths);
 
   revalidatePath("/unidades", "layout");
   revalidatePath("/servicios", "layout");

@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { ServiceFilters } from "@/features/servicios/components/service-filters";
-import { ServiceList, ServiceListSkeleton } from "@/features/servicios/components/service-list";
+import { ExpenseList, ExpenseListSkeleton } from "@/features/servicios/components/expense-list";
 import { serviceFiltersSchema } from "@/features/servicios/schemas";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 
@@ -31,8 +31,8 @@ async function ServicesContent({ searchParams }: { searchParams: PageProps<"/ser
         title={seesAll ? "Servicios" : "Mis servicios"}
         description={
           seesAll
-            ? "Reparaciones y mantenimientos de todas las unidades."
-            : "Los servicios que has capturado. Toca uno para ver el detalle o corregirlo."
+            ? "Cada gasto con su fecha, categoría y factura. Toca uno para ver el servicio completo."
+            : "Los gastos de los servicios que has capturado. Toca uno para ver el detalle o corregirlo."
         }
         actions={
           canCapture || user.role === "admin" ? (
@@ -49,12 +49,8 @@ async function ServicesContent({ searchParams }: { searchParams: PageProps<"/ser
         }
       />
       <ServiceFilters />
-      <Suspense fallback={<ServiceListSkeleton />}>
-        <ServiceList
-          filters={filters}
-          pathname="/servicios"
-          emptyAction={canCapture ? newServiceLink : undefined}
-        />
+      <Suspense fallback={<ExpenseListSkeleton />}>
+        <ExpenseList filters={filters} emptyAction={canCapture ? newServiceLink : undefined} />
       </Suspense>
     </>
   );
@@ -66,7 +62,7 @@ export default function ServiciosPage({ searchParams }: PageProps<"/servicios">)
       fallback={
         <>
           <PageHeader title="Servicios" />
-          <ServiceListSkeleton />
+          <ExpenseListSkeleton />
         </>
       }
     >

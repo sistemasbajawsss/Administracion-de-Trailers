@@ -33,6 +33,7 @@
   - Servicios eliminados (con motivo) quedan en **Servicios › Eliminados**: el admin los puede restaurar tal como estaban (`restaurar_servicio()`, con motivo) o eliminarlos para siempre escribiendo `ELIMINAR REGISTRO` (`eliminar_servicio_definitivo()`), lo que borra su copia y su línea de cambios y deja una nota en la bitácora.
 
 - **D6 — Sin verificación en dos pasos** (resuelta 2026-10-26, Sección 2.5): se implementó un código de app autenticadora para admin y gerente y el usuario decidió quitarlo. Todos los roles entran solo con contraseña. La protección de la cuenta queda en la política de contraseñas, la protección contra contraseñas filtradas y el cierre por inactividad de Supabase Auth.
+- **D7 — Comprobantes** (resuelta 2026-10-26, Sección 3): hasta 10 comprobantes (PDF o foto) por servicio. Si el archivo ya está en otro servicio se avisa y se puede subir de todos modos; el mismo archivo dos veces en un servicio no se permite. Agregar y quitar sigue las reglas de editar (D1): el capturista en sus servicios y el admin en todos; quitar pide motivo y queda en la línea de cambios. El gerente solo los ve. Sin folio, fecha ni total propios: ya están en el servicio y sus gastos.
 
 ---
 
@@ -129,18 +130,35 @@ Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca prote
 
 ## Sección 3 — Comprobantes
 **Alcance**
-- Bucket privado `comprobantes` en Supabase Storage con políticas por rol.
-- Tabla `comprobantes`: servicio_id, ruta_archivo, tipo_mime, tamano_bytes, hash_sha256, folio (opcional), fecha, total, created_by.
-- Subida de PDF o imagen; desde el celular se puede usar la cámara directamente.
-- Compresión de imágenes en el cliente antes de subir.
-- Hash SHA-256 del archivo; si ya existe, se avisa de posible duplicado.
-- Visor del comprobante con URL firmada.
-- Validar el tipo real del archivo (firma de bytes de PDF, JPEG, PNG o WebP, no solo la extensión) y un tamaño máximo, en el cliente, en el servidor y en el bucket.
-- Ajustar la CSP de la Sección 2.5 para el visor y la compresión (sin abrirla a dominios ajenos).
+- Bucket privado `comprobantes` (PDF, JPEG, PNG, WebP; máximo 10 MB), creado por migración, con políticas por rol. Ruta `servicio_id/comprobante_id.ext`.
+- Tabla `comprobantes`: servicio_id, ruta_archivo, tipo_mime, tamano_bytes, hash_sha256, nombre_archivo, created_at, created_by. Hasta 10 por servicio (D7).
+- RLS: ve quien ve el servicio; agrega y quita quien puede editarlo; el gerente solo ve. Las mismas reglas en `storage.objects`.
+- Historial: agregar y quitar quedan en la línea de cambios (quitar con motivo). Al eliminar un servicio, sus comprobantes van en la copia y los archivos se conservan; restaurar los regresa. Eliminar para siempre (servicio o unidad) borra también los archivos.
+- Subida: el navegador reduce las fotos (lado mayor 2000 px, JPEG) sin librerías y calcula SHA-256; una Server Action da una URL firmada de subida; el archivo va directo a Storage; otra Server Action lo descarga, revisa su firma de bytes (PDF, JPEG, PNG o WebP), recalcula el hash y lo registra.
+- Duplicados: si el hash ya está en otro servicio, se avisa (unidad y fecha) y se puede subir de todos modos.
+- Captura en el formulario de servicio nuevo (cámara o archivo, vista previa) y en el detalle del servicio (agregar y quitar).
+- Visor: `/comprobantes/[id]` revisa la sesión y RLS en cada petición y redirige a una URL firmada de 60 segundos; ningún enlace guardado sirve sin sesión.
+- Corrige `eliminar_unidad()` (Sección 2): también borra la copia de los servicios de esa unidad que estaban en Eliminados.
 
 **Terminado cuando**
-- Ningún archivo es accesible sin sesión ni por URL pública.
+- Ningún archivo es accesible sin sesión ni por URL pública o vencida.
+- El capturista no ve, sube ni quita comprobantes de servicios ajenos, ni por API directa.
 - Subir el mismo archivo dos veces muestra advertencia.
+- Un archivo que no es PDF ni imagen aunque tenga esa extensión se rechaza.
+- Eliminar y restaurar un servicio conserva sus comprobantes; eliminarlo para siempre borra los archivos.
+
+### 3B — Lista de gastos (pedida por el usuario el 2026-10-26)
+**Alcance**
+- En la ficha de la unidad y en Servicios (incluye "Mis servicios"): un renglón por gasto con fecha, categoría (y concepto), monto y botón "Ver factura". En Servicios también la unidad.
+- Buscador por categoría o concepto, rango de fechas y, en Servicios, número económico; todo en la URL. Total y número de gastos de lo filtrado, sumados en la BD.
+- La lista vive en un cuadro con su propio scroll (unos 10 renglones visibles) y carga tandas de 25 al acercarse al fondo.
+- "Ver factura" abre un modal sin salir de la página: fotos y PDF (pdf.js, se descarga solo al abrir un PDF; funciona en Android). Varios comprobantes: anterior / siguiente. El detalle del servicio usa el mismo visor.
+- BD: vista `gastos_detalle` y funciones `listar_gastos()` / `resumen_gastos()` (security invoker, filtros en SQL sin comodines del usuario).
+
+**Terminado cuando**
+- Con más de 25 gastos, el scroll del cuadro carga el resto sin repetir ni saltar renglones.
+- El total filtrado cuadra con la suma en la BD; el capturista solo ve lo suyo.
+- Un PDF se ve dentro del modal en un celular Android.
 
 ## Sección 4 — Dashboard y reportes (solo admin)
 **Alcance**

@@ -49,11 +49,12 @@ src/
 │   │   ├── client.ts            # Cliente para navegador (solo donde sea indispensable)
 │   │   ├── proxy.ts             # Refresco de sesión
 │   │   ├── cookie-options.ts    # Cookies de sesión httpOnly / secure
+│   │   ├── storage.ts           # Bucket de comprobantes y borrado de archivos
 │   │   └── database.types.ts    # GENERADO. Nunca editar a mano
 │   ├── auth/                    # getCurrentUser(), requireRole()
 │   ├── env.ts                   # Variables de entorno validadas con Zod
 │   ├── action-result.ts         # Tipo de respuesta común de las actions
-│   └── utils/                   # formatMoney, formatDate, cn
+│   └── utils/                   # formatMoney, formatDate, cn; files.ts (tipos de archivo, firma de bytes, reducir fotos)
 │
 ├── mock/                        # Datos de ejemplo temporales (se borra al conectar BD)
 └── proxy.ts                     # Protección de rutas (en Next.js 16 `middleware` se renombró a `proxy`)
@@ -72,7 +73,9 @@ La dirección permitida es: `app → features → components/shared → lib`.
   se mueve a `components/shared/` o `lib/`.
   - Sí puede importar el `types.ts` de otro feature (tipos y etiquetas, p. ej. `UNIT_TYPE_LABELS`).
   - Componentes públicos a propósito: `catalogos/components/supplier-quick-add` (alta rápida de
-    proveedor dentro del formulario de servicio).
+    proveedor dentro del formulario de servicio), `comprobantes/components/receipt-picker` y
+    `comprobantes/components/upload-receipts` (elegir y subir comprobantes en el servicio nuevo),
+    `comprobantes/components/view-receipts-button` ("Ver factura" en la lista de gastos).
   - Nunca `queries.ts` ni `actions.ts` de otro feature: eso lo compone la página en `app/`.
 - `lib/` no importa de `features/` ni de `app/`.
 - `components/ui/` no conoce nada del negocio.
@@ -115,7 +118,9 @@ Flujo:
 1. El cliente comprime la imagen.
 2. Una Server Action valida el rol y genera una URL firmada de subida.
 3. El cliente sube directo a Supabase Storage con esa URL.
-4. Una Server Action registra el comprobante en la tabla.
+4. Una Server Action descarga el archivo, revisa su firma de bytes, recalcula el SHA-256 y lo registra en la tabla. Si no cuadra, lo borra.
+
+Para ver un archivo, la app nunca guarda URLs firmadas: enlaza a `/comprobantes/[id]` (route handler), que revisa sesión y RLS en cada petición y redirige a una URL firmada de 60 segundos.
 
 ## Datos y rendimiento
 
@@ -128,6 +133,7 @@ Flujo:
 | Archivos | Navegador → Supabase Storage | Ver "Excepción: subida de comprobantes". |
 
 - NO crear endpoints `/api/*` para que la propia app lea o escriba datos.
+- Excepción, lecturas que pide el navegador después de cargar la página: la siguiente tanda del scroll infinito (`servicios/actions.ts › loadMoreExpenses`) y los comprobantes al abrir el visor (`comprobantes/actions.ts › getServiceReceipts`). Son Server Actions que solo llaman a `queries.ts` con la sesión del usuario (RLS aplica) y validan su entrada con Zod.
 - NO consultar Supabase desde el navegador (`lib/supabase/client.ts`) salvo para Storage o algo que realmente lo requiera.
 - La cookie de sesión es `httpOnly`: el navegador no tiene sesión de Supabase. Lo que haga desde ahí (subir comprobantes) usa URLs firmadas que genera una Server Action.
 
