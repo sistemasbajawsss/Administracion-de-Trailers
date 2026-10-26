@@ -30,8 +30,9 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
   const canEdit = user.role !== "gerente";
 
   return (
-    <>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    // data-wide: en pantallas anchas esta página usa más ancho que el resto (layout).
+    <div data-wide>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 xl:mb-4">
         <BackButton fallback="/servicios" />
         <div className="flex gap-2">
           {canEdit && (
@@ -51,33 +52,35 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
       </div>
 
       {/*
-        Pantallas anchas: ticket y comprobantes a la izquierda; la línea de cambios a
-        la derecha, fija al bajar y con su propio scroll, para verla al entrar.
+        Pantallas anchas: todo cabe en la ventana, sin scroll de página. Ticket a la
+        izquierda; comprobantes y línea de cambios a la derecha. Cada columna tiene su
+        propio scroll solo si el servicio tiene muchos gastos o cambios.
+        (9.5rem = márgenes de la página + barra de Volver / Editar.)
         Celular: una columna, como antes.
       */}
-      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start xl:gap-8">
-        <div className="min-w-0">
+      <div className="xl:grid xl:h-[calc(100dvh-9.5rem)] xl:grid-cols-[minmax(0,1fr)_24rem] xl:gap-6">
+        <div className="min-w-0 xl:overflow-y-auto xl:overscroll-contain">
           <h1 className="sr-only">
             Servicio de {service.unit.economicNumber} del {formatDate(service.date)}
           </h1>
           <ServiceDetailView service={service} />
+        </div>
 
-          <Suspense fallback={<ReceiptsSectionSkeleton />}>
+        <div className="min-w-0 xl:space-y-6 xl:overflow-y-auto xl:overscroll-contain">
+          <Suspense fallback={<ReceiptsSectionSkeleton className="mt-10 xl:mt-0" />}>
             <ReceiptsSection
               serviceId={service.id}
               title={`${service.unit.economicNumber} · ${formatDate(service.date)}`}
               canEdit={canEdit}
+              className="mt-10 xl:mt-0 xl:rounded-xl xl:border xl:bg-white xl:p-5"
             />
           </Suspense>
-        </div>
-
-        <aside className="xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto xl:overscroll-contain">
           <Suspense fallback={<ChangeHistorySkeleton className="mt-10 xl:mt-0" />}>
             <ChangeHistory serviceId={service.id} className="mt-10 xl:mt-0 xl:rounded-xl xl:border xl:bg-white xl:p-5" />
           </Suspense>
-        </aside>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 

@@ -10,8 +10,10 @@ export async function ReceiptsSection({
   serviceId,
   title,
   canEdit,
+  className = "mt-10",
 }: {
   serviceId: string;
+  className?: string;
   /** "T-17 · 12/10/2026" (título del visor). */
   title: string;
   canEdit: boolean;
@@ -19,7 +21,7 @@ export async function ReceiptsSection({
   const receipts = await listReceipts(serviceId);
 
   return (
-    <section aria-labelledby="comprobantes" className="mt-10">
+    <section aria-labelledby="comprobantes" className={className}>
       <h2 id="comprobantes" className="mb-4 text-2xl font-semibold">
         Comprobantes{" "}
         {receipts.length > 0 && <span className="text-muted-foreground tabular-nums">{receipts.length}</span>}
@@ -42,6 +44,6 @@ export async function ReceiptsSection({
   );
 }
 
-export function ReceiptsSectionSkeleton() {
-  return <div className="mt-10 h-48 animate-pulse rounded-lg bg-muted" aria-busy="true" aria-label="Cargando comprobantes" />;
+export function ReceiptsSectionSkeleton({ className = "mt-10" }: { className?: string }) {
+  return <div className={`h-48 animate-pulse rounded-lg bg-muted ${className}`} aria-busy="true" aria-label="Cargando comprobantes" />;
 }

@@ -13,7 +13,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <Suspense fallback={<AppNavigationFallback />}>
         <AppNavigation signOutAction={signOut} />
       </Suspense>
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10 print:max-w-none print:p-0">
+      <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10 print:max-w-none print:p-0 xl:has-[[data-wide]]:max-w-7xl">
         {children}
       </main>
       {/* usePathname es dato de la petición: va dentro de Suspense para no bloquear el prerender. */}
