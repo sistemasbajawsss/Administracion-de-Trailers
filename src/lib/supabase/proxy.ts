@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabaseEnv } from "@/lib/env";
 
+import { SESSION_COOKIE_OPTIONS } from "./cookie-options";
+
 const PUBLIC_PATHS = ["/login"];
 
 function isPublicPath(pathname: string) {
@@ -31,6 +33,7 @@ export async function updateSession(request: NextRequest) {
     const { url, publishableKey } = getSupabaseEnv();
 
     const supabase = createServerClient(url, publishableKey, {
+      cookieOptions: SESSION_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll();

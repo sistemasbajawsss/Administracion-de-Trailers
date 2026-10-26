@@ -48,6 +48,7 @@ src/
 │   │   ├── server.ts            # Cliente para Server Components y Actions
 │   │   ├── client.ts            # Cliente para navegador (solo donde sea indispensable)
 │   │   ├── proxy.ts             # Refresco de sesión
+│   │   ├── cookie-options.ts    # Cookies de sesión httpOnly / secure
 │   │   └── database.types.ts    # GENERADO. Nunca editar a mano
 │   ├── auth/                    # getCurrentUser(), requireRole()
 │   ├── env.ts                   # Variables de entorno validadas con Zod
@@ -128,6 +129,7 @@ Flujo:
 
 - NO crear endpoints `/api/*` para que la propia app lea o escriba datos.
 - NO consultar Supabase desde el navegador (`lib/supabase/client.ts`) salvo para Storage o algo que realmente lo requiera.
+- La cookie de sesión es `httpOnly`: el navegador no tiene sesión de Supabase. Lo que haga desde ahí (subir comprobantes) usa URLs firmadas que genera una Server Action.
 
 ### Reglas
 1. **Región**: las funciones de Vercel corren en `pdx1` (Oregon), la misma región que Supabase (`vercel.json`). No cambiarla sin mover también la base de datos.
@@ -197,6 +199,11 @@ export default function UnitsPage({ searchParams }: PageProps<"/unidades">) {
   );
 }
 ```
+
+## Seguridad
+- **Toda política de lectura exige un rol** (`(select public.rol_actual()) is not null` o una función derivada). Tener sesión no basta: un usuario desactivado no ve nada.
+- **Encabezados** en `next.config.ts` (CSP, HSTS, anti-iframe). Si una pantalla necesita cargar algo de otro origen, se agrega solo ese origen a la directiva que corresponda, nunca comodines (`*`, `https:`).
+- `npm audit` sin altas ni críticas antes de cerrar cada sección.
 
 ## Convenciones de nombres
 - Archivos y carpetas: `kebab-case` (`service-form.tsx`).

@@ -32,6 +32,8 @@
 - **D5 — Eliminar una unidad por completo** (resuelta 2026-10-23, dentro de la Sección 2): además de darla de baja (reversible), el admin puede eliminar una unidad con todos sus servicios, gastos y línea de cambios. Exige escribir `ELIMINAR REGISTRO` en la pantalla y la función `eliminar_unidad()` vuelve a revisarlo. No se puede deshacer. Queda un renglón en `bitacora_eliminaciones` (número económico, tipo, servicios, gastos, total, quién y cuándo). Es la única excepción a "el historial no se puede alterar" de D1, junto con la siguiente.
   - Servicios eliminados (con motivo) quedan en **Servicios › Eliminados**: el admin los puede restaurar tal como estaban (`restaurar_servicio()`, con motivo) o eliminarlos para siempre escribiendo `ELIMINAR REGISTRO` (`eliminar_servicio_definitivo()`), lo que borra su copia y su línea de cambios y deja una nota en la bitácora.
 
+- **D6 — Sin verificación en dos pasos** (resuelta 2026-10-26, Sección 2.5): se implementó un código de app autenticadora para admin y gerente y el usuario decidió quitarlo. Todos los roles entran solo con contraseña. La protección de la cuenta queda en la política de contraseñas, la protección contra contraseñas filtradas y el cierre por inactividad de Supabase Auth.
+
 ---
 
 ## Sección 0 — Fundación
@@ -108,6 +110,23 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 - Toda edición deja un renglón en `historial_cambios` con motivo, incluso si se hace por API directa.
 - Un capturista no puede eliminar registros ni modificar el historial, incluso por API directa.
 
+## Sección 2.5 — Seguridad
+Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca protegido. Toca código de secciones cerradas (configuración, clientes de Supabase, políticas de lectura) con autorización del usuario.
+
+**Alcance**
+- Encabezados de seguridad en todas las respuestas (`next.config.ts`): HSTS, Content-Security-Policy, `X-Frame-Options: DENY` / `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` (cámara solo para la propia app) y sin `X-Powered-By`.
+- Cookies de sesión `httpOnly`, `secure` (en producción) y `sameSite=lax`: ningún script del navegador puede leer el token.
+- Las políticas de lectura de catálogos (choferes, unidades, categorías, proveedores) exigen tener rol, no solo sesión: un usuario desactivado deja de ver todo aunque su token siga vigente.
+- `npm audit` sin vulnerabilidades altas o críticas.
+- Ajustes del dashboard de Supabase que hace el usuario (no son migraciones): protección contra contraseñas filtradas, política de contraseñas, cierre de sesión por inactividad.
+
+**Terminado cuando**
+- Las respuestas de la app traen todos los encabezados de seguridad y la app funciona con la CSP activa.
+- La cookie de sesión aparece como `HttpOnly` en el navegador.
+- Un usuario desactivado con sesión todavía vigente no ve ni modifica nada, ni por API directa.
+- Admin, capturista y gerente siguen entrando y trabajando igual que antes.
+- Checklist de cierre de `CLAUDE.md` completo.
+
 ## Sección 3 — Comprobantes
 **Alcance**
 - Bucket privado `comprobantes` en Supabase Storage con políticas por rol.
@@ -116,6 +135,8 @@ Se divide en dos partes porque el proyecto de Supabase en la nube aún no está 
 - Compresión de imágenes en el cliente antes de subir.
 - Hash SHA-256 del archivo; si ya existe, se avisa de posible duplicado.
 - Visor del comprobante con URL firmada.
+- Validar el tipo real del archivo (firma de bytes de PDF, JPEG, PNG o WebP, no solo la extensión) y un tamaño máximo, en el cliente, en el servidor y en el bucket.
+- Ajustar la CSP de la Sección 2.5 para el visor y la compresión (sin abrirla a dominios ajenos).
 
 **Terminado cuando**
 - Ningún archivo es accesible sin sesión ni por URL pública.
