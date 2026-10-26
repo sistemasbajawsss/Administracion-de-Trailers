@@ -17,7 +17,8 @@ const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
  *   dónde mandar los datos. Y la cookie de sesión es httpOnly: no la puede leer.
  * - frame-ancestors 'none': nadie puede meter la app dentro de otra página.
  * Desarrollo: React necesita eval para depurar y Turbopack un websocket.
- * Sección 3: ajustar aquí para el visor y la compresión de comprobantes.
+ * Comprobantes: las vistas previas son blob: y los archivos se abren desde
+ * Supabase (URL firmada), así que no necesitan nada más.
  */
 const contentSecurityPolicy = [
   "default-src 'self'",

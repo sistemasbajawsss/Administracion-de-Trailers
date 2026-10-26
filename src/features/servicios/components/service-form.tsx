@@ -28,7 +28,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SupplierQuickAdd } from "@/features/catalogos/components/supplier-quick-add";
-import { formatCents, toCents } from "@/lib/utils/format";
+import {
+  ReceiptPicker,
+  pendingReceiptMessage,
+  type ReceiptDraft,
+} from "@/features/comprobantes/components/receipt-picker";
+import { uploadReceipts } from "@/features/comprobantes/components/upload-receipts";
+import { formatCents, formatDate, toCents } from "@/lib/utils/format";
 
 import { createService, updateService } from "../actions";
 import {
@@ -84,6 +90,7 @@ export function ServiceForm({
   const goBack = useGoBack();
   const isEdit = Boolean(service);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
+  const [receipts, setReceipts] = useState<ReceiptDraft[]>([]);
 
   const form = useForm<ServiceEditInput>({
     // En alta no hay motivo: se valida con el schema sin "reason".
@@ -132,6 +139,9 @@ export function ServiceForm({
     });
     if (missingConcept) return;
 
+    const pendingReceipts = pendingReceiptMessage(receipts);
+    if (pendingReceipts) return void toast.error(pendingReceipts);
+
     const clean = { ...values, mileage: isBox ? "" : values.mileage };
     const number = selectedUnit?.economicNumber ?? "la unidad";
 
@@ -145,7 +155,29 @@ export function ServiceForm({
       } else {
         const result = await createService(clean);
         if (!result.ok) return void toast.error(result.error);
-        toast.success(`Servicio de ${number} guardado por ${formatCents(totalCents)}`);
+        const saved = `Servicio de ${number} guardado por ${formatCents(totalCents)}`;
+
+        if (receipts.some((r) => r.status === "ready")) {
+          // El servicio ya está guardado: si falla un comprobante, se agrega desde el detalle.
+          const toastId = toast.loading("Subiendo comprobantes…");
+          const outcome = await uploadReceipts(result.data.id, receipts, (current, total) =>
+            toast.loading(`Subiendo comprobante ${current} de ${total}…`, { id: toastId }),
+          );
+          if (outcome.failed.length) {
+            const first = outcome.failed[0]!;
+            toast.error(`${saved}, pero no se subió ${first.name}: ${first.error} Agrégalo desde el detalle.`, {
+              id: toastId,
+              duration: 10000,
+            });
+          } else {
+            toast.success(`${saved} con ${outcome.uploaded} ${outcome.uploaded === 1 ? "comprobante" : "comprobantes"}`, { id: toastId });
+          }
+          for (const duplicate of outcome.duplicates) {
+            toast.warning(`Ojo: un comprobante también está en el servicio de ${duplicate.economicNumber} del ${formatDate(duplicate.date)}.`);
+          }
+        } else {
+          toast.success(saved);
+        }
         // replace: "Volver" desde el detalle no regresa al formulario ya guardado.
         router.replace(`/servicios/${result.data.id}`);
       }
@@ -378,6 +410,15 @@ export function ServiceForm({
           </Button>
           {form.formState.errors.expenses?.root && (
             <FieldError errors={[form.formState.errors.expenses.root]} />
+          )}
+        </FieldSet>
+
+        <FieldSet>
+          <FieldLegend className="font-heading text-xl">Comprobantes</FieldLegend>
+          {isEdit ? (
+            <FieldDescription>Los comprobantes se agregan o se quitan desde el detalle del servicio.</FieldDescription>
+          ) : (
+            <ReceiptPicker drafts={receipts} onDraftsChange={setReceipts} disabled={form.formState.isSubmitting} />
           )}
         </FieldSet>
 

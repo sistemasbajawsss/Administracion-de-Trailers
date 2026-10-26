@@ -239,7 +239,7 @@ export async function getUnitTotals(unitId: string): Promise<UnitTotals> {
 
 type HistoryRow = {
   id: number;
-  tabla: "servicios" | "gastos";
+  tabla: "servicios" | "gastos" | "comprobantes";
   accion: "insert" | "update" | "delete";
   datos_anteriores: Json;
   datos_nuevos: Json;
@@ -306,6 +306,12 @@ function toChange(row: HistoryRow, names: Names): HistoryChange | null {
     if (row.accion === "delete") return { kind: "service-deleted" };
     const changes = diff(before, after, SERVICE_FIELDS, (f, v) => describeServiceField(f, v, names));
     return changes.length ? { kind: "service-updated", changes } : null;
+  }
+
+  if (row.tabla === "comprobantes") {
+    // Un comprobante no se edita: solo se agrega o se quita.
+    if (row.accion === "insert") return { kind: "receipt-added", fileName: str(after.nombre_archivo) };
+    return { kind: "receipt-removed", fileName: str(before.nombre_archivo) };
   }
 
   if (row.accion === "insert") return { kind: "expense-added", summary: expenseSummary(after, names) };

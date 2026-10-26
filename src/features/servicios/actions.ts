@@ -6,6 +6,7 @@ import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
+import { removeReceiptFiles } from "@/lib/supabase/storage";
 import { normalizeAmount } from "@/lib/utils/format";
 
 import {
@@ -114,7 +115,8 @@ export async function deleteService(id: string, unitId: string, input: unknown):
 
 /**
  * Borra para siempre la copia y la línea de cambios de un servicio ya eliminado
- * (solo admin). Queda una nota en la bitácora de eliminaciones.
+ * (solo admin), y los archivos de sus comprobantes. Queda una nota en la bitácora
+ * de eliminaciones.
  */
 export async function purgeService(historyId: number, input: unknown): Promise<ActionResult> {
   const parsed = purgeServiceSchema.safeParse(input);
@@ -123,12 +125,13 @@ export async function purgeService(historyId: number, input: unknown): Promise<A
   await requireRole("admin");
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("eliminar_servicio_definitivo", {
+  const { data: receiptPaths, error } = await supabase.rpc("eliminar_servicio_definitivo", {
     p_historial_id: historyId,
     p_confirmacion: parsed.data.confirmation,
   });
   if (error) return fail(errorMessage(error, "No se pudo eliminar el servicio. Inténtalo de nuevo."));
 
+  await removeReceiptFiles(supabase, receiptPaths);
   revalidatePath("/servicios/eliminados");
   return ok();
 }

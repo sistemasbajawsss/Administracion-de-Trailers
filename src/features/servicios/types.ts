@@ -52,7 +52,9 @@ export type HistoryChange =
   | { kind: "service-restored" }
   | { kind: "expense-added"; summary: string }
   | { kind: "expense-removed"; summary: string }
-  | { kind: "expense-updated"; summary: string; changes: FieldChange[] };
+  | { kind: "expense-updated"; summary: string; changes: FieldChange[] }
+  | { kind: "receipt-added"; fileName: string }
+  | { kind: "receipt-removed"; fileName: string };
 
 /** Cambios hechos en una misma operación (mismo momento, autor y motivo). */
 export type HistoryEntry = {
