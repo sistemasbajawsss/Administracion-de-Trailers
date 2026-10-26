@@ -41,7 +41,7 @@ src/
 ├── components/
 │   ├── ui/                      # shadcn/ui generado por CLI. No editar a mano salvo tema
 │   ├── layout/                  # Sidebar, navegación inferior móvil, header
-│   └── shared/                  # Reutilizables: MoneyText, DateText, EmptyState, ConfirmDialog
+│   └── shared/                  # Reutilizables: EmptyState, PageHeader, HomePanel (tarjetas de Inicio)…
 │
 ├── lib/
 │   ├── supabase/

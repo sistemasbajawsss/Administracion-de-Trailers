@@ -3,7 +3,7 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Sección 4 — Dashboard y reportes** · Estado: plan pendiente de presentar y aprobar · Rama: `seccion-4-dashboard` (por crear)
+**Sección 5 — Extras (opcional)** · Estado: por decidir con el usuario qué entra · Rama: por crear. Antes de producción: borrar datos de prueba, ajustes de Supabase, deploy en Vercel y prueba de carga.
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -21,6 +21,7 @@
 - D7: hasta 10 comprobantes por servicio; duplicado en otro servicio se avisa y se puede subir; agregar y quitar como editar (quitar con motivo); el gerente solo ve.
 - Categorías: todas aplican a todos los tipos de unidad (se propuso filtrarlas por tipo y el usuario lo descartó).
 - Fotos: se reducen en el navegador a 2000 px / JPEG 82 % (el usuario lo confirmó así).
+- Reportes: admin y gerente; PDF con "Imprimir o guardar PDF" del navegador (sin servidor, vertical u horizontal) y Excel con el detalle y resúmenes. Inicio de admin y gerente = pendientes (servicios sin factura, unidades en taller); el capturista tiene su propio Inicio.
 
 ## Decisiones pendientes
 - Ninguna.
@@ -60,20 +61,33 @@
   - `historial_cambios` (lo llenan triggers; motivo obligatorio en todo cambio que no sea alta; nadie lo edita; solo se borra con `eliminar_unidad()` o `eliminar_servicio_definitivo()`).
   - `bitacora_eliminaciones` (unidades y servicios eliminados para siempre; solo admin la lee; nadie la edita).
   - `comprobantes` (D7; RLS: ve quien ve el servicio, agrega y quita quien lo puede editar; sin update; hasta 10 por servicio; `unique (servicio_id, hash_sha256)`). Entran en el historial y en la copia de un servicio eliminado.
-  - Vistas `servicios_resumen` (total, número de gastos, marca "editado"), `totales_por_unidad` y `gastos_detalle` (un renglón por gasto con fecha, unidad, categoría, número de comprobantes y `tiene_pdf`), todas `security_invoker`.
+  - Vistas `servicios_resumen` (total, número de gastos, marca "editado", `num_comprobantes`, `autor_nombre`), `totales_por_unidad` y `gastos_detalle` (un renglón por gasto con fecha, unidad, categoría, número de comprobantes y `tiene_pdf`), todas `security_invoker`.
 - Enums: `rol_usuario` (admin, capturista, gerente), `tipo_unidad`, `operacion_unidad`, `estatus_unidad`, `accion_historial`.
-- Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()` y `eliminar_unidad()` (ambas regresan las rutas de archivos a borrar), `quitar_comprobante()`, `buscar_comprobante_duplicado()`, `listar_gastos()`, `resumen_gastos()` (las llama la app); `preparar_comprobante()` (trigger), `archivo_comprobante_en_uso()` y `patron_busqueda()` (apoyo de políticas y búsquedas).
+- Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()` y `eliminar_unidad()` (ambas regresan las rutas de archivos a borrar), `quitar_comprobante()`, `buscar_comprobante_duplicado()`, `listar_gastos()`, `resumen_gastos()`, `reporte_gastos()` y `exportar_gastos()` (estas dos solo admin y gerente) (las llama la app); `nombre_usuario()` (nombre de quien capturó, para el gerente); `gastos_para_reporte()` y `validar_reporte()` (apoyo de reportes); `preparar_comprobante()` (trigger), `archivo_comprobante_en_uso()` y `patron_busqueda()` (apoyo de políticas y búsquedas).
 - Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones. Servicios de prueba capturados por el usuario, más **700 servicios `[PRUEBA] …`** (20 por unidad, 1,401 gastos, cada uno con una copia de `Informacion_Cita.pdf`, ~970 MB en Storage). Se borran antes de usar datos reales (servicios, historial y archivos).
 - Rutas:
   - Todos con sesión: `/comprobantes/[id]` (route handler: revisa sesión y RLS y redirige a una URL firmada de 60 s; `?descargar=1`).
   - Todos: `/login`, `/` (Inicio), `/servicios` (capturista: "Mis servicios"), `/servicios/[id]`.
   - Admin y capturista: `/servicios/nuevo` (`?unidad=` preselecciona), `/servicios/[id]/editar`.
-  - Admin y gerente: `/unidades`, `/unidades/[id]` (ficha con total invertido), `/dashboard` (placeholder).
+  - Admin y gerente: `/unidades`, `/unidades/[id]` (ficha con total invertido y lista de gastos), `/dashboard` (Reportes), `/dashboard/exportar` (Excel, route handler).
   - Solo admin: `/unidades/nueva`, `/unidades/[id]/editar`, `/servicios/eliminados`, `/admin/catalogos`, `/admin/usuarios` (placeholder).
-- Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`, `lib/supabase/cookie-options.ts` (cookies httpOnly), `lib/supabase/storage.ts` (bucket y borrado de archivos), `lib/utils/files.ts` (firma de bytes, reducir fotos, SHA-256). `features/comprobantes` (selector con cámara, subida, galería, visor en modal con pdf.js, quitar con motivo). `features/servicios` ahora tiene la lista de gastos (`expense-list`, `expense-feed` con scroll infinito) en lugar de la lista paginada de servicios. Encabezados de seguridad en `next.config.ts`. Dependencia nueva: `pdfjs-dist` 6.4.299 (se carga solo al abrir un PDF).
+- Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`, `lib/supabase/cookie-options.ts` (cookies httpOnly), `lib/supabase/storage.ts` (bucket y borrado de archivos), `lib/utils/files.ts` (firma de bytes, reducir fotos, SHA-256). `features/comprobantes` (selector con cámara, subida, galería, visor en modal con pdf.js, quitar con motivo). `features/servicios` ahora tiene la lista de gastos (`expense-list`, `expense-feed` con scroll infinito) en lugar de la lista paginada de servicios. Encabezados de seguridad en `next.config.ts`. Dependencia nueva: `pdfjs-dist` 6.4.299 (se carga solo al abrir un PDF). `features/dashboard` (filtros, cifras clave, gráfica por mes en Recharts y su versión HTML para imprimir, rankings, grupos, Excel con `write-excel-file`). `components/shared/home-panel` (tarjetas de Inicio). Dependencias nuevas: `recharts` 3.10.1 (solo en Reportes), `write-excel-file` 4.1.1 (solo en el servidor).
 - Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 4 — Dashboard y reportes (cerrada 2026-10-26)
+- Hecho:
+  - Reportes (`/dashboard`, admin y gerente): filtros en la URL (este mes, mes pasado, 3 / 6 / 12 meses, este año o rango; grupo; tipo), cifras clave con comparación contra el periodo anterior, gasto por mes (Recharts, con tabla), por categoría y unidades (top 8 con "ver más"), grupo y tipo (barra apilada con colores validados para daltonismo), proveedores.
+  - Exportar a Excel (6 hojas: resumen, detalle de gastos, por unidad, categoría, mes y proveedor) e "Imprimir o guardar PDF" con acomodo para hoja vertical y horizontal, encabezado, listas completas y gráfica por mes en HTML para que no se corte.
+  - Inicio: admin y gerente ven pendientes (servicios sin factura con quién los capturó, unidades en taller); el capturista ve Registrar servicio, sus servicios sin factura y sus últimos 5.
+  - Ajustes pedidos por el usuario en el detalle del servicio: comprobantes como botones compactos con "Elegir archivo" a la derecha, página a todo lo ancho en pantallas de 1280 px o más, línea de cambios fija al lado con su propio scroll.
+- Tablas / migraciones nuevas: `20261026224237_reportes.sql`, `20261026232829_servicios_resumen_pendientes.sql`.
+- Rutas nuevas: `/dashboard/exportar`; `/dashboard` dejó de ser placeholder; `/` cambió por rol.
+- Verificado: build (worktree aparte), lint, `tsc` y `npm audit` (0); tipos regenerados; funciones de reporte ensayadas en transacción sin commit (22 casos: total de 12 meses igual al centavo a la suma directa, cada agrupado suma el total, filtros de grupo y tipo, Excel igual al total, rangos inválidos, gerente igual que admin, capturista y anon rechazados); vista de pendientes con los tres roles; Reportes y Excel sin sesión → `/login`; archivo `.xlsx` de prueba válido. El usuario revisó Reportes, el PDF, el detalle del servicio y el Inicio.
+- Pendientes que pasan a la siguiente sección:
+  - Borrar los 700 servicios `[PRUEBA]` con sus PDF antes de usar datos reales.
+  - Ajustes del dashboard de Supabase de "Seguridad" (incluye Spend cap), crear el usuario gerente, deploy en Vercel con su dominio, prueba de carga final.
 
 ### Sección 3 — Comprobantes y lista de gastos (cerrada 2026-10-26)
 - Hecho:
