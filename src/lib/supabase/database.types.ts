@@ -205,8 +205,11 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          moneda: Database["public"]["Enums"]["moneda"]
           monto: number
+          monto_usd: number | null
           servicio_id: string
+          tipo_cambio: number | null
           updated_at: string
         }
         Insert: {
@@ -215,8 +218,11 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          moneda?: Database["public"]["Enums"]["moneda"]
           monto: number
+          monto_usd?: number | null
           servicio_id: string
+          tipo_cambio?: number | null
           updated_at?: string
         }
         Update: {
@@ -225,8 +231,11 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          moneda?: Database["public"]["Enums"]["moneda"]
           monto?: number
+          monto_usd?: number | null
           servicio_id?: string
+          tipo_cambio?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -494,12 +503,15 @@ export type Database = {
           created_by: string | null
           fecha: string | null
           id: string | null
+          moneda: Database["public"]["Enums"]["moneda"] | null
           monto: number | null
+          monto_usd: number | null
           num_comprobantes: number | null
           numero_economico: string | null
           servicio_creado: string | null
           servicio_id: string | null
           tiene_pdf: boolean | null
+          tipo_cambio: number | null
           tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
           unidad_id: string | null
         }
@@ -637,10 +649,13 @@ export type Database = {
           descripcion: string
           fecha: string
           grupo: string
+          moneda: Database["public"]["Enums"]["moneda"]
           monto: string
+          monto_usd: string
           numero_economico: string
           proveedor: string
           tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_cambio: string
         }[]
       }
       gastos_para_reporte: {
@@ -686,12 +701,15 @@ export type Database = {
           created_by: string | null
           fecha: string | null
           id: string | null
+          moneda: Database["public"]["Enums"]["moneda"] | null
           monto: number | null
+          monto_usd: number | null
           num_comprobantes: number | null
           numero_economico: string | null
           servicio_creado: string | null
           servicio_id: string | null
           tiene_pdf: boolean | null
+          tipo_cambio: number | null
           tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
           unidad_id: string | null
         }[]
@@ -776,6 +794,7 @@ export type Database = {
     Enums: {
       accion_historial: "insert" | "update" | "delete"
       estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja"
+      moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista" | "gerente"
       tipo_unidad: "trailer" | "caja" | "camion_rabon" | "pipa" | "camioneta"
@@ -911,6 +930,7 @@ export const Constants = {
     Enums: {
       accion_historial: ["insert", "update", "delete"],
       estatus_unidad: ["activo", "en_taller", "por_llegar", "baja"],
+      moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista", "gerente"],
       tipo_unidad: ["trailer", "caja", "camion_rabon", "pipa", "camioneta"],
