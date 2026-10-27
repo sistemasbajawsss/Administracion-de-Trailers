@@ -1,21 +1,50 @@
 import { z } from "zod";
 
-import { normalizeAmount, toCents } from "@/lib/utils/format";
+import { normalizeAmount, toCents, toRateUnits } from "@/lib/utils/format";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Un renglón de gasto. id vacío = renglón nuevo. El monto viaja como texto. */
-export const expenseLineSchema = z.object({
-  id: z.string(),
-  categoryId: z.string().min(1, "Elige la categoría"),
-  concept: z.string().trim().max(200, "Concepto: máximo 200 caracteres"),
-  amount: z
-    .string()
-    .trim()
-    .min(1, "Escribe el monto")
-    .refine((value) => normalizeAmount(value) !== null, "Monto no válido (ejemplo: 1500.50)")
-    .refine((value) => (toCents(value) ?? 0) > 0, "El monto debe ser mayor a $0"),
-});
+export const CURRENCIES = ["MXN", "USD"] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+/** Rango aceptado del tipo de cambio (la BD acepta hasta 100; esto ataja errores de dedo como 184.5). */
+export const MIN_RATE = 5;
+export const MAX_RATE = 50;
+
+/**
+ * Un renglón de gasto. id vacío = renglón nuevo. El monto viaja como texto y
+ * está en la moneda del renglón: en USD, la BD calcula el monto en pesos con el
+ * tipo de cambio.
+ */
+export const expenseLineSchema = z
+  .object({
+    id: z.string(),
+    categoryId: z.string().min(1, "Elige la categoría"),
+    concept: z.string().trim().max(200, "Concepto: máximo 200 caracteres"),
+    currency: z.enum(CURRENCIES),
+    amount: z
+      .string()
+      .trim()
+      .min(1, "Escribe el monto")
+      .refine((value) => normalizeAmount(value) !== null, "Monto no válido (ejemplo: 1500.50)")
+      .refine((value) => (toCents(value) ?? 0) > 0, "El monto debe ser mayor a 0"),
+    exchangeRate: z.string().trim(),
+  })
+  .superRefine((line, ctx) => {
+    if (line.currency !== "USD") return;
+    const units = toRateUnits(line.exchangeRate);
+    if (!line.exchangeRate) {
+      ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Escribe el tipo de cambio" });
+    } else if (units === null) {
+      ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Tipo de cambio no válido (ejemplo: 18.4520)" });
+    } else if (units < MIN_RATE * 10000 || units > MAX_RATE * 10000) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["exchangeRate"],
+        message: `El tipo de cambio debe estar entre ${MIN_RATE} y ${MAX_RATE} pesos`,
+      });
+    }
+  });
 
 export type ExpenseLineInput = z.infer<typeof expenseLineSchema>;
 
@@ -85,3 +114,6 @@ export const serviceFiltersSchema = z.object({
 });
 
 export type ServiceFilters = z.infer<typeof serviceFiltersSchema>;
+
+/** Fecha para sugerir el tipo de cambio de Banxico. */
+export const exchangeRateDateSchema = z.string().regex(DATE_PATTERN);

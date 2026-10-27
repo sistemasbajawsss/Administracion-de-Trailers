@@ -26,5 +26,10 @@ export type ExportRow = {
   concept: string | null;
   supplier: string;
   description: string | null;
+  /** Monto en pesos. */
   amount: string;
+  currency: "MXN" | "USD";
+  /** Solo en gastos en dólares. */
+  usdAmount: string | null;
+  exchangeRate: string | null;
 };

@@ -91,5 +91,8 @@ export async function listExportRows(
     supplier: row.proveedor,
     description: row.descripcion,
     amount: row.monto,
+    currency: row.moneda,
+    usdAmount: row.monto_usd,
+    exchangeRate: row.tipo_cambio,
   }));
 }
