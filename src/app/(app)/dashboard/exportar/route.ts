@@ -5,9 +5,11 @@ import { GROUP_LABELS, monthLongLabel, reportFiltersSchema, resolvePeriod } from
 import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
-import { formatDate, formatDateTime, toCents, todayInTijuana } from "@/lib/utils/format";
+import { formatDate, formatDateTime, toCents, toRateUnits, todayInTijuana } from "@/lib/utils/format";
 
 const MONEY = '"$"#,##0.00';
+const USD = '"US$"#,##0.00';
+const RATE = "0.0000";
 const PERCENT = "0.0%";
 
 /** "12345.67" → 12345.67 solo para la celda de Excel (el texto exacto viene de la BD). */
@@ -46,12 +48,14 @@ export async function GET(request: Request) {
     ["Servicios", report.services],
     ["Gastos", report.expenses],
     ["Unidades con gastos", report.units],
+    ["Pagado en dólares", { ...money(report.usd.amount), format: USD }],
+    ["Equivalente en pesos (incluido en el total)", money(report.usd.mxn)],
     ["Generado", formatDateTime(new Date().toISOString())],
     rows.length === 50000 ? ["Aviso", "El detalle se cortó en 50,000 renglones; usa un periodo más corto."] : [],
   ];
 
   const expenses: SheetData = [
-    header("Fecha", "Unidad", "Tipo", "Grupo", "Categoría", "Concepto", "Proveedor", "Descripción", "Monto"),
+    header("Fecha", "Unidad", "Tipo", "Grupo", "Categoría", "Concepto", "Proveedor", "Descripción", "Monto", "Moneda", "Dólares", "Tipo de cambio"),
     ...rows.map((row): Cell[] => [
       date(row.date),
       row.economicNumber,
@@ -62,6 +66,9 @@ export async function GET(request: Request) {
       row.supplier,
       row.description ?? "",
       money(row.amount),
+      row.currency,
+      row.usdAmount ? { ...money(row.usdAmount), format: USD } : null,
+      row.exchangeRate ? { value: (toRateUnits(row.exchangeRate) ?? 0) / 10000, type: Number, format: RATE } : null,
     ]),
     [null, null, null, null, null, null, null, { value: "Total", fontWeight: "bold" }, { ...money(report.total), fontWeight: "bold" }],
   ];
@@ -98,7 +105,7 @@ export async function GET(request: Request) {
     {
       data: expenses,
       sheet: "Gastos",
-      columns: [{ width: 12 }, { width: 10 }, { width: 14 }, { width: 12 }, { width: 34 }, { width: 30 }, { width: 26 }, { width: 40 }, { width: 14 }],
+      columns: [{ width: 12 }, { width: 10 }, { width: 14 }, { width: 12 }, { width: 34 }, { width: 30 }, { width: 26 }, { width: 40 }, { width: 14 }, { width: 8 }, { width: 14 }, { width: 14 }],
     },
     { data: byUnit, sheet: "Por unidad", columns: [{ width: 10 }, { width: 14 }, { width: 12 }, { width: 11 }, { width: 16 }, { width: 12 }] },
     { data: byCategory, sheet: "Por categoría", columns: [{ width: 40 }, { width: 10 }, { width: 16 }, { width: 12 }] },

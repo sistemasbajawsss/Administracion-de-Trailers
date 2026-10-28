@@ -1,4 +1,4 @@
-import { formatDate, formatKm, formatMoney } from "@/lib/utils/format";
+import { formatDate, formatKm, formatMoney, formatRate, formatUsd } from "@/lib/utils/format";
 import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 
 import type { ServiceDetail } from "../types";
@@ -57,7 +57,14 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
               <span className="block font-medium">{expense.categoryName}</span>
               {expense.concept && <span className="block text-muted-foreground">{expense.concept}</span>}
             </span>
-            <span className="shrink-0 text-base tabular-nums">{formatMoney(expense.amount)}</span>
+            <span className="shrink-0 text-right">
+              <span className="block text-base tabular-nums">{formatMoney(expense.amount)}</span>
+              {expense.usd && (
+                <span className="block text-sm text-muted-foreground tabular-nums">
+                  {formatUsd(expense.usd.amount)} a {formatRate(expense.usd.rate)}
+                </span>
+              )}
+            </span>
           </li>
         ))}
       </ul>

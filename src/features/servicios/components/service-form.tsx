@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SupplierQuickAdd } from "@/features/catalogos/components/supplier-quick-add";
 import {
   ReceiptPicker,
@@ -34,12 +35,21 @@ import {
   type ReceiptDraft,
 } from "@/features/comprobantes/components/receipt-picker";
 import { uploadReceipts } from "@/features/comprobantes/components/upload-receipts";
-import { formatCents, formatDate, toCents } from "@/lib/utils/format";
+import {
+  formatCents,
+  formatDate,
+  formatRate,
+  formatUsd,
+  toCents,
+  toRateUnits,
+  usdToMxnCents,
+} from "@/lib/utils/format";
 
-import { createService, updateService } from "../actions";
+import { createService, suggestExchangeRate, updateService } from "../actions";
 import {
   serviceEditSchema,
   serviceSchema,
+  type Currency,
   type ServiceEditInput,
 } from "../schemas";
 import type { CategoryOption, ServiceDetail, SupplierOption, UnitOption } from "../types";
@@ -47,7 +57,14 @@ import type { CategoryOption, ServiceDetail, SupplierOption, UnitOption } from "
 import { UnitPicker } from "./unit-picker";
 
 const NO_SUPPLIER = "sin-proveedor";
-const emptyExpense = { id: "", categoryId: "", concept: "", amount: "" };
+const emptyExpense: ServiceEditInput["expenses"][number] = {
+  id: "",
+  categoryId: "",
+  concept: "",
+  currency: "MXN",
+  amount: "",
+  exchangeRate: "",
+};
 
 function toFormValues(service: ServiceDetail | undefined, today: string, initialUnitId: string): ServiceEditInput {
   return {
@@ -56,14 +73,26 @@ function toFormValues(service: ServiceDetail | undefined, today: string, initial
     mileage: service?.mileage != null ? String(service.mileage) : "",
     supplierId: service?.supplierId ?? "",
     description: service?.description ?? "",
+    // En dólares, el formulario edita la cantidad en dólares; los pesos los calcula la BD.
     expenses: service?.expenses.map((e) => ({
       id: e.id,
       categoryId: e.categoryId,
       concept: e.concept ?? "",
-      amount: e.amount,
+      currency: e.usd ? ("USD" as const) : ("MXN" as const),
+      amount: e.usd?.amount ?? e.amount,
+      exchangeRate: e.usd ? formatRate(e.usd.rate) : "",
     })) ?? [emptyExpense],
     reason: "",
   };
+}
+
+/** Pesos de un renglón en centavos (en dólares, con su tipo de cambio). null si falta algo. */
+function lineMxnCents(line: Partial<ServiceEditInput["expenses"][number]>) {
+  const cents = toCents(line.amount ?? "");
+  if (cents === null) return null;
+  if (line.currency !== "USD") return cents;
+  const rate = toRateUnits(line.exchangeRate ?? "");
+  return rate ? usdToMxnCents(cents, rate) : null;
 }
 
 /**
@@ -120,7 +149,49 @@ export function ServiceForm({
   const selectedUnit = unitOptions.find((u) => u.id === unitId);
   const isBox = selectedUnit?.type === "caja";
 
-  const totalCents = expenses.reduce((sum, e) => sum + (toCents(e.amount ?? "") ?? 0), 0);
+  const totalCents = expenses.reduce((sum, e) => sum + (lineMxnCents(e) ?? 0), 0);
+  const usdCents = expenses.reduce((sum, e) => sum + (e.currency === "USD" ? (toCents(e.amount ?? "") ?? 0) : 0), 0);
+
+  // Origen del tipo de cambio sugerido por renglón (se borra en cuanto el usuario lo escribe).
+  const [rateNotes, setRateNotes] = useState<Record<string, string>>({});
+  const [loadingRate, setLoadingRate] = useState<string | null>(null);
+
+  /**
+   * Al pasar un renglón a dólares sin tipo de cambio: se usa el de otro renglón en
+   * dólares de este servicio, o el FIX que aplica en la fecha del servicio (publicado
+   * en el DOF el día hábil anterior).
+   */
+  async function switchCurrency(index: number, lineKey: string, currency: Currency) {
+    form.setValue(`expenses.${index}.currency`, currency, { shouldDirty: true });
+    if (currency !== "USD" || form.getValues(`expenses.${index}.exchangeRate`)) return;
+
+    const sibling = form.getValues("expenses").find((e, i) => i !== index && e.currency === "USD" && toRateUnits(e.exchangeRate));
+    if (sibling) {
+      form.setValue(`expenses.${index}.exchangeRate`, sibling.exchangeRate, { shouldDirty: true });
+      setRateNotes((notes) => ({ ...notes, [lineKey]: "El mismo de otro gasto de este servicio" }));
+      return;
+    }
+
+    setLoadingRate(lineKey);
+    try {
+      const result = await suggestExchangeRate(form.getValues("date"));
+      // Si mientras tanto ya lo escribieron, no se pisa.
+      if (form.getValues(`expenses.${index}.exchangeRate`)) return;
+      if (result.ok && result.data) {
+        form.setValue(`expenses.${index}.exchangeRate`, formatRate(result.data.rate), { shouldDirty: true });
+        setRateNotes((notes) => ({
+          ...notes,
+          [lineKey]: `Tipo de cambio FIX para el ${formatDate(result.data!.date)}, publicado en el DOF el día hábil anterior. Corrígelo si tu factura trae otro.`,
+        }));
+      } else {
+        setRateNotes((notes) => ({ ...notes, [lineKey]: "Escribe el tipo de cambio de la factura." }));
+      }
+    } catch {
+      setRateNotes((notes) => ({ ...notes, [lineKey]: "Escribe el tipo de cambio de la factura." }));
+    } finally {
+      setLoadingRate((current) => (current === lineKey ? null : current));
+    }
+  }
   const conceptRequired = new Set(categories.filter((c) => c.requiresConcept).map((c) => c.id));
   const categoryItems = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const supplierItems = {
@@ -305,11 +376,16 @@ export function ServiceForm({
 
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Gastos</FieldLegend>
-          <FieldDescription>Un renglón por cada concepto. Montos con IVA incluido.</FieldDescription>
+          <FieldDescription>
+            Un renglón por cada concepto. Montos con IVA incluido. Si la factura viene en dólares, cambia el renglón a Dólares.
+          </FieldDescription>
 
           <ol className="flex flex-col gap-3">
             {fields.map((line, index) => {
-              const requiresConcept = conceptRequired.has(expenses[index]?.categoryId ?? "");
+              const expense = expenses[index];
+              const requiresConcept = conceptRequired.has(expense?.categoryId ?? "");
+              const isUsd = expense?.currency === "USD";
+              const mxnCents = expense ? lineMxnCents(expense) : null;
               return (
                 <li key={line.id} className="rounded-xl border bg-white p-4">
                   <div className="mb-3 flex items-center justify-between">
@@ -379,10 +455,10 @@ export function ServiceForm({
                       control={form.control}
                       render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor={`expense-${index}-amount`}>Monto</FieldLabel>
+                          <FieldLabel htmlFor={`expense-${index}-amount`}>{isUsd ? "Dólares" : "Monto"}</FieldLabel>
                           <div className="relative">
                             <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" aria-hidden="true">
-                              $
+                              {isUsd ? "US$" : "$"}
                             </span>
                             <Input
                               {...field}
@@ -391,13 +467,91 @@ export function ServiceForm({
                               autoComplete="off"
                               placeholder="0.00"
                               aria-invalid={fieldState.invalid}
-                              className={`${inputClass} pl-7 text-right font-medium tabular-nums`}
+                              className={`${inputClass} ${isUsd ? "pl-12" : "pl-7"} text-right font-medium tabular-nums`}
                             />
                           </div>
                           <FieldError errors={[fieldState.error]} />
                         </Field>
                       )}
                     />
+                  </div>
+
+                  {/* Moneda del renglón. En dólares: tipo de cambio y su equivalente en pesos. */}
+                  <div className="mt-4 flex flex-wrap items-start gap-x-4 gap-y-3 border-t pt-4">
+                    <ToggleGroup
+                      variant="outline"
+                      spacing={0}
+                      value={[expense?.currency ?? "MXN"]}
+                      onValueChange={(value) => {
+                        const next = value[0] as Currency | undefined;
+                        if (next && next !== expense?.currency) void switchCurrency(index, line.id, next);
+                      }}
+                      aria-label={`Moneda del gasto ${index + 1}`}
+                    >
+                      <ToggleGroupItem value="MXN" className="h-11 px-4 data-[pressed]:bg-brand-ink data-[pressed]:text-white">
+                        Pesos
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="USD" className="h-11 px-4 data-[pressed]:bg-brand-ink data-[pressed]:text-white">
+                        Dólares
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+
+                    {isUsd && (
+                      <>
+                        <Controller
+                          name={`expenses.${index}.exchangeRate`}
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid} className="w-44">
+                              <FieldLabel htmlFor={`expense-${index}-rate`} className="sr-only">
+                                Tipo de cambio
+                              </FieldLabel>
+                              <div className="relative">
+                                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">
+                                  TC $
+                                </span>
+                                <Input
+                                  {...field}
+                                  onChange={(event) => {
+                                    field.onChange(event);
+                                    if (rateNotes[line.id]) {
+                                      setRateNotes((notes) => {
+                                        const next = { ...notes };
+                                        delete next[line.id];
+                                        return next;
+                                      });
+                                    }
+                                  }}
+                                  id={`expense-${index}-rate`}
+                                  inputMode="decimal"
+                                  autoComplete="off"
+                                  placeholder={loadingRate === line.id ? "Buscando…" : "18.0000"}
+                                  disabled={loadingRate === line.id}
+                                  aria-invalid={fieldState.invalid}
+                                  aria-describedby={`expense-${index}-rate-note`}
+                                  className={`h-11 bg-white pl-12 text-right text-base tabular-nums`}
+                                />
+                                {loadingRate === line.id && (
+                                  <LoaderCircle className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" aria-hidden="true" />
+                                )}
+                              </div>
+                              <FieldError errors={[fieldState.error]} />
+                            </Field>
+                          )}
+                        />
+                        <p className="ml-auto min-h-11 text-right" aria-live="polite">
+                          <span className="block text-sm text-muted-foreground">En pesos</span>
+                          <span className="font-medium text-brand-ink tabular-nums">
+                            {mxnCents === null ? "—" : formatCents(mxnCents)}
+                          </span>
+                        </p>
+                        {rateNotes[line.id] && (
+                          <p id={`expense-${index}-rate-note`} className="w-full text-sm text-muted-foreground">
+                            {rateNotes[line.id]}
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
                 </li>
               );
@@ -453,6 +607,11 @@ export function ServiceForm({
           <div className="min-w-0 flex-1">
             <p className="text-sm text-muted-foreground">
               Total · {expenses.length} {expenses.length === 1 ? "gasto" : "gastos"}
+              {usdCents > 0 && (
+                <span className="tabular-nums">
+                  {" "}· incluye {formatUsd(`${Math.floor(usdCents / 100)}.${String(usdCents % 100).padStart(2, "0")}`)}
+                </span>
+              )}
             </p>
             <p className="font-heading text-3xl leading-tight font-bold text-brand-ink tabular-nums" aria-live="polite">
               {formatCents(totalCents)}

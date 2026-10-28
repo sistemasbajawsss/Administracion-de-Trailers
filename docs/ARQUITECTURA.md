@@ -54,6 +54,7 @@ src/
 │   │   ├── admin.ts             # Cliente service_role (server-only): Auth Admin API para usuarios
 │   │   └── database.types.ts    # GENERADO. Nunca editar a mano
 │   ├── auth/                    # getCurrentUser(), requireRole()
+│   ├── banxico.ts               # Tipo de cambio FIX de Banxico (server-only, BANXICO_TOKEN)
 │   ├── env.ts                   # Variables de entorno validadas con Zod
 │   ├── action-result.ts         # Tipo de respuesta común de las actions
 │   └── utils/                   # formatMoney, formatDate, cn; files.ts (tipos de archivo, firma de bytes, reducir fotos)

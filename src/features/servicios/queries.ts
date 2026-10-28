@@ -3,7 +3,7 @@ import "server-only";
 import { UNIT_TYPE_LABELS, type UnitType } from "@/features/unidades/types";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
-import { formatDate, formatKm, formatMoney, toCents } from "@/lib/utils/format";
+import { formatDate, formatKm, formatMoney, formatRate, formatUsd, toCents } from "@/lib/utils/format";
 
 import type { ServiceFilters } from "./schemas";
 import type {
@@ -18,6 +18,7 @@ import type {
   ServiceListItem,
   UnitOption,
   UnitTotals,
+  UsdAmount,
 } from "./types";
 
 // Los montos se piden como texto (::text) para no convertirlos a float.
@@ -48,6 +49,10 @@ function toListItem(row: ServiceRow): ServiceListItem {
   };
 }
 
+/** Cantidad en dólares y tipo de cambio, solo si el gasto es en USD. */
+const toUsd = (amount: string | null, rate: string | null): UsdAmount | null =>
+  amount && rate ? { amount, rate } : null;
+
 export async function getService(id: string): Promise<ServiceDetail | null> {
   const supabase = await createClient();
 
@@ -67,7 +72,7 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
       .maybeSingle(),
     supabase
       .from("gastos")
-      .select("id, categoria_id, concepto, monto::text, categoria:categorias(nombre)")
+      .select("id, categoria_id, concepto, monto::text, monto_usd::text, tipo_cambio::text, categoria:categorias(nombre)")
       .eq("servicio_id", id)
       .order("created_at")
       .returns<
@@ -76,6 +81,8 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
           categoria_id: string;
           concepto: string | null;
           monto: string;
+          monto_usd: string | null;
+          tipo_cambio: string | null;
           categoria: { nombre: string } | null;
         }[]
       >(),
@@ -97,6 +104,7 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
       categoryName: e.categoria?.nombre ?? "Categoría",
       concept: e.concepto,
       amount: e.monto,
+      usd: toUsd(e.monto_usd, e.tipo_cambio),
     })),
   };
 }
@@ -131,7 +139,9 @@ export async function listExpenses(query: ExpenseQuery, offset = 0): Promise<Exp
   const supabase = await createClient();
   const { data, error } = await supabase
     .rpc("listar_gastos", { ...expenseArgs(query), p_limite: EXPENSES_BATCH_SIZE, p_desde_renglon: offset })
-    .select("id, servicio_id, fecha, categoria, concepto, monto::text, num_comprobantes, tiene_pdf, numero_economico")
+    .select(
+      "id, servicio_id, fecha, categoria, concepto, monto::text, monto_usd::text, tipo_cambio::text, num_comprobantes, tiene_pdf, numero_economico",
+    )
     .returns<
       {
         id: string;
@@ -140,6 +150,8 @@ export async function listExpenses(query: ExpenseQuery, offset = 0): Promise<Exp
         categoria: string | null;
         concepto: string | null;
         monto: string;
+        monto_usd: string | null;
+        tipo_cambio: string | null;
         num_comprobantes: number;
         tiene_pdf: boolean;
         numero_economico: string | null;
@@ -154,6 +166,7 @@ export async function listExpenses(query: ExpenseQuery, offset = 0): Promise<Exp
     category: row.categoria ?? "Categoría",
     concept: row.concepto,
     amount: row.monto,
+    usd: toUsd(row.monto_usd, row.tipo_cambio),
     receiptCount: row.num_comprobantes,
     hasPdf: row.tiene_pdf,
     economicNumber: row.numero_economico,
@@ -330,7 +343,8 @@ const SERVICE_FIELDS: [string, string][] = [
 function expenseSummary(row: Row, names: Names) {
   const category = names.categories.get(str(row.categoria_id)) ?? "Gasto";
   const concept = str(row.concepto);
-  return `${category}${concept ? ` · ${concept}` : ""} · ${formatMoney(str(row.monto))}`;
+  const usd = row.moneda === "USD" ? ` (${formatUsd(str(row.monto_usd))} × ${formatRate(str(row.tipo_cambio))})` : "";
+  return `${category}${concept ? ` · ${concept}` : ""} · ${formatMoney(str(row.monto))}${usd}`;
 }
 
 function diff(before: Row, after: Row, fields: [string, string][], describe: (field: string, value: Json | undefined) => string) {
@@ -369,12 +383,18 @@ function toChange(row: HistoryRow, names: Names): HistoryChange | null {
     [
       ["categoria_id", "Categoría"],
       ["concepto", "Concepto"],
-      ["monto", "Monto"],
+      ["moneda", "Moneda"],
+      ["monto_usd", "Dólares"],
+      ["tipo_cambio", "Tipo de cambio"],
+      ["monto", "Monto en pesos"],
     ],
     (field, value) => {
       const text = str(value);
       if (!text) return "—";
       if (field === "categoria_id") return names.categories.get(text) ?? "Categoría";
+      if (field === "moneda") return text === "USD" ? "Dólares" : "Pesos";
+      if (field === "monto_usd") return formatUsd(text);
+      if (field === "tipo_cambio") return formatRate(text);
       if (field === "monto") return formatMoney(text);
       return text;
     },

@@ -6,12 +6,14 @@ import { z } from "zod";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
+import { getFixRate, type FixRate } from "@/lib/banxico";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
-import { normalizeAmount } from "@/lib/utils/format";
+import { normalizeAmount, normalizeRate } from "@/lib/utils/format";
 
 import { listExpenses } from "./queries";
 import {
+  exchangeRateDateSchema,
   purgeServiceSchema,
   restoreServiceSchema,
   deleteServiceSchema,
@@ -34,13 +36,30 @@ function toArgs(service: ServiceInput) {
     p_kilometraje: nullable(service.mileage ? Number(service.mileage.replace(/,/g, "")) : null),
     p_proveedor_id: nullable(emptyToNull(service.supplierId)),
     p_descripcion: nullable(emptyToNull(service.description)),
+    // En dólares no se manda el monto en pesos: lo calcula la BD con el tipo de cambio.
     p_gastos: service.expenses.map((expense) => ({
       id: emptyToNull(expense.id),
       categoria_id: expense.categoryId,
       concepto: emptyToNull(expense.concept),
-      monto: normalizeAmount(expense.amount),
+      moneda: expense.currency,
+      ...(expense.currency === "USD"
+        ? { monto_usd: normalizeAmount(expense.amount), tipo_cambio: normalizeRate(expense.exchangeRate) }
+        : { monto: normalizeAmount(expense.amount) }),
     })),
   };
+}
+
+/**
+ * Tipo de cambio FIX de Banxico sugerido para la fecha del servicio. Si no hay
+ * dato, el formulario pide escribirlo a mano.
+ */
+export async function suggestExchangeRate(date: unknown): Promise<ActionResult<FixRate | null>> {
+  const parsed = exchangeRateDateSchema.safeParse(date);
+  if (!parsed.success) return fail("Fecha no válida.");
+
+  await requireRole(CAPTURE_ROLES);
+
+  return ok(await getFixRate(parsed.data));
 }
 
 /**

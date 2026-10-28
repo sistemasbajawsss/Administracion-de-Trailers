@@ -189,6 +189,20 @@ Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca prote
 - Un capturista o gerente no puede ver la lista ni crear, editar o desactivar usuarios, ni por API directa.
 - No se puede dejar el sistema sin admin activo.
 
+### 5B — Facturas en dólares (aprobada 2026-10-27)
+**Alcance**
+- Cada renglón de gasto se captura en pesos (MXN, como hasta ahora) o en dólares (USD).
+- En dólares se escribe el tipo de cambio (hasta 4 decimales) y la cantidad en dólares; el monto en pesos se calcula solo (`round(monto_usd × tipo_cambio, 2)`) y lo calcula la BD, no el navegador.
+- Al poner un renglón en dólares se sugiere el tipo de cambio FIX que aplica en la fecha del servicio, el publicado en el DOF el día hábil anterior (regla de contabilidad; serie SF60653 de Banxico, por fecha de liquidación, no la SF43718 por fecha de determinación); se puede corregir. Reportes muestra además "Pagado en dólares" del periodo. Otro renglón en dólares del mismo servicio reutiliza el que ya se escribió. Token de Banxico solo en el servidor (`BANXICO_TOKEN`); sin token o sin respuesta, se escribe a mano.
+- `gastos.monto` sigue siendo el monto en MXN: reportes, totales y gráficas no cambian.
+- Detalle del servicio, lista de gastos y línea de cambios muestran el monto en dólares y el tipo de cambio. El Excel agrega moneda, monto en USD y tipo de cambio en el detalle.
+
+**Terminado cuando**
+- Un gasto en dólares guarda el monto en pesos exacto al centavo, también si alguien manda otro monto en pesos por API directa.
+- Editar el tipo de cambio o la cantidad en dólares recalcula el monto en pesos y queda en la línea de cambios con su motivo.
+- Eliminar y restaurar un servicio conserva la moneda y el tipo de cambio.
+- Los servicios existentes quedan en pesos sin cambios.
+
 ### Otros extras (por decidir)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.
 - Bitácora de auditoría para el resto de las tablas (catálogos y usuarios). Servicios y gastos ya la tienen desde la Sección 2.

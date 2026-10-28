@@ -9,6 +9,8 @@ export type Report = {
   services: number;
   expenses: number;
   units: number;
+  /** Lo pagado en dólares en el periodo; su equivalente en pesos ya está en total. */
+  usd: { amount: string; mxn: string; expenses: number };
   byMonth: { month: string; total: string; services: number }[];
   byCategory: { id: string | null; name: string; total: string; expenses: number }[];
   byUnit: { id: string; economicNumber: string; type: UnitType; group: Group; total: string; services: number }[];
@@ -26,5 +28,10 @@ export type ExportRow = {
   concept: string | null;
   supplier: string;
   description: string | null;
+  /** Monto en pesos. */
   amount: string;
+  currency: "MXN" | "USD";
+  /** Solo en gastos en dólares. */
+  usdAmount: string | null;
+  exchangeRate: string | null;
 };

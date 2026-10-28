@@ -33,8 +33,10 @@ export type ExpenseListItem = {
   date: string;
   category: string;
   concept: string | null;
-  /** Monto en texto exacto de la BD. */
+  /** Monto en pesos, en texto exacto de la BD. */
   amount: string;
+  /** Solo en gastos en dólares. */
+  usd: UsdAmount | null;
   receiptCount: number;
   /** Algún comprobante es PDF (para adelantar la carga del visor). */
   hasPdf: boolean;
@@ -44,12 +46,17 @@ export type ExpenseListItem = {
 /** Total y número de gastos con los mismos filtros (sumado en la BD). */
 export type ExpenseSummary = { total: string; count: number };
 
+/** Cantidad en dólares y tipo de cambio de un gasto en USD (texto exacto de la BD). */
+export type UsdAmount = { amount: string; rate: string };
+
 export type ExpenseLine = {
   id: string;
   categoryId: string;
   categoryName: string;
   concept: string | null;
+  /** Monto en pesos (en USD lo calcula la BD). */
   amount: string;
+  usd: UsdAmount | null;
 };
 
 export type ServiceDetail = ServiceListItem & {

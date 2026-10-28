@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ViewReceiptsButton } from "@/features/comprobantes/components/view-receipts-button";
-import { formatDate, formatMoney } from "@/lib/utils/format";
+import { formatDate, formatMoney, formatUsd } from "@/lib/utils/format";
 
 import { loadMoreExpenses } from "../actions";
 import type { ServiceFilters } from "../schemas";
@@ -129,6 +129,9 @@ export function ExpenseFeed({
             </span>
             <span className="col-start-2 row-start-1 text-right font-semibold tabular-nums md:col-start-auto md:row-start-auto">
               {formatMoney(item.amount)}
+              {item.usd && (
+                <span className="block text-xs font-normal text-muted-foreground">{formatUsd(item.usd.amount)}</span>
+              )}
             </span>
             <span className="relative z-[1] col-start-2 row-start-2 justify-self-end md:col-start-auto md:row-start-auto">
               <ViewReceiptsButton
