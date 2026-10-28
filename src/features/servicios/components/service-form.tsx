@@ -158,7 +158,7 @@ export function ServiceForm({
 
   /**
    * Al pasar un renglón a dólares sin tipo de cambio: se usa el de otro renglón en
-   * dólares de este servicio, o el FIX de Banxico de la fecha del servicio.
+   * dólares de este servicio, o el FIX de Banxico del día hábil anterior al servicio.
    */
   async function switchCurrency(index: number, lineKey: string, currency: Currency) {
     form.setValue(`expenses.${index}.currency`, currency, { shouldDirty: true });
@@ -180,7 +180,7 @@ export function ServiceForm({
         form.setValue(`expenses.${index}.exchangeRate`, formatRate(result.data.rate), { shouldDirty: true });
         setRateNotes((notes) => ({
           ...notes,
-          [lineKey]: `FIX de Banxico del ${formatDate(result.data!.date)}. Corrígelo si tu factura trae otro.`,
+          [lineKey]: `FIX de Banxico del ${formatDate(result.data!.date)}, día hábil anterior al servicio. Corrígelo si tu factura trae otro.`,
         }));
       } else {
         setRateNotes((notes) => ({ ...notes, [lineKey]: "Escribe el tipo de cambio de la factura." }));

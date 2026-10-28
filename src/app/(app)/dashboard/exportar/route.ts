@@ -48,6 +48,8 @@ export async function GET(request: Request) {
     ["Servicios", report.services],
     ["Gastos", report.expenses],
     ["Unidades con gastos", report.units],
+    ["Pagado en dólares", { ...money(report.usd.amount), format: USD }],
+    ["Equivalente en pesos (incluido en el total)", money(report.usd.mxn)],
     ["Generado", formatDateTime(new Date().toISOString())],
     rows.length === 50000 ? ["Aviso", "El detalle se cortó en 50,000 renglones; usa un periodo más corto."] : [],
   ];

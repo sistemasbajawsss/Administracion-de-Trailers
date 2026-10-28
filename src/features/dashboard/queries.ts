@@ -35,12 +35,14 @@ export async function getReport(
   }
 
   const r = data as Row;
+  const usd = (r.dolares && typeof r.dolares === "object" && !Array.isArray(r.dolares) ? r.dolares : {}) as Row;
   return {
     total: text(r.total),
     previousTotal: text(r.total_anterior),
     services: num(r.servicios),
     expenses: num(r.gastos),
     units: num(r.unidades),
+    usd: { amount: text(usd.usd) || "0", mxn: text(usd.mxn) || "0", expenses: num(usd.gastos) },
     byMonth: rows(r.por_mes).map((m) => ({ month: text(m.mes), total: text(m.total), services: num(m.servicios) })),
     byCategory: rows(r.por_categoria).map((c) => ({
       id: orNull(c.id),

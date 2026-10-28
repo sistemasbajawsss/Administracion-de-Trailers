@@ -1,6 +1,6 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
 
-import { formatCents, formatMoney, toCents } from "@/lib/utils/format";
+import { formatCents, formatMoney, formatUsd, toCents } from "@/lib/utils/format";
 
 import type { Report } from "../types";
 
@@ -28,7 +28,7 @@ function Delta({ total, previous }: { total: string; previous: string }) {
   );
 }
 
-/** Cifras clave: el total como cifra principal y tres datos de apoyo. */
+/** Cifras clave: el total como cifra principal y tres datos de apoyo (servicios, promedio, dólares). */
 export function KpiRow({ report, periodLabel }: { report: Report; periodLabel: string }) {
   const totalCents = toCents(report.total) ?? 0;
   const perUnit = report.units ? Math.round(totalCents / report.units) : 0;
@@ -52,6 +52,16 @@ export function KpiRow({ report, periodLabel }: { report: Report; periodLabel: s
         <dd className="font-heading text-3xl font-semibold">{formatCents(perUnit)}</dd>
         <dd className="text-sm text-muted-foreground">
           {count.format(report.units)} {report.units === 1 ? "unidad" : "unidades"} con gastos
+        </dd>
+      </div>
+      {/* Franja a todo lo ancho: es un desglose del total, no otra cifra que se le sume. */}
+      <div className="col-span-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 bg-white px-5 py-4 lg:col-span-4 print:col-span-4">
+        <dt className="text-sm text-muted-foreground">Pagado en dólares</dt>
+        <dd className="font-heading text-2xl font-semibold tabular-nums">{formatUsd(report.usd.amount)}</dd>
+        <dd className="text-sm text-muted-foreground">
+          {report.usd.expenses
+            ? `Equivale a ${formatMoney(report.usd.mxn)} en ${count.format(report.usd.expenses)} ${report.usd.expenses === 1 ? "gasto" : "gastos"}, ya sumado al total`
+            : "Sin gastos en dólares en el periodo"}
         </dd>
       </div>
     </dl>

@@ -19,9 +19,10 @@ function daysBefore(date: string, days: number) {
 }
 
 /**
- * FIX de Banxico de la fecha dada o del último día hábil anterior (fines de
- * semana y festivos no tienen dato). null si no hay token, Banxico no responde
- * o no hay dato: entonces el tipo de cambio se escribe a mano.
+ * FIX de Banxico del día hábil anterior a la fecha dada (regla de contabilidad:
+ * nunca el del mismo día). Fines de semana y festivos no tienen dato: un lunes
+ * toma el del viernes. null si no hay token, Banxico no responde o no hay dato:
+ * entonces el tipo de cambio se escribe a mano.
  * Token gratuito: https://www.banxico.org.mx/SieAPIRest/service/v1/token
  */
 export async function getFixRate(date: string): Promise<FixRate | null> {
@@ -29,7 +30,7 @@ export async function getFixRate(date: string): Promise<FixRate | null> {
   if (!token) return null;
 
   try {
-    const response = await fetch(`${API_URL}/${FIX_SERIES}/datos/${daysBefore(date, 10)}/${date}`, {
+    const response = await fetch(`${API_URL}/${FIX_SERIES}/datos/${daysBefore(date, 10)}/${daysBefore(date, 1)}`, {
       headers: { "Bmx-Token": token, Accept: "application/json" },
       // Un dato publicado no cambia: se guarda medio día en el caché de Next.js.
       next: { revalidate: 43200 },
