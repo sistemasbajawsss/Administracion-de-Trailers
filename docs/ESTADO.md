@@ -94,7 +94,7 @@
 - Tablas / migraciones nuevas: `20261027234242_gastos_en_dolares.sql`, `20261028162451_reporte_dolares.sql`.
 - Rutas nuevas: ninguna.
 - Verificado: build (worktree aparte), lint, `tsc`, tipos al día; 17 casos en transacción sin commit con admin: monto exacto al centavo en alta, update e insert directos por API (se ignora el monto mandado), USD sin tipo de cambio o con TC > 100 rechazado, MXN limpia USD/TC, editar TC o cantidad recalcula y queda en el historial con motivo y valores viejo/nuevo, USD → MXN, eliminar y restaurar conserva moneda/USD/TC, los 1,407 gastos anteriores siguen en MXN, vista, Excel y reporte con dólares. Las políticas RLS no cambiaron en esta sección.
-- Pendientes: `npm audit` reporta 3 avisos de severidad baja en `deepmerge` dentro del CLI `shadcn` (no lo usa la app en ejecución); el arreglo propuesto cambia `shadcn` a 1.0.0 (cambio mayor), no se aplicó.
+- Auditoría: `deepmerge` (GHSA-gcqx-w48m-w2h4, severidad baja, sin versión corregida) llega por el CLI `shadcn`. Se pasó `shadcn` a `devDependencies` (la app solo usa su `tailwind.css` al compilar; Vercel instala las de desarrollo para el build): `npm audit --omit=dev` = 0. `npm audit` completo sigue con 3 avisos bajos hasta que shadcn o deepmerge publiquen arreglo; no bajar `shadcn` a 1.0.0 ni `deepmerge` a 4.1.x (lo que sugiere npm rompe la app o es más viejo).
 
 ### Sección 5A — Gestión de usuarios (cerrada 2026-10-26)
 - Hecho: `/admin/usuarios` con buscador; alta con nombre, correo, rol y contraseña inicial (generada o escrita; se muestra una vez con "copiar"); editar nombre y rol; desactivar / reactivar; restablecer contraseña. Política de contraseña en la app: 12+ con mayúscula, minúscula, número y símbolo. Protección de admins en la BD.
