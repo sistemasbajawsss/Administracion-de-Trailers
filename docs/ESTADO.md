@@ -97,6 +97,14 @@
 
 ## Historial de secciones
 
+### Corrección posterior — Validaciones de captura (2026-10-28, aprobada por el usuario)
+- Encontrado en la batería de pruebas de capturista (43 casos). Toca funciones de la Sección 2:
+  - `preparar_servicio()`: la validación de "unidad dada de baja" nunca se cumplía para ningún rol (`current_setting(..., true)` regresa NULL fuera de una restauración y `NULL = id` anulaba el `if`). Ahora usa `coalesce(..., '')`.
+  - `preparar_gasto()`: ahora rechaza una categoría desactivada al agregar un gasto o al cambiarle la categoría.
+  - Se sigue pudiendo editar un servicio o gasto viejo de una unidad o categoría ya dada de baja, y restaurar servicios eliminados.
+- Desde la app no pasaba (los selectores solo muestran unidades y categorías activas); solo por API directa.
+- Migración: `20261028185201_validar_unidad_baja_y_categoria_inactiva.sql`. Ensayada sin commit (13 casos con capturista y admin) y regresión: capturista 42/43 (el caso restante es una prueba mal planteada: los `[PRUEBA]` comparten el mismo PDF; con archivo único pasa), 5B 17/17, gerente 14/14.
+
 ### Sección 5C — Optimización, seguridad y escalabilidad (cerrada 2026-10-28)
 - Hecho:
   - Seguridad: sin permisos para `anon` en `public` y permisos de fábrica cerrados; sin TRUNCATE para `authenticated`; freno de login en el Firewall de Vercel (Hobby, sin costo) con mensaje claro en el login; ajustes de Supabase (contraseñas filtradas, política de 12, inactividad 8 h, Enforce SSL, Spend Cap); Advisors revisados.
