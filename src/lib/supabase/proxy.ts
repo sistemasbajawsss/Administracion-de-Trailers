@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabaseEnv } from "@/lib/env";
 
-import { SESSION_COOKIE_OPTIONS } from "./cookie-options";
+import { asSessionCookie, SESSION_COOKIE_OPTIONS } from "./cookie-options";
 
 const PUBLIC_PATHS = ["/login"];
 
@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
           );
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
+            response.cookies.set(name, value, asSessionCookie(options)),
           );
           Object.entries(headers).forEach(([key, value]) =>
             response.headers.set(key, value),

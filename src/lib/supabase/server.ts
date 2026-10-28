@@ -6,7 +6,7 @@ import { connection } from "next/server";
 
 import { getSupabaseEnv } from "@/lib/env";
 
-import { SESSION_COOKIE_OPTIONS } from "./cookie-options";
+import { asSessionCookie, SESSION_COOKIE_OPTIONS } from "./cookie-options";
 import type { Database } from "./database.types";
 
 /**
@@ -31,7 +31,7 @@ export async function createClient() {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
+            cookieStore.set(name, value, asSessionCookie(options)),
           );
         } catch {
           // Llamado desde un Server Component: no puede escribir cookies.

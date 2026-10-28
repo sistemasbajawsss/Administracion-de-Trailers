@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { signIn } from "@/features/auth/actions";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
 
+import { markTabSession } from "./tab-session-guard";
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,6 +36,7 @@ export function LoginForm() {
         toast.error(result.error);
         return;
       }
+      markTabSession();
       toast.success("Sesión iniciada");
       // No dejar la contraseña en memoria si se vuelve a mostrar el login.
       form.reset();

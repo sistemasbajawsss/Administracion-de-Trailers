@@ -1,4 +1,4 @@
-import type { CookieOptionsWithName } from "@supabase/ssr";
+import type { CookieOptions, CookieOptionsWithName } from "@supabase/ssr";
 
 /**
  * Cookies de sesión que ningún script del navegador puede leer (httpOnly):
@@ -13,3 +13,13 @@ export const SESSION_COOKIE_OPTIONS: CookieOptionsWithName = {
   sameSite: "lax",
   path: "/",
 };
+
+/**
+ * La sesión termina al cerrar el navegador: @supabase/ssr siempre escribe la
+ * cookie con 400 días, así que al escribirla se le quita la duración (cookie de
+ * sesión). Las que se borran (maxAge 0) se dejan igual para que sí se borren.
+ */
+export function asSessionCookie(options: CookieOptions): CookieOptions {
+  if (options.maxAge === 0) return options;
+  return { ...options, maxAge: undefined, expires: undefined };
+}
