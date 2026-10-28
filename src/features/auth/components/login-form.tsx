@@ -40,7 +40,8 @@ export function LoginForm() {
       router.replace("/");
       router.refresh();
     } catch {
-      toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
+      // También llega aquí cuando el Firewall de Vercel frena el exceso de intentos (429).
+      toast.error("No se pudo iniciar sesión. Si hiciste varios intentos, espera un minuto; si no, revisa tu internet.");
     }
   }
 
