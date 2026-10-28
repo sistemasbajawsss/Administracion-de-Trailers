@@ -216,6 +216,17 @@ Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca prote
 - Advisors de Supabase sin avisos de seguridad pendientes (o justificados en `docs/ESTADO.md`).
 - La regla de login está publicada y un exceso de intentos regresa 429.
 
+### 5D — Correcciones de la auditoría (aprobada 2026-10-28)
+Auditoría con 5 agentes en paralelo (BD, permisos, servidor, dinero y fechas, pantallas). El usuario aprobó todo.
+
+**Alcance**
+- Lote 1 (BD): motivo exigido también en gastos por API; id y fechas de auditoría los fija la BD; todo servicio con al menos un gasto; ids ajenos rechazados en `actualizar_servicio`; proveedor desactivado rechazado; `eliminar_unidad` sin tocar servicios que ya no son de esa unidad; usuario desactivado sin respuesta en funciones auxiliares; base de reportes solo para quien ve todo; candados de concurrencia (10 comprobantes, último admin); restaurar sin exigir concepto.
+- Lote 2 (app): "Nuevo proveedor" no envía el formulario del servicio; coma decimal (`1500,50` = 1,500.50); formularios limpios al volver; lista de gastos al día tras editar o eliminar; sin doble envío; scroll infinito sin bucle sin conexión; aviso al salir de un formulario con cambios; periodo anterior de Reportes por calendario (mes anterior, mismo tramo, año anterior); nombre de descarga saneado; restablecer contraseña cierra las sesiones abiertas.
+- Lote 3 (menores): fechas inexistentes en filtros, pantalla de error, "+0%", montos de la BD con signo o más decimales, búsqueda `T17` = `T-17`, tipo de cambio al cambiar la fecha, reintentos de fotos con el mismo nombre, fugas de vistas previas, topes en schemas e ids como uuid, tope de USD, archivos huérfanos de comprobantes.
+
+**Terminado cuando**
+- Cada hallazgo tiene una prueba que antes fallaba y ahora pasa, y las baterías de capturista, gerente, dólares y validaciones siguen pasando.
+
 ### Otros extras (por decidir)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.
 - Bitácora de auditoría para el resto de las tablas (catálogos y usuarios). Servicios y gastos ya la tienen desde la Sección 2.
