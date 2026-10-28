@@ -203,6 +203,19 @@ Se agregó entre la 2 y la 3 (2026-10-26) para que todo lo que sigue nazca prote
 - Eliminar y restaurar un servicio conserva la moneda y el tipo de cambio.
 - Los servicios existentes quedan en pesos sin cambios.
 
+### 5C — Optimización, seguridad y escalabilidad (aprobada 2026-10-28)
+**Alcance**
+- Freno de login: 1 regla de límite de intentos por IP en el Firewall de Vercel para `/login` (plan Hobby, sin costo; la configura el usuario con los valores que pasa Claude). El login corre en el servidor, así que el límite por IP de Supabase ve la IP de Vercel y no la de la persona.
+- Migración: quitar al rol `anon` los permisos sobrantes en `perfiles` y la ejecución de funciones auxiliares (`actualizar_updated_at`, `normalizar_unidad`, `prefijo_tipo_unidad`).
+- Ajustes del dashboard de Supabase de "Seguridad" (los hace el usuario) y revisión de Advisors (Security y Performance); lo que salga se atiende aquí.
+- Prueba de carga: ~1,000 servicios por unidad (~35 mil) en transacción sin commit; medir lista de gastos, ficha de unidad, Reportes, Excel e Inicio, y optimizar (índices, consultas) lo que pase de ~1 s.
+
+**Terminado cuando**
+- `anon` no tiene permisos en ninguna tabla ni vista de `public` y no ejecuta funciones de `public`; los tres roles siguen funcionando igual.
+- Las consultas principales responden en menos de ~1 s con el volumen de la prueba de carga.
+- Advisors de Supabase sin avisos de seguridad pendientes (o justificados en `docs/ESTADO.md`).
+- La regla de login está publicada y un exceso de intentos regresa 429.
+
 ### Otros extras (por decidir)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.
 - Bitácora de auditoría para el resto de las tablas (catálogos y usuarios). Servicios y gastos ya la tienen desde la Sección 2.
