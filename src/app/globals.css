@@ -138,6 +138,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Red de seguridad: un texto largo sin espacios (motivo, concepto, nombre,
+       correo…) se parte en renglones en vez de salirse y crear scroll lateral.
+       Se hereda a toda la app; solo actúa cuando el texto no cabe. Cifras que
+       nunca deben partirse llevan whitespace-nowrap. Ver CLAUDE.md › UI. */
+    overflow-wrap: anywhere;
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;

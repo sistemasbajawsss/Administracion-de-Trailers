@@ -57,6 +57,11 @@ Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ti
 - Usar componentes de shadcn/ui; agregarlos con el CLI de shadcn, no copiarlos a mano.
 - Toda acción muestra estados de carga, éxito y error (toasts).
 - Botones y campos táctiles cómodos (mínimo 44px de alto) en vistas de captura.
+- Texto escrito por usuarios nunca debe salirse de su contenedor ni crear scroll lateral (pasó en la línea de cambios con un motivo largo sin espacios). Reglas:
+  - `body` tiene `overflow-wrap: anywhere` en `globals.css` (red de seguridad heredada a toda la app). No quitarla ni poner `overflow-wrap: normal` / `break-normal` en contenedores de texto libre.
+  - Texto libre o de catálogo (descripción, motivo, concepto, notas, nombres de proveedor/chofer/categoría/usuario, archivos, correos, placas, VIN) que va en un solo renglón: `truncate` + `min-w-0` en su contenedor flex/grid, y forma de ver el texto completo (`title` o detalle).
+  - Cifras y montos que no deben partirse: `whitespace-nowrap` (o `shrink-0` si están en una fila flex).
+  - Probar cada pantalla nueva con un texto de 200 caracteres sin espacios, en 360 px y en escritorio.
 
 ## Git y cierre de sección
 
