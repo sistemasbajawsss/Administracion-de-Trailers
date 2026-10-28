@@ -770,6 +770,8 @@ export type Database = {
       }
       reporte_gastos: {
         Args: {
+          p_anterior_desde?: string
+          p_anterior_hasta?: string
           p_desde: string
           p_grupo?: string
           p_hasta: string
