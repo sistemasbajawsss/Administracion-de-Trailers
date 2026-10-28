@@ -4,8 +4,7 @@ import { useEffect } from "react";
 
 import { signOut } from "@/features/auth/actions";
 
-/** Marca de la pestaña donde se inició sesión (sessionStorage se borra al cerrar la pestaña). */
-const TAB_SESSION_KEY = "sesion-pestana";
+import { TAB_SESSION_KEY } from "./tab-session-script";
 
 /** Se llama al iniciar sesión: esta pestaña queda autorizada. */
 export function markTabSession() {
