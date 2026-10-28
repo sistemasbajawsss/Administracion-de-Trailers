@@ -2,8 +2,13 @@ import "server-only";
 
 import { normalizeRate } from "@/lib/utils/format";
 
-/** Tipo de cambio FIX (pesos por dólar) que publica Banxico cada día hábil. */
-const FIX_SERIES = "SF43718";
+/**
+ * Tipo de cambio FIX por fecha de liquidación: para cada día, el que publicó el
+ * DOF el día hábil anterior (regla de contabilidad). Trae dato también en fines
+ * de semana y festivos. No confundir con SF43718 (fecha de determinación), que
+ * va un día hábil adelantada.
+ */
+const FIX_SERIES = "SF60653";
 const API_URL = "https://www.banxico.org.mx/SieAPIRest/service/v1/series";
 
 export type FixRate = { rate: string; date: string };
@@ -19,10 +24,9 @@ function daysBefore(date: string, days: number) {
 }
 
 /**
- * FIX de Banxico del día hábil anterior a la fecha dada (regla de contabilidad:
- * nunca el del mismo día). Fines de semana y festivos no tienen dato: un lunes
- * toma el del viernes. null si no hay token, Banxico no responde o no hay dato:
- * entonces el tipo de cambio se escribe a mano.
+ * Tipo de cambio que aplica en la fecha dada (publicado en el DOF el día hábil
+ * anterior). Si esa fecha aún no tiene dato, el más reciente anterior. null si
+ * no hay token, Banxico no responde o no hay dato: entonces se escribe a mano.
  * Token gratuito: https://www.banxico.org.mx/SieAPIRest/service/v1/token
  */
 export async function getFixRate(date: string): Promise<FixRate | null> {
@@ -30,7 +34,7 @@ export async function getFixRate(date: string): Promise<FixRate | null> {
   if (!token) return null;
 
   try {
-    const response = await fetch(`${API_URL}/${FIX_SERIES}/datos/${daysBefore(date, 10)}/${daysBefore(date, 1)}`, {
+    const response = await fetch(`${API_URL}/${FIX_SERIES}/datos/${daysBefore(date, 10)}/${date}`, {
       headers: { "Bmx-Token": token, Accept: "application/json" },
       // Un dato publicado no cambia: se guarda medio día en el caché de Next.js.
       next: { revalidate: 43200 },
