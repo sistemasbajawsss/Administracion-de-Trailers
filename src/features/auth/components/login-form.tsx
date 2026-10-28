@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { signIn } from "@/features/auth/actions";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
 
+import { markTabSession } from "./tab-session-guard";
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,13 +36,15 @@ export function LoginForm() {
         toast.error(result.error);
         return;
       }
+      markTabSession();
       toast.success("Sesión iniciada");
       // No dejar la contraseña en memoria si se vuelve a mostrar el login.
       form.reset();
       router.replace("/");
       router.refresh();
     } catch {
-      toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
+      // También llega aquí cuando el Firewall de Vercel frena el exceso de intentos (429).
+      toast.error("No se pudo iniciar sesión. Si hiciste varios intentos, espera un minuto; si no, revisa tu internet.");
     }
   }
 

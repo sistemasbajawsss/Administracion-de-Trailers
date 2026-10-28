@@ -45,7 +45,7 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
         {service.description && (
           <div className="sm:col-span-3">
             <dt className="text-sm text-muted-foreground">Descripción</dt>
-            <dd className="text-base whitespace-pre-line">{service.description}</dd>
+            <dd className="text-base whitespace-pre-line wrap-anywhere">{service.description}</dd>
           </div>
         )}
       </dl>

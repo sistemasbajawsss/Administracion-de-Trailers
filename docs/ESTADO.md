@@ -3,17 +3,14 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Salida a producción (2026-10-28).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A y 5B, todo en `main`. El usuario ya puso las variables en Vercel (incluye `BANXICO_TOKEN`) y la Site URL / Redirect URLs de Supabase con la dirección `.vercel.app`.
+**Salida a producción (2026-10-28).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B y 5C. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
 
 ### Próximos pasos para retomar
-1. **Preparar el deploy (lo hace Claude):** `vercel.json` con región `pdx1` (igual que Supabase) ya existe; build verificado.
-2. **Vercel (lo hace el usuario):** variables hechas (`SUPABASE_SERVICE_ROLE_KEY` y `BANXICO_TOKEN` como Secret, las `NEXT_PUBLIC_` como Config). Falta: deploy de `main`, plan Pro (Hobby no permite uso comercial) con límite de gasto, y probar login y captura en la dirección `.vercel.app`.
-3. **Dominio:** `flotilla.bajaws.com.mx` en Cloudflare apuntando a Vercel, SSL en Full (strict). Claude pasa el registro DNS exacto.
-4. **Supabase:** Site URL / Redirect URLs con el dominio; activar contraseñas filtradas, política de contraseñas, cierre por inactividad, Enforce SSL y confirmar Spend cap (lista en "Seguridad").
-5. **Prueba de carga** (~1,000 servicios por unidad, en transacción sin commit) contra la base real.
-6. **Limpieza:** borrar los 700 servicios `[PRUEBA]` con sus gastos, historial y PDF en Storage (~970 MB).
-7. **Arranque:** crear el gerente y los capturistas reales en Admin → Usuarios.
-8. **Extras después de arrancar** (por decidir): mantenimientos preventivos con alertas; bitácora de catálogos y usuarios.
+1. **Limpieza:** borrar los 700 servicios `[PRUEBA]` con sus gastos, historial y PDF en Storage (~970 MB) antes de usar datos reales.
+2. **Arranque:** crear el gerente y los capturistas reales en Admin → Usuarios.
+3. **Dominio (al final, lo pidió el usuario):** `flotilla.bajaws.com.mx` en Cloudflare apuntando a Vercel, SSL en Full (strict); Claude pasa el registro DNS exacto. Después, actualizar Site URL / Redirect URLs de Supabase con el dominio.
+4. **Opcional:** mover el proyecto fuera de OneDrive (bloquea `.next` y rompe el build con EPERM).
+5. **Extras después de arrancar** (por decidir): mantenimientos preventivos con alertas; bitácora de catálogos y usuarios.
 
 ## Decisiones tomadas
 - Stack: Next.js + TypeScript + Tailwind + shadcn/ui + Supabase + Vercel.
@@ -32,6 +29,8 @@
 - Categorías: todas aplican a todos los tipos de unidad (se propuso filtrarlas por tipo y el usuario lo descartó).
 - Fotos: se reducen en el navegador a 2000 px / JPEG 82 % (el usuario lo confirmó así).
 - D8 (5B): gastos en pesos o en dólares por renglón; en dólares la BD calcula `monto` (MXN) = `round(monto_usd × tipo_cambio, 2)`. Tipo de cambio sugerido: FIX publicado en el DOF el día hábil anterior a la fecha del servicio (Banxico SF60653), editable.
+- D9 (5C): la sesión termina al cerrar la pestaña **y** al cerrar el navegador (el usuario eligió ambas). Abrir la app en otra pestaña pide entrar de nuevo y cierra la sesión de las demás.
+- Hosting: Vercel plan **Hobby** (el usuario no pagará Pro); 1 regla de rate limit por proyecto (usada en `/login`). El dominio se conecta al final.
 - Reportes: admin y gerente; PDF con "Imprimir o guardar PDF" del navegador (sin servidor, vertical u horizontal) y Excel con el detalle y resúmenes. Inicio de admin y gerente = pendientes (servicios sin factura, unidades en taller); el capturista tiene su propio Inicio.
 
 ## Decisiones pendientes
@@ -55,11 +54,19 @@
 - **Lecturas con rol:** toda política de lectura exige tener rol (`rol_actual()` no nulo). Un usuario desactivado con token vigente ve 0 registros y no puede escribir, ni por API.
 - **Cookies de sesión** `httpOnly`, `secure` en producción y `sameSite=lax` (`lib/supabase/cookie-options.ts`): ningún script del navegador lee el token.
 - **Encabezados** en `next.config.ts`: CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` (cámara solo para la app), sin `X-Powered-By`.
-- **Ajustes del dashboard de Supabase** (no son migraciones; los hace el usuario):
-  - [ ] Authentication → Attack Protection: protección contra contraseñas filtradas.
-  - [ ] Authentication → Policies / Passwords: mínimo 12 caracteres con minúsculas, mayúsculas, números y símbolos.
-  - [ ] Authentication → Sessions: cierre por inactividad (8 h).
-  - [ ] Database → Settings: "Enforce SSL on incoming connections".
+- **Sesión** (D9): cookies sin vencimiento (`asSessionCookie` en `lib/supabase/cookie-options.ts`, porque `@supabase/ssr` siempre pone 400 días) y marca por pestaña en `sessionStorage` (`TabSessionScript` oculta la app antes de pintarla y `TabSessionGuard` cierra la sesión si la pestaña no tiene marca).
+- **Freno de login:** regla del Firewall de Vercel "Freno de login": `POST /login`, 10 por IP cada 60 s → 429. Probada por el usuario.
+- **Permisos de `anon`:** ninguno en `public` (tablas, vistas, funciones, secuencias), y los permisos de fábrica de `postgres` ya no se los dan a lo nuevo (el EXECUTE de fábrica para PUBLIC se quitó con el ajuste global). `authenticated` sin TRUNCATE / REFERENCES / TRIGGER.
+- **Ajustes del dashboard de Supabase** (no son migraciones; los hizo el usuario el 2026-10-28):
+  - [x] Contraseñas filtradas (Sign In / Providers → Email). Reconfirmar con "Rerun linter" en el Security Advisor.
+  - [x] Contraseñas: mínimo 12 con minúsculas, mayúsculas, números y símbolos.
+  - [x] Sessions: cierre por inactividad 8 h.
+  - [x] Enforce SSL (verificado: la conexión del CLI va cifrada).
+  - [x] Spend Cap activado.
+  - [ ] Opcional: Auth DB connections en porcentaje (solo importa si se sube el tamaño del servidor).
+- **Advisors revisados (2026-10-28):**
+  - Security: 11 avisos `authenticated_security_definer_function_executable`, todos intencionales: `es_admin`, `rol_actual`, `puede_capturar`, `puede_ver_todo` (las usan las políticas y solo responden sobre el propio usuario); `listar_usuarios`, `restaurar_servicio`, `eliminar_unidad`, `eliminar_servicio_definitivo` (revisan admin por dentro); `buscar_comprobante_duplicado` (exige poder capturar; D7); `nombre_usuario` y `archivo_comprobante_en_uso` (requieren un id o ruta exacta). No quitarles EXECUTE: rompe RLS.
+  - Performance: las dos políticas de lectura de `perfiles` se unieron en una. Los 9 `created_by` sin índice se dejan (solo cuentan al borrar un usuario de Auth, y aquí se desactivan) y los "índices sin usar" también (tablas chicas; con volumen sí se usan, se vio en la prueba de carga).
 - **Dominio (cuando se conecte `flotilla.bajaws.com.mx`):** Cloudflare con SSL en modo **Full (strict)**, nunca "Flexible".
 
 ## Existe actualmente
@@ -85,9 +92,21 @@
   - Solo admin: `/unidades/nueva`, `/unidades/[id]/editar`, `/servicios/eliminados`, `/admin/catalogos`, `/admin/usuarios`.
 - Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`, `lib/supabase/cookie-options.ts` (cookies httpOnly), `lib/supabase/storage.ts` (bucket y borrado de archivos), `lib/utils/files.ts` (firma de bytes, reducir fotos, SHA-256). `features/comprobantes` (selector con cámara, subida, galería, visor en modal con pdf.js, quitar con motivo). `features/servicios` ahora tiene la lista de gastos (`expense-list`, `expense-feed` con scroll infinito) en lugar de la lista paginada de servicios. Encabezados de seguridad en `next.config.ts`. Dependencia nueva: `pdfjs-dist` 6.4.299 (se carga solo al abrir un PDF). `features/dashboard` (filtros, cifras clave, gráfica por mes en Recharts y su versión HTML para imprimir, rankings, grupos, Excel con `write-excel-file`). `components/shared/home-panel` (tarjetas de Inicio). `features/usuarios` (lista, alta, editar, desactivar, restablecer contraseña) y `lib/supabase/admin.ts` (cliente service_role, `server-only`). Dependencias nuevas: `recharts` 3.10.1 (solo en Reportes), `write-excel-file` 4.1.1 (solo en el servidor).
 - 5B: `lib/banxico.ts` (tipo de cambio FIX, solo servidor, `BANXICO_TOKEN`), componentes `toggle` y `toggle-group` de shadcn, cifra "Pagado en dólares" en Reportes, columnas moneda / USD / tipo de cambio en el Excel.
+- 5C: `listar_gastos`, `resumen_gastos` y `gastos_para_reporte` en plpgsql con SQL dinámico (solo los filtros que vienen, valores por parámetro; `filtro_gastos()` arma las condiciones); `gastos_para_reporte` trae `moneda`, `monto_usd` y `tipo_cambio`; `reporte_gastos` con `work_mem` 32MB. Lectura de `gastos` y `comprobantes`: `puede_ver_todo()` primero. `perfiles: leer` (una sola política). `features/auth/components/tab-session-script` y `tab-session-guard`. `body { overflow-wrap: anywhere }` en `globals.css` (regla en CLAUDE.md › UI).
 - Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 5C — Optimización, seguridad y escalabilidad (cerrada 2026-10-28)
+- Hecho:
+  - Seguridad: sin permisos para `anon` en `public` y permisos de fábrica cerrados; sin TRUNCATE para `authenticated`; freno de login en el Firewall de Vercel (Hobby, sin costo) con mensaje claro en el login; ajustes de Supabase (contraseñas filtradas, política de 12, inactividad 8 h, Enforce SSL, Spend Cap); Advisors revisados.
+  - Sesión (D9): se cierra al cerrar la pestaña y al cerrar el navegador, sin que se alcance a ver la app.
+  - Prueba de carga: ~35,700 servicios, ~71,400 gastos, ~21,800 comprobantes y ~108 mil renglones de historial en transacción sin commit. Antes → después (admin): lista de Servicios 1,150 → 13 ms; búsqueda 2,294 → 355 ms; ficha de unidad 46 → 3 ms; Reportes 12 meses 854 → 467 ms; 3 años 1,976 → 1,113 ms (se acepta: el escenario equivale a casi un servicio diario por unidad); Excel 12 meses 446 → 200 ms; Inicio < 130 ms. Resultados idénticos antes y después en 25 comparaciones (admin y capturista).
+  - UI: textos largos sin espacios ya no crean scroll lateral (regla global y en CLAUDE.md).
+- Tablas / migraciones nuevas: `20261028170624_revocar_permisos_anon.sql`, `20261028172104_consultas_con_volumen.sql`, `20261028181259_perfiles_una_politica_de_lectura.sql`.
+- Rutas nuevas: ninguna.
+- Verificado: build limpio (worktree aparte con `npm ci`), lint, `tsc`, `npm audit --omit=dev` (0); tipos regenerados; ensayos en transacción sin commit: 18 casos de permisos (anon, admin y capturista), 4 de `perfiles`, regresión de los 17 casos de la 5B. El usuario probó el freno de login y el cierre de sesión sin parpadeo.
+- Pendientes: reconfirmar en el Security Advisor que ya no salga "Leaked Password Protection Disabled"; opcional Auth DB connections en porcentaje.
 
 ### Sección 5B — Facturas en dólares (cerrada 2026-10-28)
 - Hecho: cada renglón de gasto en pesos o dólares; en dólares se escribe cantidad y tipo de cambio (4 decimales) y la BD calcula los pesos. Sugerencia del tipo de cambio FIX de Banxico (SF60653, publicado en el DOF el día hábil anterior); otro renglón en dólares del mismo servicio reutiliza el ya escrito; sin token o sin respuesta se escribe a mano. Detalle, lista de gastos y línea de cambios muestran USD y tipo de cambio; Reportes muestra "Pagado en dólares"; Excel con moneda, USD y tipo de cambio.

@@ -658,6 +658,16 @@ export type Database = {
           tipo_cambio: string
         }[]
       }
+      filtro_gastos: {
+        Args: {
+          p_busqueda: string
+          p_desde: string
+          p_hasta: string
+          p_numero: string
+          p_unidad_id: string
+        }
+        Returns: string
+      }
       gastos_para_reporte: {
         Args: {
           p_desde: string
@@ -673,13 +683,16 @@ export type Database = {
           fecha: string
           gasto_id: string
           grupo: string
+          moneda: Database["public"]["Enums"]["moneda"]
           monto: number
+          monto_usd: number
           numero_economico: string
           numero_orden: number
           proveedor: string
           proveedor_id: string
           servicio_id: string
           tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo_cambio: number
           unidad_id: string
         }[]
       }

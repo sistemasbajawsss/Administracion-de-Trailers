@@ -110,8 +110,8 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
                 {months.map((m) => (
                   <tr key={m.month} className="border-b last:border-b-0">
                     <td className="py-1.5 capitalize">{monthLongLabel(m.month)}</td>
-                    <td className="py-1.5 text-right">{m.services}</td>
-                    <td className="py-1.5 text-right">{formatMoney(m.total)}</td>
+                    <td className="py-1.5 text-right whitespace-nowrap">{m.services}</td>
+                    <td className="py-1.5 text-right whitespace-nowrap">{formatMoney(m.total)}</td>
                   </tr>
                 ))}
               </tbody>

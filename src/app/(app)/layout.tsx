@@ -6,10 +6,14 @@ import {
 } from "@/components/layout/app-navigation";
 import { NavigationTracker } from "@/components/layout/navigation-tracker";
 import { signOut } from "@/features/auth/actions";
+import { TabSessionGuard } from "@/features/auth/components/tab-session-guard";
+import { TabSessionScript } from "@/features/auth/components/tab-session-script";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="min-h-dvh lg:pl-64 print:pl-0">
+      {/* Primero que todo: oculta la app antes de pintarla si la pestaña no tiene sesión. */}
+      <TabSessionScript />
       <Suspense fallback={<AppNavigationFallback />}>
         <AppNavigation signOutAction={signOut} />
       </Suspense>
@@ -20,6 +24,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <Suspense fallback={null}>
         <NavigationTracker />
       </Suspense>
+      <TabSessionGuard />
     </div>
   );
 }
