@@ -6,8 +6,8 @@
 **Salida a producción (2026-10-28).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B y 5C. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
 
 ### Próximos pasos para retomar
-1. **Limpieza:** borrar los 700 servicios `[PRUEBA]` con sus gastos, historial y PDF en Storage (~970 MB) antes de usar datos reales.
-2. **Arranque:** crear el gerente y los capturistas reales en Admin → Usuarios.
+1. **Limpieza:** los 700 servicios `[PRUEBA]` se quedan por ahora para pruebas (decisión del usuario, 2026-10-28). Borrarlos con sus gastos, historial y PDF (~970 MB) antes de que se capturen datos reales: suman en Reportes, totales e Inicio.
+2. **Arranque:** gerente ya creado y probado (2026-10-28: 14 casos de RLS, ve todo y no escribe nada). Faltan los capturistas reales en Admin → Usuarios.
 3. **Dominio (al final, lo pidió el usuario):** `flotilla.bajaws.com.mx` en Cloudflare apuntando a Vercel, SSL en Full (strict); Claude pasa el registro DNS exacto. Después, actualizar Site URL / Redirect URLs de Supabase con el dominio.
 4. **Opcional:** mover el proyecto fuera de OneDrive (bloquea `.next` y rompe el build con EPERM).
 5. **Extras después de arrancar** (por decidir): mantenimientos preventivos con alertas; bitácora de catálogos y usuarios.
