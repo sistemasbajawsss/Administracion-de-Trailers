@@ -60,7 +60,9 @@ export async function ChangeHistory({ serviceId, className = "mt-10" }: { servic
   if (entries.length === 0) return null;
 
   return (
-    <section aria-labelledby="historial" className={className}>
+    // wrap-anywhere: un motivo o valor largo sin espacios se parte en renglones
+    // en vez de salirse del cuadro y crear scroll lateral (se hereda a todo).
+    <section aria-labelledby="historial" className={`min-w-0 wrap-anywhere ${className}`}>
       <h2 id="historial" className="mb-4 text-2xl font-semibold">Línea de cambios</h2>
       <ol className="relative space-y-6 border-l-2 border-border pl-6">
         {entries.map((entry, index) => {
