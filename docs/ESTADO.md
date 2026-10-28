@@ -3,11 +3,11 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Pausa (2026-10-26).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4 y 5A, todo en `main` y en GitHub. Siguiente paso propuesto: **salir a producción** (el usuario aún no lo aprueba; retomar presentándolo).
+**Salida a producción (2026-10-28).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A y 5B, todo en `main`. El usuario ya puso las variables en Vercel (incluye `BANXICO_TOKEN`) y la Site URL / Redirect URLs de Supabase con la dirección `.vercel.app`.
 
 ### Próximos pasos para retomar
-1. **Preparar el deploy (lo hace Claude):** revisar que la configuración sirva en Vercel (región `pdx1` igual que Supabase, variables de entorno, build) y dejar una guía paso a paso en `docs/`.
-2. **Vercel (lo hace el usuario):** conectar el repositorio de GitHub; variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SERVICE_ROLE_KEY` (secreta); plan Pro (Hobby no permite uso comercial) con límite de gasto.
+1. **Preparar el deploy (lo hace Claude):** `vercel.json` con región `pdx1` (igual que Supabase) ya existe; build verificado.
+2. **Vercel (lo hace el usuario):** variables hechas (`SUPABASE_SERVICE_ROLE_KEY` y `BANXICO_TOKEN` como Secret, las `NEXT_PUBLIC_` como Config). Falta: deploy de `main`, plan Pro (Hobby no permite uso comercial) con límite de gasto, y probar login y captura en la dirección `.vercel.app`.
 3. **Dominio:** `flotilla.bajaws.com.mx` en Cloudflare apuntando a Vercel, SSL en Full (strict). Claude pasa el registro DNS exacto.
 4. **Supabase:** Site URL / Redirect URLs con el dominio; activar contraseñas filtradas, política de contraseñas, cierre por inactividad, Enforce SSL y confirmar Spend cap (lista en "Seguridad").
 5. **Prueba de carga** (~1,000 servicios por unidad, en transacción sin commit) contra la base real.
@@ -31,6 +31,7 @@
 - D7: hasta 10 comprobantes por servicio; duplicado en otro servicio se avisa y se puede subir; agregar y quitar como editar (quitar con motivo); el gerente solo ve.
 - Categorías: todas aplican a todos los tipos de unidad (se propuso filtrarlas por tipo y el usuario lo descartó).
 - Fotos: se reducen en el navegador a 2000 px / JPEG 82 % (el usuario lo confirmó así).
+- D8 (5B): gastos en pesos o en dólares por renglón; en dólares la BD calcula `monto` (MXN) = `round(monto_usd × tipo_cambio, 2)`. Tipo de cambio sugerido: FIX publicado en el DOF el día hábil anterior a la fecha del servicio (Banxico SF60653), editable.
 - Reportes: admin y gerente; PDF con "Imprimir o guardar PDF" del navegador (sin servidor, vertical u horizontal) y Excel con el detalle y resúmenes. Inicio de admin y gerente = pendientes (servicios sin factura, unidades en taller); el capturista tiene su propio Inicio.
 
 ## Decisiones pendientes
@@ -72,7 +73,8 @@
   - `bitacora_eliminaciones` (unidades y servicios eliminados para siempre; solo admin la lee; nadie la edita).
   - `comprobantes` (D7; RLS: ve quien ve el servicio, agrega y quita quien lo puede editar; sin update; hasta 10 por servicio; `unique (servicio_id, hash_sha256)`). Entran en el historial y en la copia de un servicio eliminado.
   - Vistas `servicios_resumen` (total, número de gastos, marca "editado", `num_comprobantes`, `autor_nombre`), `totales_por_unidad` y `gastos_detalle` (un renglón por gasto con fecha, unidad, categoría, número de comprobantes y `tiene_pdf`), todas `security_invoker`.
-- Enums: `rol_usuario` (admin, capturista, gerente), `tipo_unidad`, `operacion_unidad`, `estatus_unidad`, `accion_historial`.
+- `gastos.moneda` (`MXN` / `USD`), `monto_usd` y `tipo_cambio` (5B; check: en MXN van nulos, en USD ambos > 0 y TC ≤ 100). `preparar_gasto()` recalcula `monto` en dólares aunque llegue otro por API.
+- Enums: `moneda` (MXN, USD), `rol_usuario` (admin, capturista, gerente), `tipo_unidad`, `operacion_unidad`, `estatus_unidad`, `accion_historial`.
 - Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()` y `eliminar_unidad()` (ambas regresan las rutas de archivos a borrar), `quitar_comprobante()`, `buscar_comprobante_duplicado()`, `listar_gastos()`, `resumen_gastos()`, `reporte_gastos()` y `exportar_gastos()` (estas dos solo admin y gerente) (las llama la app); `nombre_usuario()` (nombre de quien capturó, para el gerente); `listar_usuarios()` (solo admin, con correo y último acceso); `gastos_para_reporte()` y `validar_reporte()` (apoyo de reportes); `preparar_comprobante()` (trigger), `archivo_comprobante_en_uso()` y `patron_busqueda()` (apoyo de políticas y búsquedas).
 - Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones. Servicios de prueba capturados por el usuario, más **700 servicios `[PRUEBA] …`** (20 por unidad, 1,401 gastos, cada uno con una copia de `Informacion_Cita.pdf`, ~970 MB en Storage). Se borran antes de usar datos reales (servicios, historial y archivos).
 - Rutas:
@@ -82,9 +84,17 @@
   - Admin y gerente: `/unidades`, `/unidades/[id]` (ficha con total invertido y lista de gastos), `/dashboard` (Reportes), `/dashboard/exportar` (Excel, route handler).
   - Solo admin: `/unidades/nueva`, `/unidades/[id]/editar`, `/servicios/eliminados`, `/admin/catalogos`, `/admin/usuarios`.
 - Código: `features/auth`, `features/unidades` (incluye `delete-unit-zone`), `features/catalogos`, `features/servicios` (formulario con selector de unidad, lista, detalle tipo ticket, línea de cambios, eliminar / restaurar / eliminar para siempre), `components/layout` (incluye `navigation-tracker`), `components/shared` (page-header, empty-state, list-pagination, back-button, go-back, typed-confirmation-dialog), `lib/auth` (`requireRole` acepta uno o varios roles; `CAPTURE_ROLES`, `VIEW_ALL_ROLES`), `lib/utils/format.ts` (dinero en centavos, fechas es-MX, hoy en Tijuana), `lib/action-result.ts`, `lib/env.ts`, `lib/supabase/cookie-options.ts` (cookies httpOnly), `lib/supabase/storage.ts` (bucket y borrado de archivos), `lib/utils/files.ts` (firma de bytes, reducir fotos, SHA-256). `features/comprobantes` (selector con cámara, subida, galería, visor en modal con pdf.js, quitar con motivo). `features/servicios` ahora tiene la lista de gastos (`expense-list`, `expense-feed` con scroll infinito) en lugar de la lista paginada de servicios. Encabezados de seguridad en `next.config.ts`. Dependencia nueva: `pdfjs-dist` 6.4.299 (se carga solo al abrir un PDF). `features/dashboard` (filtros, cifras clave, gráfica por mes en Recharts y su versión HTML para imprimir, rankings, grupos, Excel con `write-excel-file`). `components/shared/home-panel` (tarjetas de Inicio). `features/usuarios` (lista, alta, editar, desactivar, restablecer contraseña) y `lib/supabase/admin.ts` (cliente service_role, `server-only`). Dependencias nuevas: `recharts` 3.10.1 (solo en Reportes), `write-excel-file` 4.1.1 (solo en el servidor).
+- 5B: `lib/banxico.ts` (tipo de cambio FIX, solo servidor, `BANXICO_TOKEN`), componentes `toggle` y `toggle-group` de shadcn, cifra "Pagado en dólares" en Reportes, columnas moneda / USD / tipo de cambio en el Excel.
 - Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 5B — Facturas en dólares (cerrada 2026-10-28)
+- Hecho: cada renglón de gasto en pesos o dólares; en dólares se escribe cantidad y tipo de cambio (4 decimales) y la BD calcula los pesos. Sugerencia del tipo de cambio FIX de Banxico (SF60653, publicado en el DOF el día hábil anterior); otro renglón en dólares del mismo servicio reutiliza el ya escrito; sin token o sin respuesta se escribe a mano. Detalle, lista de gastos y línea de cambios muestran USD y tipo de cambio; Reportes muestra "Pagado en dólares"; Excel con moneda, USD y tipo de cambio.
+- Tablas / migraciones nuevas: `20261027234242_gastos_en_dolares.sql`, `20261028162451_reporte_dolares.sql`.
+- Rutas nuevas: ninguna.
+- Verificado: build (worktree aparte), lint, `tsc`, tipos al día; 17 casos en transacción sin commit con admin: monto exacto al centavo en alta, update e insert directos por API (se ignora el monto mandado), USD sin tipo de cambio o con TC > 100 rechazado, MXN limpia USD/TC, editar TC o cantidad recalcula y queda en el historial con motivo y valores viejo/nuevo, USD → MXN, eliminar y restaurar conserva moneda/USD/TC, los 1,407 gastos anteriores siguen en MXN, vista, Excel y reporte con dólares. Las políticas RLS no cambiaron en esta sección.
+- Pendientes: `npm audit` reporta 3 avisos de severidad baja en `deepmerge` dentro del CLI `shadcn` (no lo usa la app en ejecución); el arreglo propuesto cambia `shadcn` a 1.0.0 (cambio mayor), no se aplicó.
 
 ### Sección 5A — Gestión de usuarios (cerrada 2026-10-26)
 - Hecho: `/admin/usuarios` con buscador; alta con nombre, correo, rol y contraseña inicial (generada o escrita; se muestra una vez con "copiar"); editar nombre y rol; desactivar / reactivar; restablecer contraseña. Política de contraseña en la app: 12+ con mayúscula, minúscula, número y símbolo. Protección de admins en la BD.
