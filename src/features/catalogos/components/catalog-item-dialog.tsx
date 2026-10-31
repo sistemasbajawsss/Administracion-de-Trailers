@@ -82,7 +82,17 @@ export function CatalogItemDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+        {/* stopPropagation: en React el submit sube por el árbol aunque el diálogo esté en
+            un portal; dentro del formulario de servicio (alta rápida de proveedor) también
+            enviaba el servicio. */}
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.stopPropagation();
+            void form.handleSubmit(onSubmit)(event);
+          }}
+          className="grid gap-5"
+        >
           <DialogHeader>
             <DialogTitle className="font-heading text-xl">
               {kind === "categorias" ? title.replace("Nuevo", "Nueva") : title}

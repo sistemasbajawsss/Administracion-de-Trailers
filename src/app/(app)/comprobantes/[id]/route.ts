@@ -5,6 +5,7 @@ import { getReceiptFile } from "@/features/comprobantes/queries";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createClient } from "@/lib/supabase/server";
 import { RECEIPTS_BUCKET } from "@/lib/supabase/storage";
+import { asciiFileName } from "@/lib/utils/files";
 
 /** La URL firmada solo vive lo necesario para que el navegador la abra. */
 const SIGNED_URL_SECONDS = 60;
@@ -29,7 +30,7 @@ export async function GET(request: Request, { params }: RouteContext<"/comproban
   const supabase = await createClient();
   const { data, error } = await supabase.storage
     .from(RECEIPTS_BUCKET)
-    .createSignedUrl(file.path, SIGNED_URL_SECONDS, download ? { download: file.fileName } : undefined);
+    .createSignedUrl(file.path, SIGNED_URL_SECONDS, download ? { download: asciiFileName(file.fileName) } : undefined);
   if (error || !data) return notFound();
 
   const response = NextResponse.redirect(data.signedUrl, 307);

@@ -9,8 +9,16 @@ import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getCurrentUser, requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
-import { RECEIPTS_BUCKET, removeReceiptFiles } from "@/lib/supabase/storage";
-import { MAX_RECEIPT_BYTES, detectFileType, extensionFor, type ReceiptMimeType } from "@/lib/utils/files";
+import { RECEIPTS_BUCKET, removeOrphanReceiptFiles, removeReceiptFiles } from "@/lib/supabase/storage";
+import {
+  MAX_RECEIPT_BYTES,
+  MAX_RECEIPTS_PER_SERVICE,
+  detectFileType,
+  extensionFor,
+  safeFileName,
+  type ReceiptMimeType,
+} from "@/lib/utils/files";
+import { isUuid } from "@/lib/utils/ids";
 
 import { listReceipts } from "./queries";
 import { duplicateCheckSchema, receiptRegisterSchema, receiptUploadSchema, removeReceiptSchema } from "./schemas";
@@ -77,6 +85,17 @@ export async function createReceiptUpload(input: unknown): Promise<ActionResult<
     return fail("No puedes agregar comprobantes a este servicio.");
   }
 
+  // El tope de 10 también aquí: antes solo se revisaba al registrar y se podían
+  // pedir subidas sin límite (archivos que nadie registraba).
+  const { count } = await supabase
+    .from("comprobantes")
+    .select("id", { count: "exact", head: true })
+    .eq("servicio_id", serviceId);
+  if ((count ?? 0) >= MAX_RECEIPTS_PER_SERVICE) {
+    return fail(`Un servicio puede tener hasta ${MAX_RECEIPTS_PER_SERVICE} comprobantes.`);
+  }
+  await removeOrphanReceiptFiles(supabase, serviceId);
+
   const receiptId = randomUUID();
   const { data, error } = await supabase.storage
     .from(RECEIPTS_BUCKET)
@@ -129,7 +148,8 @@ export async function registerReceipt(
     tipo_mime: mimeType,
     tamano_bytes: bytes.byteLength,
     hash_sha256: hash,
-    nombre_archivo: fileName,
+    // El nombre lo arma el servidor (extensión real, sin caracteres raros).
+    nombre_archivo: safeFileName(fileName, mimeType),
   });
   if (error?.code === "23505") return discard("Ese archivo ya está en este servicio.");
   if (error?.code === "23514" && error.message.includes("hasta 10")) {
@@ -144,6 +164,7 @@ export async function registerReceipt(
 
 /** Quita un comprobante con motivo (queda en la línea de cambios) y borra su archivo. */
 export async function removeReceipt(receiptId: string, serviceId: string, input: unknown): Promise<ActionResult> {
+  if (!isUuid(receiptId) || !isUuid(serviceId)) return fail("Comprobante no válido.");
   const parsed = removeReceiptSchema.safeParse(input);
   if (!parsed.success) return fail("Explica por qué se quita el comprobante.");
 

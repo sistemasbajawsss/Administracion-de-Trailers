@@ -52,7 +52,12 @@ export async function ExpenseList({
         </span>
       </p>
       <ExpenseFeed
-        key={JSON.stringify(query)}
+        // Filtros + firma de los datos: al volver después de eliminar, editar o subir
+        // facturas (router.refresh) la lista se rehace; con solo los filtros se quedaba
+        // con los renglones viejos.
+        key={`${JSON.stringify(query)}|${summary.count}|${summary.total}|${items
+          .map((item) => `${item.id}:${item.amount}:${item.receiptCount}`)
+          .join(",")}`}
         initialItems={items}
         totalCount={summary.count}
         batchSize={EXPENSES_BATCH_SIZE}

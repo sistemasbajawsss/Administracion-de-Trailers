@@ -6,7 +6,7 @@ export const loginSchema = z.object({
     .trim()
     .min(1, "Escribe tu correo")
     .pipe(z.email("Correo no válido")),
-  password: z.string().min(1, "Escribe tu contraseña"),
+  password: z.string().min(1, "Escribe tu contraseña").max(72, "Contraseña demasiado larga"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

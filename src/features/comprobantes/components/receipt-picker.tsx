@@ -64,15 +64,21 @@ export function ReceiptPicker({
   const fileInput = useRef<HTMLInputElement>(null);
   const available = MAX_RECEIPTS_PER_SERVICE - existingCount - drafts.length;
 
-  // Liberar las vistas previas al salir de la pantalla.
+  // Liberar las vistas previas al salir de la pantalla. Next conserva la pantalla
+  // oculta (Activity) y al volver a mostrarla este efecto corre otra vez: las vistas
+  // previas ya liberadas se crean de nuevo desde el archivo preparado.
   const latest = useRef(drafts);
   useEffect(() => {
     latest.current = drafts;
   }, [drafts]);
-  useEffect(
-    () => () => latest.current.forEach((d) => d.previewUrl && URL.revokeObjectURL(d.previewUrl)),
-    [],
-  );
+  useEffect(() => {
+    onDraftsChange((current) =>
+      current.some((d) => d.previewUrl && d.prepared)
+        ? current.map((d) => (d.previewUrl && d.prepared ? { ...d, previewUrl: URL.createObjectURL(d.prepared.blob) } : d))
+        : current,
+    );
+    return () => latest.current.forEach((d) => d.previewUrl && URL.revokeObjectURL(d.previewUrl));
+  }, [onDraftsChange]);
 
   const update = (key: string, patch: Partial<ReceiptDraft>) =>
     onDraftsChange((current) => current.map((d) => (d.key === key ? { ...d, ...patch } : d)));
@@ -97,6 +103,11 @@ export function ReceiptPicker({
       }
 
       onDraftsChange((current) => {
+        // Lo quitaron mientras se preparaba: su vista previa ya no la usa nadie.
+        if (!current.some((d) => d.key === key)) {
+          if (previewUrl) URL.revokeObjectURL(previewUrl);
+          return current;
+        }
         const repeated = prepared.hash && current.some((d) => d.key !== key && d.prepared?.hash === prepared.hash);
         const sameService = duplicate && serviceId && duplicate.serviceId === serviceId;
         return current.map((d) => {

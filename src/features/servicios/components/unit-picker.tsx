@@ -42,8 +42,9 @@ export function UnitPicker({
   const selected = units.find((u) => u.id === value);
 
   const groups = useMemo(() => {
-    const term = search.replace(/\s/g, "").toUpperCase();
-    const matches = term ? units.filter((u) => u.economicNumber.includes(term)) : units;
+    // Sin espacios ni guiones: "t17", "T 17" y "T-17" encuentran T-17.
+    const term = search.replace(/[\s-]/g, "").toUpperCase();
+    const matches = term ? units.filter((u) => u.economicNumber.replace(/-/g, "").includes(term)) : units;
     return UNIT_GROUPS.map((group) => ({
       group,
       units: matches.filter((u) => groupOf(u) === group),

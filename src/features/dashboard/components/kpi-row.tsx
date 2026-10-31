@@ -1,28 +1,39 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
 
-import { formatCents, formatMoney, formatUsd, toCents } from "@/lib/utils/format";
+import { formatCents, formatDate, formatMoney, formatUsd, toCents } from "@/lib/utils/format";
 
 import type { Report } from "../types";
 
-const percent = new Intl.NumberFormat("es-MX", { style: "percent", maximumFractionDigits: 0, signDisplay: "always" });
+const percent = new Intl.NumberFormat("es-MX", { style: "percent", maximumFractionDigits: 0 });
 const count = new Intl.NumberFormat("es-MX");
 
-/** Comparación contra el periodo anterior del mismo largo. Gastar más es la mala noticia. */
-function Delta({ total, previous }: { total: string; previous: string }) {
-  const now = toCents(total) ?? 0;
-  const before = toCents(previous) ?? 0;
+/**
+ * Comparación contra el periodo anterior (mes anterior, mismo tramo del año
+ * pasado…), con sus fechas a la vista. Gastar más es la mala noticia.
+ */
+function Delta({ report }: { report: Report }) {
+  const now = toCents(report.total) ?? 0;
+  const before = toCents(report.previousTotal) ?? 0;
+  const range = report.previousFrom ? ` (${formatDate(report.previousFrom)} al ${formatDate(report.previousTo)})` : "";
   if (before === 0) {
-    return <p className="mt-2 text-sm text-white/70">Sin gastos en el periodo anterior para comparar.</p>;
+    return <p className="mt-2 text-sm text-white/70">Sin gastos en el periodo anterior{range} para comparar.</p>;
   }
   const change = (now - before) / before;
+  if (now === before || Math.abs(change) < 0.005) {
+    return (
+      <p className="mt-2 text-sm text-white/85">
+        Casi igual que el periodo anterior{range}: {formatMoney(report.previousTotal)}
+      </p>
+    );
+  }
   const up = change > 0;
   const Icon = up ? TrendingUp : TrendingDown;
   return (
     <p className="mt-2 flex items-center gap-1.5 text-sm text-white/85">
-      <Icon className="size-4" aria-hidden="true" />
+      <Icon className="size-4 shrink-0" aria-hidden="true" />
       <span>
-        <span className="font-semibold">{percent.format(change)}</span>
-        {up ? " más" : " menos"} que el periodo anterior ({formatMoney(previous)})
+        <span className="font-semibold">{percent.format(Math.abs(change))}</span>
+        {up ? " más" : " menos"} que el periodo anterior{range}: {formatMoney(report.previousTotal)}
       </span>
     </p>
   );
@@ -39,7 +50,7 @@ export function KpiRow({ report, periodLabel }: { report: Report; periodLabel: s
         <dt className="text-sm text-white/75">Total invertido · {periodLabel}</dt>
         <dd>
           <span className="block font-heading text-5xl leading-tight font-bold">{formatMoney(report.total)}</span>
-          <Delta total={report.total} previous={report.previousTotal} />
+          <Delta report={report} />
         </dd>
       </div>
       <div className="bg-white px-5 py-5">

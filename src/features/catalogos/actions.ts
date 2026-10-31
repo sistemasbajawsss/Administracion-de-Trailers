@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { isUuid } from "@/lib/utils/ids";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
@@ -108,7 +109,7 @@ export async function updateCatalogItem(
   id: string,
   input: unknown,
 ): Promise<ActionResult> {
-  if (!isCatalogKind(kind)) return fail("Catálogo no válido.");
+  if (!isCatalogKind(kind) || !isUuid(id)) return fail("Catálogo no válido.");
   const parsed = catalogItemSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos.");
 
@@ -128,7 +129,7 @@ export async function setCatalogItemActive(
   id: string,
   active: boolean,
 ): Promise<ActionResult> {
-  if (!isCatalogKind(kind) || typeof active !== "boolean") return fail("Datos no válidos.");
+  if (!isCatalogKind(kind) || !isUuid(id) || typeof active !== "boolean") return fail("Datos no válidos.");
 
   await requireRole("admin");
 

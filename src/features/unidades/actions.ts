@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { isUuid } from "@/lib/utils/ids";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
@@ -60,6 +61,7 @@ export async function createUnit(input: unknown): Promise<ActionResult<{ id: str
 }
 
 export async function updateUnit(id: string, input: unknown): Promise<ActionResult> {
+  if (!isUuid(id)) return fail("Unidad no válida.");
   const parsed = unitSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
 
@@ -83,6 +85,7 @@ export async function updateUnit(id: string, input: unknown): Promise<ActionResu
  * No se puede deshacer; queda un renglón en la bitácora de eliminaciones.
  */
 export async function deleteUnit(id: string, input: unknown): Promise<ActionResult> {
+  if (!isUuid(id)) return fail("Unidad no válida.");
   const parsed = deleteUnitSchema.safeParse(input);
   if (!parsed.success) return fail("Escribe ELIMINAR REGISTRO para confirmar.");
 

@@ -95,6 +95,8 @@ export async function setUserActive(id: string, active: boolean): Promise<Action
   const { data, error } = await supabase.from("perfiles").update({ activo: active }).eq("id", id).select("id");
   if (error) return fail(dbMessage(error, "No se pudo cambiar el estado del usuario."));
   if (!data.length) return fail("No se encontró el usuario.");
+  // Desactivado: además de que RLS ya no le muestra nada, se le cierran las sesiones.
+  if (!active) await supabase.rpc("cerrar_sesiones_usuario", { p_usuario: id });
 
   revalidatePath("/admin/usuarios");
   return ok();
@@ -118,6 +120,11 @@ export async function resetUserPassword(id: string, input: unknown): Promise<Act
 
   const { error } = await admin.auth.admin.updateUserById(id, { password: parsed.data.password });
   if (error) return fail(authMessage(error, "No se pudo cambiar la contraseña. Inténtalo de nuevo."));
+
+  // Si la contraseña se filtró, quien la usaba ya no puede renovar su sesión.
+  const supabase = await createClient();
+  const { error: sessionsError } = await supabase.rpc("cerrar_sesiones_usuario", { p_usuario: id });
+  if (sessionsError) return fail("La contraseña cambió, pero no se pudieron cerrar sus sesiones abiertas.");
 
   return ok();
 }
