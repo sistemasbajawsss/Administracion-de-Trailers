@@ -3,13 +3,14 @@
 > Actualizar este archivo al cerrar cada sección. Es lo primero que se lee al iniciar una sesión.
 
 ## Sección actual
-**Salida a producción (2026-10-28).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B y 5C. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
+**Salida a producción (2026-10-30).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B, 5C y 5D. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
 
 ### Próximos pasos para retomar
+0. **Probar en el navegador lo de la 5D** que depende de cómo navega Next (no se puede probar por SQL): guardar un servicio y volver a "Nuevo servicio" (debe salir vacío); eliminar o editar un servicio y regresar a la lista (debe actualizarse); "Nuevo proveedor" dentro del formulario (no debe guardar el servicio); escribir `1500,50` (debe quedar $1,500.50); salir de un formulario con cambios (debe avisar).
 1. **Limpieza:** los 700 servicios `[PRUEBA]` se quedan por ahora para pruebas (decisión del usuario, 2026-10-28). Borrarlos con sus gastos, historial y PDF (~970 MB) antes de que se capturen datos reales: suman en Reportes, totales e Inicio.
 2. **Arranque:** gerente ya creado y probado (2026-10-28: 14 casos de RLS, ve todo y no escribe nada). Faltan los capturistas reales en Admin → Usuarios.
 3. **Dominio (al final, lo pidió el usuario):** `flotilla.bajaws.com.mx` en Cloudflare apuntando a Vercel, SSL en Full (strict); Claude pasa el registro DNS exacto. Después, actualizar Site URL / Redirect URLs de Supabase con el dominio.
-4. **Opcional:** mover el proyecto fuera de OneDrive (bloquea `.next` y rompe el build con EPERM).
+4. **Recomendado:** mover el proyecto fuera de OneDrive. Bloquea `.next` (build con EPERM) y el 2026-10-29 liberó archivos de `node_modules` ("Archivos a petición": faltaba `globals/globals.json` y ESLint tronaba); se arregló con `npm ci`.
 5. **Extras después de arrancar** (por decidir): mantenimientos preventivos con alertas; bitácora de catálogos y usuarios.
 
 ## Decisiones tomadas
@@ -30,6 +31,8 @@
 - Fotos: se reducen en el navegador a 2000 px / JPEG 82 % (el usuario lo confirmó así).
 - D8 (5B): gastos en pesos o en dólares por renglón; en dólares la BD calcula `monto` (MXN) = `round(monto_usd × tipo_cambio, 2)`. Tipo de cambio sugerido: FIX publicado en el DOF el día hábil anterior a la fecha del servicio (Banxico SF60653), editable.
 - D9 (5C): la sesión termina al cerrar la pestaña **y** al cerrar el navegador (el usuario eligió ambas). Abrir la app en otra pestaña pide entrar de nuevo y cierra la sesión de las demás.
+- D10 (5D): Reportes compara por calendario: este mes contra el mismo tramo del mes anterior, mes pasado contra el mes completo anterior, últimos N meses contra los N anteriores, este año contra el mismo tramo del año pasado; un rango libre, contra los días previos del mismo largo. La tarjeta y el Excel muestran las fechas comparadas.
+- D11 (5D): montos con coma: de miles si está bien puesta (`1,500`), decimal si es una sola con 1–2 dígitos al final (`1500,50` = 1,500.50); cualquier otra coma se rechaza. Aviso al salir de un formulario con cambios (cerrar o recargar la pestaña, enlaces de la app, Cancelar); el gesto de "atrás" no se intercepta.
 - Hosting: Vercel plan **Hobby** (el usuario no pagará Pro); 1 regla de rate limit por proyecto (usada en `/login`). El dominio se conecta al final.
 - Reportes: admin y gerente; PDF con "Imprimir o guardar PDF" del navegador (sin servidor, vertical u horizontal) y Excel con el detalle y resúmenes. Inicio de admin y gerente = pendientes (servicios sin factura, unidades en taller); el capturista tiene su propio Inicio.
 
@@ -82,7 +85,7 @@
   - Vistas `servicios_resumen` (total, número de gastos, marca "editado", `num_comprobantes`, `autor_nombre`), `totales_por_unidad` y `gastos_detalle` (un renglón por gasto con fecha, unidad, categoría, número de comprobantes y `tiene_pdf`), todas `security_invoker`.
 - `gastos.moneda` (`MXN` / `USD`), `monto_usd` y `tipo_cambio` (5B; check: en MXN van nulos, en USD ambos > 0 y TC ≤ 100). `preparar_gasto()` recalcula `monto` en dólares aunque llegue otro por API.
 - Enums: `moneda` (MXN, USD), `rol_usuario` (admin, capturista, gerente), `tipo_unidad`, `operacion_unidad`, `estatus_unidad`, `accion_historial`.
-- Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()` y `eliminar_unidad()` (ambas regresan las rutas de archivos a borrar), `quitar_comprobante()`, `buscar_comprobante_duplicado()`, `listar_gastos()`, `resumen_gastos()`, `reporte_gastos()` y `exportar_gastos()` (estas dos solo admin y gerente) (las llama la app); `nombre_usuario()` (nombre de quien capturó, para el gerente); `listar_usuarios()` (solo admin, con correo y último acceso); `gastos_para_reporte()` y `validar_reporte()` (apoyo de reportes); `preparar_comprobante()` (trigger), `archivo_comprobante_en_uso()` y `patron_busqueda()` (apoyo de políticas y búsquedas).
+- Funciones: `es_admin()`, `rol_actual()`, `puede_ver_todo()`, `puede_capturar()`, `actualizar_updated_at()`, `crear_perfil_nuevo_usuario()` (trigger `al_crear_usuario` en `auth.users`), `prefijo_tipo_unidad()`, `normalizar_unidad()`, `preparar_servicio()`, `preparar_gasto()`, `registrar_historial()` (triggers); `registrar_servicio()`, `actualizar_servicio()`, `eliminar_servicio()`, `restaurar_servicio()`, `eliminar_servicio_definitivo()` y `eliminar_unidad()` (ambas regresan las rutas de archivos a borrar), `quitar_comprobante()`, `buscar_comprobante_duplicado()`, `listar_gastos()`, `resumen_gastos()`, `reporte_gastos()` y `exportar_gastos()` (estas dos solo admin y gerente) (las llama la app); `nombre_usuario()` (nombre de quien capturó, para el gerente); `listar_usuarios()` (solo admin, con correo y último acceso); `gastos_para_reporte()` y `validar_reporte()` (apoyo de reportes); `preparar_comprobante()` (trigger), `archivo_comprobante_en_uso()`, `patron_busqueda()` y `filtro_gastos()` (apoyo de políticas y búsquedas); `validar_servicio_con_gastos()` (constraint triggers diferidos, 5D); `cerrar_sesiones_usuario()` (solo admin, 5D).
 - Datos: 35 unidades (11 locales, 22 foráneas, 2 camionetas), 9 choferes (nombres sin acentos), 17 categorías de gasto. La carga de la flotilla se hizo una sola vez por SQL, no está en migraciones. Servicios de prueba capturados por el usuario, más **700 servicios `[PRUEBA] …`** (20 por unidad, 1,401 gastos, cada uno con una copia de `Informacion_Cita.pdf`, ~970 MB en Storage). Se borran antes de usar datos reales (servicios, historial y archivos).
 - Rutas:
   - Todos con sesión: `/comprobantes/[id]` (route handler: revisa sesión y RLS y redirige a una URL firmada de 60 s; `?descargar=1`).
@@ -96,6 +99,21 @@
 - Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 5D — Correcciones de la auditoría (cerrada 2026-10-30)
+- Auditoría con 5 agentes en paralelo coordinados por Claude (BD, permisos y Storage, servidor, dinero y fechas, pantallas). Sin fugas de datos entre usuarios; los permisos aguantan casi toda la matriz de rol × tabla × acción.
+- Hecho:
+  - BD (`20261028191347_auditoria_integridad.sql`): `registrar_historial` con `coalesce` (gasto por API sin motivo); `preparar_servicio`/`preparar_gasto` fijan id, `created_at`, `updated_at`, `updated_by` fuera de restauración (reusar el id de un servicio eliminado bloqueaba "Restaurar"); proveedor desactivado rechazado; restaurar no exige concepto; todo servicio con ≥1 gasto (constraint triggers diferidos `servicios_con_gastos` y `gastos_servicio_no_vacio`); `actualizar_servicio` rechaza ids ajenos; `eliminar_unidad` solo toma servicios eliminados cuya copia más reciente es de esa unidad; `nombre_usuario` y `archivo_comprobante_en_uso` no responden sin rol; `gastos_para_reporte` exige ver todo; candados (10 comprobantes, último admin); `reporte_gastos` con `p_anterior_desde`/`p_anterior_hasta` (regresa `anterior_desde`/`anterior_hasta`).
+  - BD (`20261031005707_cerrar_sesiones_usuario.sql`): `cerrar_sesiones_usuario()` (solo admin), usada al restablecer contraseña y al desactivar.
+  - App: "Nuevo proveedor" ya no envía el formulario del servicio (stopPropagation; en React el submit sube por el árbol aunque el diálogo esté en un portal); coma decimal; `useRemountAfterSave` (Next conserva pantallas ocultas con estado: después de guardar, volver muestra un formulario nuevo) en servicios y unidades; botón deshabilitado después de guardar; `useUnsavedChanges`; lista de gastos con `key` que incluye una firma de los datos; scroll infinito sin bucle con error; tipo de cambio por id de renglón y re-sugerido al cambiar la fecha; vistas previas de comprobantes recreadas al volver; reintentos por clave (no por nombre); nombre de comprobante saneado en el servidor y descarga en ASCII; Reportes por calendario; fechas inexistentes descartadas; ids como uuid y topes en schemas; tope de USD; `T17` = `T-17`; limpieza de archivos huérfanos (>1 h) al pedir una subida y tope de 10 antes de subir; `src/app/(app)/error.tsx`; avisos en el Excel; "$1 M" en la gráfica impresa; "Casi igual" en lugar de "+0% menos".
+- Tablas / migraciones nuevas: las dos de arriba. Rutas nuevas: ninguna (solo `error.tsx`).
+- Verificado: build limpio (worktree aparte con `npm ci`), lint, `tsc`, `npm audit --omit=dev` (0); tipos regenerados; ensayos sin commit: 24 casos del Lote 1, 3 de sesiones; regresión capturista 42/43 (el restante es una prueba mal planteada: los `[PRUEBA]` comparten PDF), gerente 14/14, validaciones 13/13, dólares 17/17; 14 casos de montos con coma y 9 de periodos (fin de mes, bisiesto).
+- Nota para pruebas por SQL: la BD corre en UTC; después de las 17:00 de Tijuana `current_date` ya es "mañana" y la regla de fecha futura rechaza el servicio. Usar `(now() at time zone 'America/Tijuana')::date`.
+- Pendientes / por decidir:
+  - Probar en el navegador los puntos de la lista de arriba (0).
+  - El capturista sigue pudiendo abrir los archivos de sus servicios que el admin mandó a Eliminados (rama `owner_id` de la política de Storage). Decidir si se quiere.
+  - El gerente no ve la bitácora de eliminaciones (solo admin). Decidir si debe verla.
+  - El token de acceso de una sesión cerrada vive hasta que caduca (duración de JWT en Auth).
 
 ### Corrección posterior — Validaciones de captura (2026-10-28, aprobada por el usuario)
 - Encontrado en la batería de pruebas de capturista (43 casos). Toca funciones de la Sección 2:
