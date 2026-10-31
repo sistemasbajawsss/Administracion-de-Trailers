@@ -119,5 +119,10 @@ export async function resetUserPassword(id: string, input: unknown): Promise<Act
   const { error } = await admin.auth.admin.updateUserById(id, { password: parsed.data.password });
   if (error) return fail(authMessage(error, "No se pudo cambiar la contraseña. Inténtalo de nuevo."));
 
+  // Si la contraseña se filtró, quien la usaba ya no puede renovar su sesión.
+  const supabase = await createClient();
+  const { error: sessionsError } = await supabase.rpc("cerrar_sesiones_usuario", { p_usuario: id });
+  if (sessionsError) return fail("La contraseña cambió, pero no se pudieron cerrar sus sesiones abiertas.");
+
   return ok();
 }

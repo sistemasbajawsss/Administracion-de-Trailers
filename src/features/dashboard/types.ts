@@ -6,6 +6,9 @@ import type { Group } from "./schemas";
 export type Report = {
   total: string;
   previousTotal: string;
+  /** Fechas contra las que se comparó (mes anterior, mismo tramo del año pasado…). */
+  previousFrom: string;
+  previousTo: string;
   services: number;
   expenses: number;
   units: number;

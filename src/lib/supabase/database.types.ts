@@ -623,6 +623,7 @@ export type Database = {
           servicio_id: string
         }[]
       }
+      cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
         Returns: undefined

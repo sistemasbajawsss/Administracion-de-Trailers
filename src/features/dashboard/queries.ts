@@ -18,7 +18,7 @@ const orNull = (value: Json | undefined) => (value === null || value === undefin
  * se hacen en Postgres; aquí solo se renombran campos. Solo admin y gerente.
  */
 export async function getReport(
-  period: Pick<ResolvedPeriod, "from" | "to">,
+  period: Pick<ResolvedPeriod, "from" | "to" | "previous">,
   filters: Pick<ReportFilters, "grupo" | "tipo">,
   rankingSize = 10,
 ): Promise<Report> {
@@ -29,6 +29,8 @@ export async function getReport(
     p_grupo: (filters.grupo ?? null) as string,
     p_tipo: (filters.tipo ?? null) as UnitType,
     p_limite_ranking: rankingSize,
+    // Sin periodo anterior (rango libre), la BD usa los días previos del mismo largo.
+    ...(period.previous ? { p_anterior_desde: period.previous.from, p_anterior_hasta: period.previous.to } : {}),
   });
   if (error || !data || typeof data !== "object" || Array.isArray(data)) {
     throw new Error("No se pudo calcular el reporte");
@@ -39,6 +41,8 @@ export async function getReport(
   return {
     total: text(r.total),
     previousTotal: text(r.total_anterior),
+    previousFrom: text(r.anterior_desde),
+    previousTo: text(r.anterior_hasta),
     services: num(r.servicios),
     expenses: num(r.gastos),
     units: num(r.unidades),

@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     ["Grupo", filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos"],
     ["Tipo de unidad", filters.tipo ? UNIT_TYPE_LABELS[filters.tipo] : "Todos"],
     ["Total invertido", money(report.total)],
-    ["Periodo anterior (mismo largo)", money(report.previousTotal)],
+    [`Periodo anterior (${formatDate(report.previousFrom)} al ${formatDate(report.previousTo)})`, money(report.previousTotal)],
     ["Servicios", report.services],
     ["Gastos", report.expenses],
     ["Unidades con gastos", report.units],

@@ -36,7 +36,8 @@ export const reportFiltersSchema = z.object({
 
 export type ReportFilters = z.infer<typeof reportFiltersSchema>;
 
-export type ResolvedPeriod = { from: string; to: string; label: string };
+/** `previous`: contra qué se compara; null = los días previos del mismo largo (lo decide la BD). */
+export type ResolvedPeriod = { from: string; to: string; label: string; previous: { from: string; to: string } | null };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const iso = (y: number, m: number, d: number) => {
@@ -45,6 +46,19 @@ const iso = (y: number, m: number, d: number) => {
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
 };
 
+/** Mismo día `months` meses antes; si ese mes es más corto, su último día (31 mar − 1 = 28/29 feb). */
+function shiftMonths(date: string, months: number) {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  const lastDay = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+  return iso(y, m + months, Math.min(d, lastDay));
+}
+
+/** Tramo que empieza el día 1 y termina hoy: el mismo tramo `months` meses antes. */
+const sameStretch = (from: string, today: string, months: number) => ({
+  from: shiftMonths(from, -months),
+  to: shiftMonths(today, -months),
+});
+
 /**
  * Convierte el periodo elegido en fechas, a partir de "hoy" en Tijuana.
  * "Últimos N meses" empieza el día 1 de hace N-1 meses: así la gráfica por mes
@@ -52,24 +66,38 @@ const iso = (y: number, m: number, d: number) => {
  */
 export function resolvePeriod(filters: ReportFilters, today: string): ResolvedPeriod {
   const [y, m] = today.split("-").map(Number) as [number, number];
+  // Comparación por calendario: este mes contra el mismo tramo del mes anterior, mes
+  // pasado contra el mes completo anterior, este año contra el mismo tramo del año
+  // pasado, últimos N meses contra los N anteriores. Un rango libre, por días.
+  const months = (n: number) => {
+    const from = iso(y, m - (n - 1), 1);
+    return { from, to: today, previous: sameStretch(from, today, n) };
+  };
   switch (filters.periodo) {
     case "este-mes":
-      return { from: iso(y, m, 1), to: today, label: PERIOD_LABELS["este-mes"] };
+      return { ...months(1), label: PERIOD_LABELS["este-mes"] };
     case "mes-pasado":
-      return { from: iso(y, m - 1, 1), to: iso(y, m, 0), label: PERIOD_LABELS["mes-pasado"] };
+      return {
+        from: iso(y, m - 1, 1),
+        to: iso(y, m, 0),
+        label: PERIOD_LABELS["mes-pasado"],
+        previous: { from: iso(y, m - 2, 1), to: iso(y, m - 1, 0) },
+      };
     case "3m":
-      return { from: iso(y, m - 2, 1), to: today, label: PERIOD_LABELS["3m"] };
+      return { ...months(3), label: PERIOD_LABELS["3m"] };
     case "6m":
-      return { from: iso(y, m - 5, 1), to: today, label: PERIOD_LABELS["6m"] };
-    case "este-anio":
-      return { from: iso(y, 1, 1), to: today, label: PERIOD_LABELS["este-anio"] };
+      return { ...months(6), label: PERIOD_LABELS["6m"] };
+    case "este-anio": {
+      const from = iso(y, 1, 1);
+      return { from, to: today, label: PERIOD_LABELS["este-anio"], previous: sameStretch(from, today, 12) };
+    }
     case "rango":
       if (filters.desde && filters.hasta && filters.desde <= filters.hasta) {
-        return { from: filters.desde, to: filters.hasta, label: "Rango elegido" };
+        return { from: filters.desde, to: filters.hasta, label: "Rango elegido", previous: null };
       }
-      return { from: iso(y, m - 11, 1), to: today, label: PERIOD_LABELS["12m"] };
+      return { ...months(12), label: PERIOD_LABELS["12m"] };
     default:
-      return { from: iso(y, m - 11, 1), to: today, label: PERIOD_LABELS["12m"] };
+      return { ...months(12), label: PERIOD_LABELS["12m"] };
   }
 }
 

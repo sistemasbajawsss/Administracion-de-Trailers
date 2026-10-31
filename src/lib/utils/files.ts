@@ -22,6 +22,37 @@ export function extensionFor(mimeType: ReceiptMimeType) {
   return EXTENSIONS[mimeType];
 }
 
+/**
+ * Nombre del comprobante como se guarda (lo decide el servidor, no el navegador):
+ * sin caracteres de control ni de dirección (U+202E invierte el texto: "fdp.exe"),
+ * sin los que Windows no permite, y siempre con la extensión de su tipo real.
+ */
+export function safeFileName(name: string, mimeType: ReceiptMimeType) {
+  const base = name
+    .normalize("NFC")
+    .replace(/[\p{Cc}\p{Cf}]/gu, "")
+    .replace(/[/\\"<>:|?*]/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(/\.[^.\s]{1,10}$/, "")
+    .replace(/^[.\s-]+|[.\s]+$/g, "")
+    .slice(0, 120);
+  return `${base || "comprobante"}.${extensionFor(mimeType)}`;
+}
+
+/**
+ * Versión ASCII para la descarga: Storage codifica dos veces el nombre de la URL
+ * firmada y los acentos o espacios llegaban como "reparaci%C3%B3n" o "+".
+ */
+export function asciiFileName(name: string) {
+  return (
+    name
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^A-Za-z0-9._-]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "comprobante"
+  );
+}
+
 const startsWith = (bytes: Uint8Array, signature: number[], offset = 0) =>
   signature.every((byte, i) => bytes[offset + i] === byte);
 

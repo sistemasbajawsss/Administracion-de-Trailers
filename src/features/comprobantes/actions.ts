@@ -10,7 +10,7 @@ import { getCurrentUser, requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 import { RECEIPTS_BUCKET, removeReceiptFiles } from "@/lib/supabase/storage";
-import { MAX_RECEIPT_BYTES, detectFileType, extensionFor, type ReceiptMimeType } from "@/lib/utils/files";
+import { MAX_RECEIPT_BYTES, detectFileType, extensionFor, safeFileName, type ReceiptMimeType } from "@/lib/utils/files";
 
 import { listReceipts } from "./queries";
 import { duplicateCheckSchema, receiptRegisterSchema, receiptUploadSchema, removeReceiptSchema } from "./schemas";
@@ -129,7 +129,8 @@ export async function registerReceipt(
     tipo_mime: mimeType,
     tamano_bytes: bytes.byteLength,
     hash_sha256: hash,
-    nombre_archivo: fileName,
+    // El nombre lo arma el servidor (extensión real, sin caracteres raros).
+    nombre_archivo: safeFileName(fileName, mimeType),
   });
   if (error?.code === "23505") return discard("Ese archivo ya está en este servicio.");
   if (error?.code === "23514" && error.message.includes("hasta 10")) {
