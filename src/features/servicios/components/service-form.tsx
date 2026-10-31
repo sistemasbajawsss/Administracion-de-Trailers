@@ -3,11 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useGoBack } from "@/components/shared/go-back";
+import { useRemountAfterSave } from "@/components/shared/use-remount-after-save";
+import { useUnsavedChanges } from "@/components/shared/use-unsaved-changes";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -95,31 +97,43 @@ function lineMxnCents(line: Partial<ServiceEditInput["expenses"][number]>) {
   return rate ? usdToMxnCents(cents, rate) : null;
 }
 
-/**
- * Captura y edición de un servicio con sus renglones de gasto.
- * El total se calcula en centavos enteros mientras se escribe; el total
- * oficial siempre sale de la BD.
- */
-export function ServiceForm({
-  service,
-  units,
-  categories,
-  suppliers: initialSuppliers,
-  today,
-  initialUnitId = "",
-}: {
+type ServiceFormProps = {
   service?: ServiceDetail;
   units: UnitOption[];
   categories: CategoryOption[];
   suppliers: SupplierOption[];
   today: string;
   initialUnitId?: string;
-}) {
+};
+
+/** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
+export function ServiceForm(props: ServiceFormProps) {
+  const { key, markSaved } = useRemountAfterSave();
+  return <ServiceFormBody key={key} {...props} onSaved={markSaved} />;
+}
+
+/**
+ * Captura y edición de un servicio con sus renglones de gasto.
+ * El total se calcula en centavos enteros mientras se escribe; el total
+ * oficial siempre sale de la BD.
+ */
+function ServiceFormBody({
+  service,
+  units,
+  categories,
+  suppliers: initialSuppliers,
+  today,
+  initialUnitId = "",
+  onSaved,
+}: ServiceFormProps & { onSaved: () => void }) {
   const router = useRouter();
   const goBack = useGoBack();
   const isEdit = Boolean(service);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
   const [receipts, setReceipts] = useState<ReceiptDraft[]>([]);
+  // Guardado con éxito: el botón queda deshabilitado mientras carga la siguiente
+  // pantalla (con señal lenta, un segundo toque duplicaba el servicio).
+  const [saved, setSaved] = useState(false);
 
   const form = useForm<ServiceEditInput>({
     // En alta no hay motivo: se valida con el schema sin "reason".
@@ -127,6 +141,13 @@ export function ServiceForm({
     defaultValues: toFormValues(service, today, initialUnitId),
   });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "expenses" });
+  // Renglones vigentes: una respuesta que llega tarde (tipo de cambio) busca su
+  // renglón por id, no por la posición que tenía cuando se pidió.
+  const fieldsRef = useRef(fields);
+  useEffect(() => {
+    fieldsRef.current = fields;
+  }, [fields]);
+  const indexOf = (lineKey: string) => fieldsRef.current.findIndex((f) => f.id === lineKey);
 
   // La unidad del servicio puede estar de baja: se sigue mostrando para no perderla.
   const unitOptions =
@@ -155,6 +176,36 @@ export function ServiceForm({
   // Origen del tipo de cambio sugerido por renglón (se borra en cuanto el usuario lo escribe).
   const [rateNotes, setRateNotes] = useState<Record<string, string>>({});
   const [loadingRate, setLoadingRate] = useState<string | null>(null);
+  // Renglones cuyo tipo de cambio vino de Banxico y nadie ha corregido: si cambia la
+  // fecha del servicio, se vuelve a sugerir el de la fecha nueva.
+  const autoRates = useRef(new Set<string>());
+
+  /** Pide a Banxico el FIX de `date` y lo pone en el renglón, si sigue existiendo. */
+  async function suggestRate(lineKey: string, date: string, { overwrite }: { overwrite: boolean }) {
+    setLoadingRate(lineKey);
+    try {
+      const result = await suggestExchangeRate(date);
+      const index = indexOf(lineKey);
+      if (index < 0) return; // Quitaron el renglón mientras tanto.
+      // Si mientras tanto ya lo escribieron (o cambió la fecha otra vez), no se pisa.
+      if (!overwrite && form.getValues(`expenses.${index}.exchangeRate`)) return;
+      if (overwrite && (!autoRates.current.has(lineKey) || form.getValues("date") !== date)) return;
+      if (result.ok && result.data) {
+        form.setValue(`expenses.${index}.exchangeRate`, formatRate(result.data.rate), { shouldDirty: true });
+        autoRates.current.add(lineKey);
+        setRateNotes((notes) => ({
+          ...notes,
+          [lineKey]: `Tipo de cambio FIX para el ${formatDate(result.data!.date)}, publicado en el DOF el día hábil anterior. Corrígelo si tu factura trae otro.`,
+        }));
+      } else if (!overwrite) {
+        setRateNotes((notes) => ({ ...notes, [lineKey]: "Escribe el tipo de cambio de la factura." }));
+      }
+    } catch {
+      if (!overwrite) setRateNotes((notes) => ({ ...notes, [lineKey]: "Escribe el tipo de cambio de la factura." }));
+    } finally {
+      setLoadingRate((current) => (current === lineKey ? null : current));
+    }
+  }
 
   /**
    * Al pasar un renglón a dólares sin tipo de cambio: se usa el de otro renglón en
@@ -172,24 +223,14 @@ export function ServiceForm({
       return;
     }
 
-    setLoadingRate(lineKey);
-    try {
-      const result = await suggestExchangeRate(form.getValues("date"));
-      // Si mientras tanto ya lo escribieron, no se pisa.
-      if (form.getValues(`expenses.${index}.exchangeRate`)) return;
-      if (result.ok && result.data) {
-        form.setValue(`expenses.${index}.exchangeRate`, formatRate(result.data.rate), { shouldDirty: true });
-        setRateNotes((notes) => ({
-          ...notes,
-          [lineKey]: `Tipo de cambio FIX para el ${formatDate(result.data!.date)}, publicado en el DOF el día hábil anterior. Corrígelo si tu factura trae otro.`,
-        }));
-      } else {
-        setRateNotes((notes) => ({ ...notes, [lineKey]: "Escribe el tipo de cambio de la factura." }));
-      }
-    } catch {
-      setRateNotes((notes) => ({ ...notes, [lineKey]: "Escribe el tipo de cambio de la factura." }));
-    } finally {
-      setLoadingRate((current) => (current === lineKey ? null : current));
+    await suggestRate(lineKey, form.getValues("date"), { overwrite: false });
+  }
+
+  /** La fecha cambió: los tipos de cambio que vinieron de Banxico se piden de nuevo. */
+  function refreshSuggestedRates(date: string) {
+    for (const lineKey of autoRates.current) {
+      if (indexOf(lineKey) < 0) autoRates.current.delete(lineKey);
+      else void suggestRate(lineKey, date, { overwrite: true });
     }
   }
   const conceptRequired = new Set(categories.filter((c) => c.requiresConcept).map((c) => c.id));
@@ -220,13 +261,17 @@ export function ServiceForm({
       if (service) {
         const result = await updateService(service.id, service.unit.id, clean);
         if (!result.ok) return void toast.error(result.error);
+        setSaved(true);
+        onSaved();
         toast.success(`Cambios guardados en el servicio de ${number}`);
         // Regresa al detalle de donde se vino, ya con los cambios.
         goBack(`/servicios/${service.id}`, { refresh: true });
       } else {
         const result = await createService(clean);
         if (!result.ok) return void toast.error(result.error);
-        const saved = `Servicio de ${number} guardado por ${formatCents(totalCents)}`;
+        setSaved(true);
+        onSaved();
+        const savedMessage = `Servicio de ${number} guardado por ${formatCents(totalCents)}`;
 
         if (receipts.some((r) => r.status === "ready")) {
           // El servicio ya está guardado: si falla un comprobante, se agrega desde el detalle.
@@ -236,18 +281,18 @@ export function ServiceForm({
           );
           if (outcome.failed.length) {
             const first = outcome.failed[0]!;
-            toast.error(`${saved}, pero no se subió ${first.name}: ${first.error} Agrégalo desde el detalle.`, {
+            toast.error(`${savedMessage}, pero no se subió ${first.name}: ${first.error} Agrégalo desde el detalle.`, {
               id: toastId,
               duration: 10000,
             });
           } else {
-            toast.success(`${saved} con ${outcome.uploaded} ${outcome.uploaded === 1 ? "comprobante" : "comprobantes"}`, { id: toastId });
+            toast.success(`${savedMessage} con ${outcome.uploaded} ${outcome.uploaded === 1 ? "comprobante" : "comprobantes"}`, { id: toastId });
           }
           for (const duplicate of outcome.duplicates) {
             toast.warning(`Ojo: un comprobante también está en el servicio de ${duplicate.economicNumber} del ${formatDate(duplicate.date)}.`);
           }
         } else {
-          toast.success(saved);
+          toast.success(savedMessage);
         }
         // replace: "Volver" desde el detalle no regresa al formulario ya guardado.
         router.replace(`/servicios/${result.data.id}`);
@@ -259,6 +304,7 @@ export function ServiceForm({
 
   const isSubmitting = form.formState.isSubmitting;
   const inputClass = "h-12 bg-white text-base";
+  const confirmLeave = useUnsavedChanges((form.formState.isDirty || receipts.length > 0) && !saved && !isSubmitting);
 
   return (
     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl">
@@ -289,7 +335,18 @@ export function ServiceForm({
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="date">Fecha</FieldLabel>
-                  <Input {...field} id="date" type="date" max={today} aria-invalid={fieldState.invalid} className={inputClass} />
+                  <Input
+                    {...field}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      if (event.target.value) refreshSuggestedRates(event.target.value);
+                    }}
+                    id="date"
+                    type="date"
+                    max={today}
+                    aria-invalid={fieldState.invalid}
+                    className={inputClass}
+                  />
                   <FieldError errors={[fieldState.error]} />
                 </Field>
               )}
@@ -514,6 +571,7 @@ export function ServiceForm({
                                   {...field}
                                   onChange={(event) => {
                                     field.onChange(event);
+                                    autoRates.current.delete(line.id);
                                     if (rateNotes[line.id]) {
                                       setRateNotes((notes) => {
                                         const next = { ...notes };
@@ -572,7 +630,7 @@ export function ServiceForm({
           {isEdit ? (
             <FieldDescription>Los comprobantes se agregan o se quitan desde el detalle del servicio.</FieldDescription>
           ) : (
-            <ReceiptPicker drafts={receipts} onDraftsChange={setReceipts} disabled={form.formState.isSubmitting} />
+            <ReceiptPicker drafts={receipts} onDraftsChange={setReceipts} disabled={isSubmitting || saved} />
           )}
         </FieldSet>
 
@@ -621,14 +679,14 @@ export function ServiceForm({
             type="button"
             variant="ghost"
             size="touch"
-            onClick={() => goBack(service ? `/servicios/${service.id}` : "/servicios")}
+            onClick={() => confirmLeave() && goBack(service ? `/servicios/${service.id}` : "/servicios")}
             className="hidden sm:inline-flex"
           >
             Cancelar
           </Button>
-          <Button type="submit" size="touch" disabled={isSubmitting} className="min-w-36">
-            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden="true" />}
-            {isSubmitting ? "Guardando…" : isEdit ? "Guardar cambios" : "Guardar servicio"}
+          <Button type="submit" size="touch" disabled={isSubmitting || saved} className="min-w-36">
+            {(isSubmitting || saved) && <LoaderCircle className="animate-spin" aria-hidden="true" />}
+            {isSubmitting ? "Guardando…" : saved ? "Guardado" : isEdit ? "Guardar cambios" : "Guardar servicio"}
           </Button>
         </div>
       </div>

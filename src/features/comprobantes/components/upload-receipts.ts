@@ -10,7 +10,7 @@ import type { ReceiptDraft } from "./receipt-picker";
 
 export type UploadOutcome = {
   uploaded: number;
-  failed: { name: string; error: string }[];
+  failed: { key: string; name: string; error: string }[];
   /** Archivos que ya estaban en otro servicio y el navegador no pudo avisar antes. */
   duplicates: DuplicateReceipt[];
 };
@@ -35,7 +35,7 @@ export async function uploadReceipts(
     try {
       const ticket = await createReceiptUpload({ serviceId, mimeType: file.mimeType, size: file.size });
       if (!ticket.ok) {
-        outcome.failed.push({ name: file.name, error: ticket.error });
+        outcome.failed.push({ key: draft.key, name: file.name, error: ticket.error });
         continue;
       }
 
@@ -43,7 +43,7 @@ export async function uploadReceipts(
         contentType: file.mimeType,
       });
       if (error) {
-        outcome.failed.push({ name: file.name, error: "No se pudo subir el archivo." });
+        outcome.failed.push({ key: draft.key, name: file.name, error: "No se pudo subir el archivo." });
         continue;
       }
 
@@ -54,14 +54,14 @@ export async function uploadReceipts(
         fileName: file.name,
       });
       if (!result.ok) {
-        outcome.failed.push({ name: file.name, error: result.error });
+        outcome.failed.push({ key: draft.key, name: file.name, error: result.error });
         continue;
       }
       outcome.uploaded += 1;
       // Si el navegador ya avisó y el usuario decidió subirlo, no se repite el aviso.
       if (result.data.duplicateOf && !draft.duplicate) outcome.duplicates.push(result.data.duplicateOf);
     } catch {
-      outcome.failed.push({ name: file.name, error: "Se perdió la conexión." });
+      outcome.failed.push({ key: draft.key, name: file.name, error: "Se perdió la conexión." });
     }
   }
   return outcome;

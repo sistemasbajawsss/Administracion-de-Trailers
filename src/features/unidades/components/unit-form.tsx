@@ -3,10 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useGoBack } from "@/components/shared/go-back";
+import { useRemountAfterSave } from "@/components/shared/use-remount-after-save";
+import { useUnsavedChanges } from "@/components/shared/use-unsaved-changes";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -67,9 +70,19 @@ function listHref(values: UnitInput) {
   return values.operation === "foraneo" ? "/unidades?grupo=foraneo" : "/unidades";
 }
 
-export function UnitForm({ unit, drivers }: { unit?: UnitDetail; drivers: DriverOption[] }) {
+type UnitFormProps = { unit?: UnitDetail; drivers: DriverOption[] };
+
+/** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
+export function UnitForm(props: UnitFormProps) {
+  const { key, markSaved } = useRemountAfterSave();
+  return <UnitFormBody key={key} {...props} onSaved={markSaved} />;
+}
+
+function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () => void }) {
   const goBack = useGoBack();
   const isEdit = Boolean(unit);
+  // Guardado con éxito: el botón queda deshabilitado mientras se regresa (sin doble envío).
+  const [saved, setSaved] = useState(false);
 
   const form = useForm<UnitInput>({
     resolver: zodResolver(unitSchema),
@@ -111,6 +124,8 @@ export function UnitForm({ unit, drivers }: { unit?: UnitDetail; drivers: Driver
         toast.error(result.error);
         return;
       }
+      setSaved(true);
+      onSaved();
       toast.success(isEdit ? `Cambios en ${number} guardados` : `Unidad ${number} creada`);
       // Regresa a la pantalla de donde se vino (lista o ficha), ya con los cambios.
       goBack(listHref(clean), { refresh: true });
@@ -121,6 +136,7 @@ export function UnitForm({ unit, drivers }: { unit?: UnitDetail; drivers: Driver
 
   const isSubmitting = form.formState.isSubmitting;
   const inputClass = "h-11 bg-white text-base";
+  const confirmLeave = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting);
 
   return (
     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl">
@@ -374,13 +390,13 @@ export function UnitForm({ unit, drivers }: { unit?: UnitDetail; drivers: Driver
             type="button"
             variant="outline"
             size="touch"
-            onClick={() => goBack(unit ? `/unidades/${unit.id}` : "/unidades")}
+            onClick={() => confirmLeave() && goBack(unit ? `/unidades/${unit.id}` : "/unidades")}
           >
             Cancelar
           </Button>
-          <Button type="submit" size="touch" disabled={isSubmitting}>
-            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden="true" />}
-            {isSubmitting ? "Guardando…" : isEdit ? "Guardar cambios" : "Crear unidad"}
+          <Button type="submit" size="touch" disabled={isSubmitting || saved}>
+            {(isSubmitting || saved) && <LoaderCircle className="animate-spin" aria-hidden="true" />}
+            {isSubmitting ? "Guardando…" : saved ? "Guardado" : isEdit ? "Guardar cambios" : "Crear unidad"}
           </Button>
         </div>
       </FieldGroup>

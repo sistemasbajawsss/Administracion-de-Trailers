@@ -24,10 +24,16 @@ export function ReceiptUploader({ serviceId, existingCount }: { serviceId: strin
 
     setIsUploading(true);
     const toastId = toast.loading("Subiendo comprobantes…");
-    const outcome = await uploadReceipts(serviceId, drafts, (current, total) =>
-      toast.loading(`Subiendo comprobante ${current} de ${total}…`, { id: toastId }),
-    );
-    setIsUploading(false);
+    let outcome;
+    try {
+      outcome = await uploadReceipts(serviceId, drafts, (current, total) =>
+        toast.loading(`Subiendo comprobante ${current} de ${total}…`, { id: toastId }),
+      );
+    } catch {
+      return void toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.", { id: toastId });
+    } finally {
+      setIsUploading(false);
+    }
 
     if (outcome.failed.length) {
       const first = outcome.failed[0]!;
@@ -47,9 +53,10 @@ export function ReceiptUploader({ serviceId, existingCount }: { serviceId: strin
     }
 
     // Se quedan en la lista solo los que fallaron o tienen error, para reintentar o quitar.
-    const failedNames = new Set(outcome.failed.map((f) => f.name));
+    // Por clave, no por nombre: las fotos de la cámara del iPhone se llaman todas igual.
+    const failedKeys = new Set(outcome.failed.map((f) => f.key));
     setDrafts((current) => {
-      const keep = current.filter((d) => d.status === "error" || failedNames.has(d.prepared?.name ?? ""));
+      const keep = current.filter((d) => d.status === "error" || failedKeys.has(d.key));
       current.filter((d) => !keep.includes(d)).forEach((d) => d.previewUrl && URL.revokeObjectURL(d.previewUrl));
       return keep;
     });

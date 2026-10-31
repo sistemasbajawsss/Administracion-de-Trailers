@@ -66,7 +66,9 @@ export function ExpenseFeed({
   useEffect(() => {
     const box = boxRef.current;
     const sentinel = sentinelRef.current;
-    if (!box || !sentinel || done) return;
+    // Con error no se vigila: cada fallo recreaba el observador, que avisaba de
+    // inmediato y volvía a pedir en bucle (sin señal). Se reintenta con el botón.
+    if (!box || !sentinel || done || error) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) void loadMore();
@@ -76,7 +78,7 @@ export function ExpenseFeed({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore, done]);
+  }, [loadMore, done, error]);
 
   const columns = showUnit
     ? "md:grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_8.5rem_10rem]"

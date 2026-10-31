@@ -5,21 +5,51 @@
 
 const MONEY_FORMAT = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
 
-/** Monto escrito por el usuario: dígitos, comas de miles opcionales y hasta 2 decimales. */
+/** Monto ya sin comas: hasta 10 dígitos y hasta 2 decimales. */
 const AMOUNT_PATTERN = /^\d{1,10}(\.\d{0,2})?$/;
+/** Comas de miles bien puestas: "1,500" o "12,345.50". */
+const THOUSANDS_PATTERN = /^\d{1,3}(,\d{3})+(\.\d*)?$/;
+/** Una sola coma con 1 o 2 dígitos al final: teclado con coma decimal ("1500,50"). */
+const DECIMAL_COMMA_PATTERN = /^\d+,\d{1,2}$/;
 
-/** "1,500.5" → "1500.5"; null si no es un monto válido. */
-export function normalizeAmount(value: string): string | null {
-  const clean = value.replace(/[\s,$]/g, "");
-  return AMOUNT_PATTERN.test(clean) ? clean : null;
+/**
+ * Quita espacios y "$" y resuelve la coma: de miles si está bien puesta, decimal si
+ * es una sola con 1–2 dígitos al final. Cualquier otra coma es ambigua: null.
+ * Antes se borraban todas las comas y "1500,50" se guardaba como 150,050.
+ */
+function resolveCommas(value: string): string | null {
+  const clean = value.replace(/[\s$]/g, "");
+  if (!clean.includes(",")) return clean;
+  if (THOUSANDS_PATTERN.test(clean)) return clean.replaceAll(",", "");
+  if (DECIMAL_COMMA_PATTERN.test(clean)) return clean.replace(",", ".");
+  return null;
 }
 
-/** "1500.5" → 150050. Exacto, sin pasar por float. */
+/** "1,500.5" → "1500.5"; "1500,5" → "1500.5"; null si no es un monto válido. */
+export function normalizeAmount(value: string): string | null {
+  const clean = resolveCommas(value);
+  return clean !== null && AMOUNT_PATTERN.test(clean) ? clean : null;
+}
+
+/** Monto como lo regresa la BD (numeric en texto): con signo y cualquier número de decimales. */
+const DB_AMOUNT_PATTERN = /^(-?)(\d+)(?:\.(\d+))?$/;
+
+/**
+ * "1500.5" → 150050. Exacto, sin pasar por float. Acepta lo que escribe el usuario
+ * y también lo que regresa la BD (negativos o más de 2 decimales, redondeando la
+ * mitad hacia arriba): así un valor fuera de lo común no se muestra como $0.00.
+ */
 export function toCents(value: string): number | null {
   const clean = normalizeAmount(value);
-  if (clean === null) return null;
-  const [whole, decimals = ""] = clean.split(".");
-  return Number(whole) * 100 + Number(decimals.padEnd(2, "0"));
+  if (clean !== null) {
+    const [whole, decimals = ""] = clean.split(".");
+    return Number(whole) * 100 + Number(decimals.padEnd(2, "0"));
+  }
+  const match = DB_AMOUNT_PATTERN.exec(value.trim());
+  if (!match) return null;
+  const [, sign, whole, decimals = ""] = match;
+  const cents = Number(whole) * 100 + Number(decimals.slice(0, 2).padEnd(2, "0")) + (Number(decimals[2] ?? 0) >= 5 ? 1 : 0);
+  return sign ? -cents : cents;
 }
 
 /** 150050 → "$1,500.50". */
@@ -42,10 +72,11 @@ export function formatUsd(value: string | null | undefined) {
 /** Tipo de cambio escrito por el usuario: pesos por dólar con hasta 4 decimales. */
 const RATE_PATTERN = /^\d{1,3}(\.\d{0,4})?$/;
 
-/** " 18.45 " → "18.45"; null si no es un tipo de cambio válido. */
+/** " 18.45 " → "18.45"; "18,45" → "18.45"; null si no es un tipo de cambio válido. */
 export function normalizeRate(value: string): string | null {
-  const clean = value.replace(/[\s,$]/g, "");
-  return RATE_PATTERN.test(clean) ? clean : null;
+  const clean = value.replace(/[\s$]/g, "");
+  const dotted = /^\d+,\d{1,4}$/.test(clean) ? clean.replace(",", ".") : clean;
+  return RATE_PATTERN.test(dotted) ? dotted : null;
 }
 
 /** "18.45" → 184500 (diezmilésimos). Exacto, sin pasar por float. */
