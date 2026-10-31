@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { isUuid } from "@/lib/utils/ids";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { getFixRate, type FixRate } from "@/lib/banxico";
@@ -102,6 +103,7 @@ export async function updateService(
   previousUnitId: string,
   input: unknown,
 ): Promise<ActionResult> {
+  if (!isUuid(id) || !isUuid(previousUnitId)) return fail("Servicio no válido.");
   const parsed = serviceEditSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos del servicio.");
 
@@ -120,6 +122,7 @@ export async function updateService(
 }
 
 export async function deleteService(id: string, unitId: string, input: unknown): Promise<ActionResult> {
+  if (!isUuid(id) || !isUuid(unitId)) return fail("Servicio no válido.");
   const parsed = deleteServiceSchema.safeParse(input);
   if (!parsed.success) return fail("Explica por qué se elimina el servicio.");
 

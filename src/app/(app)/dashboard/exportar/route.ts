@@ -7,6 +7,8 @@ import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { formatDate, formatDateTime, toCents, toRateUnits, todayInTijuana } from "@/lib/utils/format";
 
+/** Renglones de las hojas por unidad y por proveedor (el máximo que da reporte_gastos). */
+const RANKING_LIMIT = 50;
 const MONEY = '"$"#,##0.00';
 const USD = '"US$"#,##0.00';
 const RATE = "0.0000";
@@ -35,7 +37,7 @@ export async function GET(request: Request) {
   const filters = reportFiltersSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
   const period = resolvePeriod(filters, todayInTijuana());
 
-  const [report, rows] = await Promise.all([getReport(period, filters, 50), listExportRows(period, filters)]);
+  const [report, rows] = await Promise.all([getReport(period, filters, RANKING_LIMIT), listExportRows(period, filters)]);
   const totalCents = toCents(report.total) ?? 0;
 
   const summary: SheetData = [
@@ -52,6 +54,9 @@ export async function GET(request: Request) {
     ["Equivalente en pesos (incluido en el total)", money(report.usd.mxn)],
     ["Generado", formatDateTime(new Date().toISOString())],
     rows.length === 50000 ? ["Aviso", "El detalle se cortó en 50,000 renglones; usa un periodo más corto."] : [],
+    report.byUnit.length === RANKING_LIMIT || report.bySupplier.length === RANKING_LIMIT
+      ? ["Aviso", `Las hojas por unidad y por proveedor muestran las ${RANKING_LIMIT} con más gasto.`]
+      : [],
   ];
 
   const expenses: SheetData = [

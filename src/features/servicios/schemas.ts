@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { normalizeAmount, toCents, toRateUnits } from "@/lib/utils/format";
+import { isRealDate, normalizeAmount, toCents, toRateUnits } from "@/lib/utils/format";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -10,6 +10,8 @@ export type Currency = (typeof CURRENCIES)[number];
 /** Rango aceptado del tipo de cambio (la BD acepta hasta 100; esto ataja errores de dedo como 184.5). */
 export const MIN_RATE = 5;
 export const MAX_RATE = 50;
+/** US$199,999,999.99 × 50 = $9,999,999,999.50: lo máximo que cabe en pesos. */
+const MAX_USD_CENTS = 19_999_999_999;
 
 /**
  * Un renglón de gasto. id vacío = renglón nuevo. El monto viaja como texto y
@@ -18,8 +20,8 @@ export const MAX_RATE = 50;
  */
 export const expenseLineSchema = z
   .object({
-    id: z.string(),
-    categoryId: z.string().min(1, "Elige la categoría"),
+    id: z.union([z.literal(""), z.uuid()]),
+    categoryId: z.uuid("Elige la categoría"),
     concept: z.string().trim().max(200, "Concepto: máximo 200 caracteres"),
     currency: z.enum(CURRENCIES),
     amount: z
@@ -32,6 +34,10 @@ export const expenseLineSchema = z
   })
   .superRefine((line, ctx) => {
     if (line.currency !== "USD") return;
+    // Con el tipo de cambio máximo, los pesos deben caber en numeric(12,2).
+    if ((toCents(line.amount) ?? 0) > MAX_USD_CENTS) {
+      ctx.addIssue({ code: "custom", path: ["amount"], message: "Monto en dólares demasiado grande" });
+    }
     const units = toRateUnits(line.exchangeRate);
     if (!line.exchangeRate) {
       ctx.addIssue({ code: "custom", path: ["exchangeRate"], message: "Escribe el tipo de cambio" });
@@ -54,18 +60,19 @@ export type ExpenseLineInput = z.infer<typeof expenseLineSchema>;
  * también las aplica la BD.
  */
 export const serviceSchema = z.object({
-  unitId: z.string().min(1, "Elige la unidad"),
+  unitId: z.uuid("Elige la unidad"),
   date: z
     .string()
     .regex(DATE_PATTERN, "Elige la fecha")
+    .refine(isRealDate, "Fecha no válida")
     .refine((value) => value >= "2000-01-01", "Fecha no válida"),
   mileage: z
     .string()
     .trim()
     .refine((value) => value === "" || /^\d{1,7}$/.test(value.replace(/,/g, "")), "Kilometraje: solo números"),
-  supplierId: z.string(),
+  supplierId: z.union([z.literal(""), z.uuid()]),
   description: z.string().trim().max(1000, "Descripción: máximo 1000 caracteres"),
-  expenses: z.array(expenseLineSchema).min(1, "Agrega al menos un gasto"),
+  expenses: z.array(expenseLineSchema).min(1, "Agrega al menos un gasto").max(50, "Máximo 50 gastos por servicio"),
 });
 
 export type ServiceInput = z.infer<typeof serviceSchema>;
@@ -108,12 +115,12 @@ export const purgeServiceSchema = z.object({
 export const serviceFiltersSchema = z.object({
   q: z.string().trim().max(20).catch(""),
   buscar: z.string().trim().max(60).catch(""),
-  desde: z.string().regex(DATE_PATTERN).optional().catch(undefined),
-  hasta: z.string().regex(DATE_PATTERN).optional().catch(undefined),
+  desde: z.string().refine(isRealDate).optional().catch(undefined),
+  hasta: z.string().refine(isRealDate).optional().catch(undefined),
   pagina: z.coerce.number().int().min(1).catch(1),
 });
 
 export type ServiceFilters = z.infer<typeof serviceFiltersSchema>;
 
 /** Fecha para sugerir el tipo de cambio de Banxico. */
-export const exchangeRateDateSchema = z.string().regex(DATE_PATTERN);
+export const exchangeRateDateSchema = z.string().refine(isRealDate);

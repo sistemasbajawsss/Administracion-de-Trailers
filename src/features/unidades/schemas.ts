@@ -22,7 +22,7 @@ const optionalText = (max: number, label: string) =>
  */
 export const unitSchema = z
   .object({
-    economicNumber: z.string().trim().min(1, "Escribe el número económico"),
+    economicNumber: z.string().trim().min(1, "Escribe el número económico").max(20, "Número económico: máximo 20 caracteres"),
     type: z.enum(UNIT_TYPES, "Elige el tipo de unidad"),
     operation: z.enum(UNIT_OPERATIONS).or(z.literal("")),
     status: z.enum(UNIT_STATUSES),

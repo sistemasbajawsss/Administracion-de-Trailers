@@ -10,8 +10,9 @@ function niceMax(value: number) {
   return step * power;
 }
 
+// El corte a millones va en 999,500: lo que redondea a "$1,000 mil" se muestra "$1 M".
 const compact = (pesos: number) =>
-  pesos >= 1_000_000
+  pesos >= 999_500
     ? `$${(pesos / 1_000_000).toLocaleString("es-MX", { maximumFractionDigits: 1 })} M`
     : pesos >= 1_000
       ? `$${Math.round(pesos / 1_000).toLocaleString("es-MX")} mil`

@@ -1,8 +1,7 @@
 import { z } from "zod";
 
 import { UNIT_TYPES } from "@/features/unidades/types";
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+import { isRealDate } from "@/lib/utils/format";
 
 export const PERIODS = ["este-mes", "mes-pasado", "3m", "6m", "12m", "este-anio", "rango"] as const;
 export type Period = (typeof PERIODS)[number];
@@ -28,8 +27,8 @@ export const GROUP_LABELS: Record<Group, string> = {
 /** Filtros de Reportes y del Excel, en la URL. Lo inválido cae en el valor por defecto. */
 export const reportFiltersSchema = z.object({
   periodo: z.enum(PERIODS).catch("12m"),
-  desde: z.string().regex(DATE_PATTERN).optional().catch(undefined),
-  hasta: z.string().regex(DATE_PATTERN).optional().catch(undefined),
+  desde: z.string().refine(isRealDate).optional().catch(undefined),
+  hasta: z.string().refine(isRealDate).optional().catch(undefined),
   grupo: z.enum(GROUPS).optional().catch(undefined),
   tipo: z.enum(UNIT_TYPES).optional().catch(undefined),
 });

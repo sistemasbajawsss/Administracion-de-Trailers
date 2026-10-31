@@ -102,6 +102,18 @@ export function usdToMxnCents(usdCents: number, rateUnits: number) {
   return Number((BigInt(usdCents) * BigInt(rateUnits) + BigInt(5000)) / BigInt(10000));
 }
 
+/**
+ * "2026-02-28" sí, "2026-02-31" no. El formato solo no basta: una fecha que no
+ * existe llegaba a Postgres y la pantalla tronaba con error 500.
+ */
+export function isRealDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [, y, m, d] = match.map(Number) as [number, number, number, number];
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+}
+
 /** "2026-10-23" → "23/10/2026". Sin pasar por Date para no mover el día por la zona horaria. */
 export function formatDate(value: string) {
   const [year, month, day] = value.slice(0, 10).split("-");
