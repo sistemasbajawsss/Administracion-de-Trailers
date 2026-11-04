@@ -77,7 +77,7 @@ export function CatalogManager({ kind, items }: { kind: CatalogKind; items: Cata
                       </>
                     )}
                     {item.phone && item.notes && <span aria-hidden="true">—</span>}
-                    {item.notes && <span className="truncate">{item.notes}</span>}
+                    {item.notes && <span className="min-w-0 truncate" title={item.notes}>{item.notes}</span>}
                   </p>
                 )}
               </div>

@@ -143,7 +143,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
       <FieldGroup className="gap-8">
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Identificación</FieldLegend>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Controller
               name="type"
               control={form.control}
@@ -256,7 +256,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
 
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Asignación</FieldLegend>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Controller
               name="driverId"
               control={form.control}
@@ -323,7 +323,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Datos del vehículo</FieldLegend>
           <FieldDescription>Opcionales. Puedes completarlos después.</FieldDescription>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {(
               [
                 ["make", "Marca", isPickup ? "Ford" : ""],

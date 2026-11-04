@@ -328,7 +328,7 @@ function ServiceFormBody({
 
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Datos del servicio</FieldLegend>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Controller
               name="date"
               control={form.control}
@@ -460,7 +460,7 @@ function ServiceFormBody({
                       </Button>
                     )}
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-[1fr_1fr_10rem]">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem]">
                     <Controller
                       name={`expenses.${index}.categoryId`}
                       control={form.control}

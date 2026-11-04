@@ -27,7 +27,7 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
         </div>
       </header>
 
-      <dl className="grid gap-x-6 gap-y-4 border-b px-5 py-5 sm:grid-cols-3 sm:px-6">
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-4 border-b px-5 py-5 sm:grid-cols-3 sm:px-6">
         <div>
           <dt className="text-sm text-muted-foreground">Proveedor o taller</dt>
           <dd className="text-base">{service.supplierName ?? "Sin proveedor"}</dd>

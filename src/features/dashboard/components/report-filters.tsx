@@ -72,7 +72,7 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         {period === "rango" && (
           <div className="grid grid-cols-2 gap-3 sm:flex">
-            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <label className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground">
               Desde
               <Input
                 type="date"
@@ -82,7 +82,7 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
                 className="h-11 bg-white text-base"
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <label className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground">
               Hasta
               <Input
                 type="date"
