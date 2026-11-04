@@ -23,6 +23,7 @@ src/
 │   │   ├── servicios/
 │   │   ├── dashboard/           # Solo admin
 │   │   └── admin/               # Solo admin: catálogos, usuarios
+│   ├── manifest.ts              # App instalable (/manifest.webmanifest)
 │   └── layout.tsx               # Raíz: fuentes, tema, toaster
 │
 ├── features/                    # Lógica de negocio, un folder por módulo

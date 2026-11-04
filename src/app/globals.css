@@ -150,6 +150,21 @@
   html {
     @apply font-sans;
   }
+  /* Sin scroll lateral nunca: lo que se pase del ancho se recorta. `clip` (no
+     `hidden`) para no romper el encabezado `sticky`. Lo que no quepa se arregla
+     en su componente (truncate, flex-wrap); esto es la última red. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+  /* iPhone: el campo de fecha trae un ancho mínimo propio y se salía de la
+     pantalla; además centraba la fecha. */
+  input[type="date"] {
+    min-width: 0;
+  }
+  input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
   h1, h2, h3 {
     @apply font-heading;
   }

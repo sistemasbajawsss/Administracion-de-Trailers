@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Semi_Condensed } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -23,6 +23,13 @@ export const metadata: Metadata = {
     template: "%s · Administración Trailers",
   },
   description: "Reparaciones, gastos y comprobantes de la flotilla.",
+  // iPhone: abrir desde la pantalla de inicio sin barra del navegador.
+  appleWebApp: { capable: true, title: "Flotilla", statusBarStyle: "default" },
+  icons: { apple: "/brand/apple-touch-icon.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -100,6 +100,11 @@
 
 ## Historial de secciones
 
+### Corrección posterior — Celular y app instalable (2026-11-04, pedida por el usuario)
+- App instalable: `src/app/manifest.ts` (`/manifest.webmanifest`, `display: standalone`, fuera del proxy de sesión), `appleWebApp` y `themeColor` en `src/app/layout.tsx`, íconos en `public/brand/` (`icon-192`, `icon-512`, `icon-maskable-512`, `apple-touch-icon`, hechos con la gota del logo). Agregada a la pantalla de inicio se abre sin barra del navegador. Por D9, cerrar la app pide entrar de nuevo.
+- Elegir unidad: en pantalla táctil el foco va a la lista y no al buscador (se abría el teclado, tapaba las unidades y no se podía deslizar); deslizar la lista cierra el teclado.
+- Sin scroll lateral (lo prohibió el usuario): `overflow-x: clip` en `html` y `body` como red de seguridad; periodos de Reportes bajan de renglón; pestañas de Unidades se reparten el ancho; campo de fecha de iPhone sin ancho mínimo; nombre y correo truncados en el menú de usuario.
+
 ### Sección 5D — Correcciones de la auditoría (cerrada 2026-10-30)
 - Auditoría con 5 agentes en paralelo coordinados por Claude (BD, permisos y Storage, servidor, dinero y fechas, pantallas). Sin fugas de datos entre usuarios; los permisos aguantan casi toda la matriz de rol × tabla × acción.
 - Hecho:
