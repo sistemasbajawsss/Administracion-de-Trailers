@@ -85,8 +85,8 @@ export function UserMenu({
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
-            <span className="font-medium text-foreground">{user.name}</span>
-            <span className="font-normal text-muted-foreground">{user.email}</span>
+            <span className="truncate font-medium text-foreground" title={user.name}>{user.name}</span>
+            <span className="truncate font-normal text-muted-foreground" title={user.email}>{user.email}</span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

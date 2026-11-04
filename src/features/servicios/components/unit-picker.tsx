@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { cn } from "cn";
 
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ export function UnitPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
   const selected = units.find((u) => u.id === value);
 
   const groups = useMemo(() => {
@@ -90,7 +91,15 @@ export function UnitPicker({
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="mx-auto flex max-h-[88dvh] max-w-3xl flex-col gap-0 rounded-t-2xl p-0">
+        {/* En pantalla táctil el foco va a la lista, no al buscador: si no, se
+            abre el teclado, tapa las unidades y la hoja no se puede deslizar. */}
+        <SheetContent
+          side="bottom"
+          initialFocus={() =>
+            window.matchMedia("(pointer: coarse)").matches ? listRef.current : true
+          }
+          className="mx-auto flex max-h-[88dvh] max-w-3xl flex-col gap-0 rounded-t-2xl p-0"
+        >
           <SheetHeader className="border-b pb-4">
             <SheetTitle className="font-heading text-2xl font-semibold">¿A qué unidad se le hizo el servicio?</SheetTitle>
             <SheetDescription className="sr-only">Busca por número económico o toca la unidad.</SheetDescription>
@@ -100,6 +109,8 @@ export function UnitPicker({
                 type="search"
                 inputMode="search"
                 autoCapitalize="characters"
+                autoComplete="off"
+                enterKeyHint="search"
                 placeholder="Buscar: T-17, R-39…"
                 aria-label="Buscar unidad por número económico"
                 value={search}
@@ -109,7 +120,15 @@ export function UnitPicker({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-8">
+          {/* Al deslizar la lista se cierra el teclado para ver todas las unidades. */}
+          <div
+            ref={listRef}
+            tabIndex={-1}
+            onTouchStart={() => {
+              if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
+            }}
+            className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pt-4 pb-8 outline-none"
+          >
             {groups.length === 0 && (
               <p className="py-10 text-center text-muted-foreground">
                 Ninguna unidad coincide con “{search}”. Revisa el número económico.

@@ -46,8 +46,8 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
 
   return (
     <div className="mb-6 space-y-3 print:hidden">
-      {/* Atajos de periodo: en el celular se desliza de lado. */}
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Periodo">
+      {/* Atajos de periodo: bajan de renglón, sin scroll lateral. */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Periodo">
         {(Object.keys(PERIOD_LABELS) as Exclude<Period, "rango">[]).map((key) => (
           <button
             key={key}
