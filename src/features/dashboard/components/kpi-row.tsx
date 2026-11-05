@@ -45,28 +45,28 @@ export function KpiRow({ report, periodLabel }: { report: Report; periodLabel: s
   const perUnit = report.units ? Math.round(totalCents / report.units) : 0;
 
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-4 print:break-inside-avoid print:grid-cols-4">
-      <div className="col-span-2 bg-brand-ink px-5 py-5 text-white">
+    <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2 lg:grid-cols-4 print:break-inside-avoid print:grid-cols-4">
+      <div className="bg-brand-ink px-5 py-5 text-white sm:col-span-2">
         <dt className="text-sm text-white/75">Total invertido · {periodLabel}</dt>
         <dd>
-          <span className="block font-heading text-5xl leading-tight font-bold">{formatMoney(report.total)}</span>
+          <span className="block font-heading text-4xl leading-tight font-bold whitespace-nowrap sm:text-5xl">{formatMoney(report.total)}</span>
           <Delta report={report} />
         </dd>
       </div>
       <div className="bg-white px-5 py-5">
         <dt className="text-sm text-muted-foreground">Servicios</dt>
-        <dd className="font-heading text-3xl font-semibold">{count.format(report.services)}</dd>
+        <dd className="font-heading text-3xl font-semibold whitespace-nowrap">{count.format(report.services)}</dd>
         <dd className="text-sm text-muted-foreground">{count.format(report.expenses)} gastos</dd>
       </div>
       <div className="bg-white px-5 py-5">
         <dt className="text-sm text-muted-foreground">Promedio por unidad</dt>
-        <dd className="font-heading text-3xl font-semibold">{formatCents(perUnit)}</dd>
+        <dd className="font-heading text-3xl font-semibold whitespace-nowrap">{formatCents(perUnit)}</dd>
         <dd className="text-sm text-muted-foreground">
           {count.format(report.units)} {report.units === 1 ? "unidad" : "unidades"} con gastos
         </dd>
       </div>
       {/* Franja a todo lo ancho: es un desglose del total, no otra cifra que se le sume. */}
-      <div className="col-span-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 bg-white px-5 py-4 lg:col-span-4 print:col-span-4">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 bg-white px-5 py-4 sm:col-span-2 lg:col-span-4 print:col-span-4">
         <dt className="text-sm text-muted-foreground">Pagado en dólares</dt>
         <dd className="font-heading text-2xl font-semibold tabular-nums">{formatUsd(report.usd.amount)}</dd>
         <dd className="text-sm text-muted-foreground">

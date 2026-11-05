@@ -157,6 +157,21 @@
   body {
     overflow-x: clip;
   }
+  /* Listas desplegables (shadcn Select): el botón traía `whitespace-nowrap` sin
+     poder encogerse, así que un proveedor o categoría largos, o "Todos los
+     grupos" en media pantalla de celular, lo hacían más ancho que su columna.
+     Se encoge y el texto elegido se corta con "…". */
+  [data-slot="select-trigger"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+  [data-slot="select-trigger"] > [data-slot="select-value"] {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   /* iPhone: el campo de fecha trae un ancho mínimo propio y se salía de la
      pantalla; además centraba la fecha. */
   input[type="date"] {

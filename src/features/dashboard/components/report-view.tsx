@@ -21,7 +21,7 @@ function Panel({ title, description, children, className = "" }: {
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border bg-white p-5 print:break-inside-avoid print:p-3 ${className}`}>
+    <section className={`min-w-0 rounded-xl border bg-white p-4 sm:p-5 print:break-inside-avoid print:p-3 ${className}`}>
       <h2 className="font-heading text-xl font-semibold">{title}</h2>
       {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       <div className="mt-4">{children}</div>
@@ -82,7 +82,7 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
         - Hoja vertical: mes 6 / grupos 3 + proveedores 3 / categorías 3 + unidades 3.
         - Hoja horizontal: mes 4 + grupos 2 (hoja 1) / categorías, unidades y proveedores 2 + 2 + 2 (hoja 2).
       */}
-      <div className="grid gap-6 lg:grid-cols-6 print:grid-cols-6 print:gap-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-6 print:grid-cols-6 print:gap-3">
         <Panel
           title="Gasto por mes"
           description={range}
@@ -193,11 +193,11 @@ export function ReportViewSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Cargando reporte">
       <div className="h-36 animate-pulse rounded-xl bg-muted" />
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="h-96 animate-pulse rounded-xl bg-muted lg:col-span-2" />
         <div className="h-96 animate-pulse rounded-xl bg-muted" />
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="h-80 animate-pulse rounded-xl bg-muted" />
         <div className="h-80 animate-pulse rounded-xl bg-muted" />
       </div>

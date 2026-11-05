@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main className="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+    <main className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <section
         aria-hidden="true"
         className="relative hidden overflow-hidden bg-brand-ink text-white lg:flex lg:flex-col lg:justify-end lg:p-14"

@@ -55,7 +55,7 @@ export function ServiceFilters({ unitSearch = true }: { unitSearch?: boolean }) 
 
   return (
     <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end">
-      <div className="grid gap-3 sm:grid-cols-2 lg:flex">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex">
         {unitSearch && (
           <div className="relative lg:w-48">
             <Search className={iconClass} aria-hidden="true" />
@@ -89,7 +89,7 @@ export function ServiceFilters({ unitSearch = true }: { unitSearch?: boolean }) 
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:flex">
-        <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+        <label className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground">
           Desde
           <Input
             type="date"
@@ -99,7 +99,7 @@ export function ServiceFilters({ unitSearch = true }: { unitSearch?: boolean }) 
             className={dateClass}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+        <label className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground">
           Hasta
           <Input
             type="date"

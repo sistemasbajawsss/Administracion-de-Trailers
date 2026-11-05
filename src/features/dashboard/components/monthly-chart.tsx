@@ -43,7 +43,7 @@ function MonthTooltip({ active, payload }: TooltipContentProps<ValueType, NameTy
  */
 export function MonthlyChart({ data }: { data: MonthPoint[] }) {
   return (
-    <div className="h-64 w-full sm:h-72">
+    <div className="h-64 w-full min-w-0 sm:h-72">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" strokeWidth={1} />

@@ -28,7 +28,7 @@ async function Welcome() {
       <>
         <PageHeader title={`Hola, ${firstName}`} description="Registra los servicios con su comprobante." />
         {newServiceLink("mb-6 h-14 w-full px-6 text-lg sm:w-auto")}
-        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
           <Suspense fallback={<HomePanelSkeleton />}>
             <PendingReceiptsPanel title="Te falta subir factura" showAuthor={false} />
           </Suspense>
@@ -56,7 +56,7 @@ async function Welcome() {
           </>
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
         <Suspense fallback={<HomePanelSkeleton />}>
           <PendingReceiptsPanel title="Servicios sin factura" showAuthor />
         </Suspense>
