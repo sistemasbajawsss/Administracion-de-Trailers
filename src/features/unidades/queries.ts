@@ -127,29 +127,72 @@ export async function listUnitsInShop(): Promise<UnitInShop[]> {
   }));
 }
 
-/** Estancias en taller de una unidad (ficha; admin y gerente), la más reciente primero. */
+/**
+ * Estancias en taller de una unidad (ficha; admin y gerente), la más reciente
+ * primero, con su total (sumado en la BD) y sus servicios. Dos lecturas en paralelo.
+ */
 export async function listUnitShopStays(unitId: string, limit = 20): Promise<{ stays: UnitShopStay[]; total: number }> {
   const supabase = await createClient();
-  const { data, count, error } = await supabase
-    .from("entradas_taller")
-    .select("id, fecha_entrada, fecha_salida, falla, nota_salida, reporta_nombre, servicios(count)", { count: "exact" })
-    .eq("unidad_id", unitId)
-    .order("fecha_entrada", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const [stays, services] = await Promise.all([
+    supabase
+      .from("entradas_taller_resumen")
+      .select("id, fecha_entrada, fecha_salida, falla, nota_salida, reporta_nombre, servicio_salida_id, num_servicios, total::text", {
+        count: "exact",
+      })
+      .eq("unidad_id", unitId)
+      .order("fecha_entrada", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(limit)
+      .returns<
+        {
+          id: string;
+          fecha_entrada: string;
+          fecha_salida: string | null;
+          falla: string;
+          nota_salida: string | null;
+          reporta_nombre: string | null;
+          servicio_salida_id: string | null;
+          num_servicios: number;
+          total: string;
+        }[]
+      >(),
+    supabase
+      .from("servicios_resumen")
+      .select("id, fecha, total::text, descripcion, entrada_taller_id, proveedor:proveedores(nombre)")
+      .eq("unidad_id", unitId)
+      .not("entrada_taller_id", "is", null)
+      .order("fecha")
+      .order("created_at")
+      .limit(500)
+      .returns<
+        {
+          id: string;
+          fecha: string;
+          total: string;
+          descripcion: string | null;
+          entrada_taller_id: string;
+          proveedor: { nombre: string } | null;
+        }[]
+      >(),
+  ]);
 
-  if (error) throw new Error("No se pudieron cargar las estancias en taller");
+  if (stays.error || services.error) throw new Error("No se pudieron cargar las estancias en taller");
   return {
-    stays: data.map((row) => ({
+    stays: stays.data.map((row) => ({
       id: row.id,
       entryDate: row.fecha_entrada,
       exitDate: row.fecha_salida,
       fault: row.falla,
       exitNote: row.nota_salida,
       reportedBy: row.reporta_nombre,
-      serviceCount: row.servicios[0]?.count ?? 0,
+      serviceCount: row.num_servicios,
+      total: row.total,
+      exitServiceId: row.servicio_salida_id,
+      services: services.data
+        .filter((s) => s.entrada_taller_id === row.id)
+        .map((s) => ({ id: s.id, date: s.fecha, total: s.total, description: s.descripcion, supplier: s.proveedor?.nombre ?? null })),
     })),
-    total: count ?? 0,
+    total: stays.count ?? 0,
   };
 }
 

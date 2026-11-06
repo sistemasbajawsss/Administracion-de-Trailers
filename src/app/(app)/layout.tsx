@@ -5,6 +5,7 @@ import {
   AppNavigationFallback,
 } from "@/components/layout/app-navigation";
 import { NavigationTracker } from "@/components/layout/navigation-tracker";
+import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { signOut } from "@/features/auth/actions";
 import { TabSessionGuard } from "@/features/auth/components/tab-session-guard";
 import { TabSessionScript } from "@/features/auth/components/tab-session-script";
@@ -25,6 +26,8 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <NavigationTracker />
       </Suspense>
       <TabSessionGuard />
+      {/* Jalar hacia abajo para actualizar (app instalada) y al volver a la app. */}
+      <PullToRefresh />
     </div>
   );
 }
