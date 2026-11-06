@@ -12,9 +12,11 @@ import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
 import { normalizeAmount, normalizeRate } from "@/lib/utils/format";
 
-import { listExpenses } from "./queries";
+import { getOpenShopStay, getServiceShopLink, listExpenses } from "./queries";
 import {
   exchangeRateDateSchema,
+  fallsInStay,
+  shopIssues,
   purgeServiceSchema,
   restoreServiceSchema,
   deleteServiceSchema,
@@ -23,7 +25,7 @@ import {
   serviceSchema,
   type ServiceInput,
 } from "./schemas";
-import type { ExpenseListItem } from "./types";
+import type { ExpenseListItem, ShopStay } from "./types";
 
 /** Los tipos generados marcan los argumentos de las funciones como no nulos, pero aceptan null. */
 const nullable = <T,>(value: T | null) => value as T;
@@ -80,6 +82,8 @@ function errorMessage(error: { code?: string; message?: string }, fallback: stri
 
 function revalidateServices(unitIds: string[]) {
   revalidatePath("/servicios", "layout");
+  revalidatePath("/taller");
+  revalidatePath("/unidades", "layout");
   revalidatePath("/");
   for (const unitId of unitIds) revalidatePath(`/unidades/${unitId}`);
 }
@@ -90,11 +94,30 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
 
   await requireRole(CAPTURE_ROLES);
 
+  // Taller (5E, D13): misma regla que el formulario, con lo que hay hoy en la BD.
+  let stay: ShopStay | null;
+  try {
+    stay = await getOpenShopStay(parsed.data.unitId);
+  } catch {
+    return fail("No se pudo guardar el servicio. Inténtalo de nuevo.");
+  }
+  const values = parsed.data;
+  const linked = fallsInStay(stay, values.date);
+  const issues = shopIssues(values, { stay, linked, needsReason: true, allowForgot: true });
+  if (issues.length) return fail(issues[0]!.message);
+  const forgot = !linked && values.forgotEntry;
+
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("registrar_servicio", toArgs(parsed.data));
+  const { data, error } = await supabase.rpc("registrar_servicio", {
+    ...toArgs(values),
+    p_salida_taller: (linked || forgot) && values.leavesShop,
+    p_motivo_sin_entrada: !linked && !forgot ? values.noEntryReason : undefined,
+    p_entrada_fecha: forgot ? values.forgotEntryDate : undefined,
+    p_entrada_falla: forgot ? values.forgotEntryFault : undefined,
+  });
   if (error) return fail(errorMessage(error, "No se pudo guardar el servicio. Inténtalo de nuevo."));
 
-  revalidateServices([parsed.data.unitId]);
+  revalidateServices([values.unitId]);
   return ok({ id: data });
 }
 
@@ -109,11 +132,34 @@ export async function updateService(
 
   await requireRole(CAPTURE_ROLES);
 
+  // Taller (5E): ¿el servicio queda ligado a una estancia después del cambio?
+  // Misma regla que preparar_servicio en la BD.
+  const values = parsed.data;
+  let current: Awaited<ReturnType<typeof getServiceShopLink>>;
+  let stay: ShopStay | null;
+  try {
+    [current, stay] = await Promise.all([getServiceShopLink(id), getOpenShopStay(values.unitId)]);
+  } catch {
+    return fail("No se pudieron guardar los cambios. Inténtalo de nuevo.");
+  }
+  if (!current) return fail("No se encontró el servicio.");
+  const legacy = current.noEntry === null; // De antes de la 5E: no se liga ni se marca.
+  const unitChanged = values.unitId !== current.unitId;
+  const keepsLink =
+    !unitChanged && current.entryId !== null && !(stay?.entryId === current.entryId && values.date < stay.entryDate);
+  const linksToStay =
+    fallsInStay(stay, values.date) && (unitChanged || (current.entryId === null && values.date !== current.date));
+  const linked = legacy || keepsLink || linksToStay;
+  const issues = shopIssues(values, { stay, linked, needsReason: !current.noEntryReason, allowForgot: false });
+  if (issues.length) return fail(issues[0]!.message);
+
   const supabase = await createClient();
   const { error } = await supabase.rpc("actualizar_servicio", {
     p_servicio_id: id,
-    ...toArgs(parsed.data),
-    p_motivo: parsed.data.reason,
+    ...toArgs(values),
+    p_motivo: values.reason,
+    p_salida_taller: !legacy && linked && values.leavesShop,
+    p_motivo_sin_entrada: !linked ? values.noEntryReason || undefined : undefined,
   });
   if (error) return fail(errorMessage(error, "No se pudieron guardar los cambios. Inténtalo de nuevo."));
 

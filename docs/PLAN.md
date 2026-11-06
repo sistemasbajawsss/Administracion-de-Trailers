@@ -296,6 +296,7 @@ Cada etapa se sube y se prueba sola. No se pasa a la siguiente hasta que el usua
   - Prueba clave: el total de Reportes es igual antes y después de vender.
   - Riesgo: medio-bajo (se repiten completas las baterías de capturista y gerente).
 - **Etapa 3 — Ligar servicios con el taller.**
+  - Decisiones del usuario (D13, 2026-11-06): un servicio de una unidad sin entrada a taller (no está en taller, o la fecha del servicio es anterior a su entrada) exige un **motivo**, con botones rápidos "Reparación en camino", "Mantenimiento en patio", "Se olvidó la entrada" y "Otro…" (texto). Lo exige el servidor (Zod); la BD lo guarda (`servicios.motivo_sin_entrada`) sin exigirlo, para no romper la app publicada durante el cambio. "Se olvidó la entrada" solo aparece al registrar un servicio nuevo de una unidad que no está en taller ahora: pide fecha de entrada (≤ fecha del servicio) y falla, crea la entrada en la misma transacción, liga el servicio y aplica la casilla de salida (marcada: la estancia queda cerrada con la fecha del servicio; desmarcada: la unidad queda en taller). Al editar se puede corregir el motivo, no crear la entrada.
   - Se agregan columnas opcionales en `servicios`.
   - Se ajustan `registrar_servicio()` y `actualizar_servicio()` (parámetros nuevos opcionales: llamadas como las de hoy se comportan igual) y el formulario de servicio.
   - Prueba clave: los totales de Reportes y por unidad son idénticos al centavo antes y después.

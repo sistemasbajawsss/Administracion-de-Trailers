@@ -9,7 +9,15 @@ export type UnitOption = {
   status: UnitStatus;
   /** "Caja · 53 pies", "Ford F-150". */
   detail: string;
+  /** Estancia abierta en taller (5E), si la unidad está en taller. */
+  shopStay: ShopStay | null;
 };
+
+/** Estancia abierta en taller de una unidad: a ella se liga un servicio con fecha igual o posterior a la entrada. */
+export type ShopStay = { entryId: string; entryDate: string; fault: string };
+
+/** Relación del servicio con el taller (5E). noEntry null = servicio de antes de la 5E (no se evalúa). */
+export type ServiceShopLink = { entryId: string | null; noEntry: boolean | null; noEntryReason: string | null };
 
 export type CategoryOption = { id: string; name: string; requiresConcept: boolean };
 export type SupplierOption = { id: string; name: string };
@@ -65,6 +73,7 @@ export type ServiceDetail = ServiceListItem & {
   createdBy: string;
   createdAt: string;
   expenses: ExpenseLine[];
+  shop: ServiceShopLink;
 };
 
 /** Un cambio de un campo: "Monto: $1,500.50 → $1,600.00". */

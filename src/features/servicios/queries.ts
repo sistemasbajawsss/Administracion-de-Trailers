@@ -16,6 +16,8 @@ import type {
   ServiceBrief,
   ServiceDetail,
   ServiceListItem,
+  ServiceShopLink,
+  ShopStay,
   UnitOption,
   UnitTotals,
   UsdAmount,
@@ -56,7 +58,7 @@ const toUsd = (amount: string | null, rate: string | null): UsdAmount | null =>
 export async function getService(id: string): Promise<ServiceDetail | null> {
   const supabase = await createClient();
 
-  const [service, expenses] = await Promise.all([
+  const [service, expenses, shop] = await Promise.all([
     supabase
       .from("servicios_resumen")
       .select(`${LIST_COLUMNS}, kilometraje, proveedor_id, created_by, created_at`)
@@ -86,9 +88,15 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
           categoria: { nombre: string } | null;
         }[]
       >(),
+    // La vista servicios_resumen no trae las columnas de taller (5E).
+    supabase
+      .from("servicios")
+      .select("entrada_taller_id, sin_entrada_taller, motivo_sin_entrada")
+      .eq("id", id)
+      .maybeSingle(),
   ]);
 
-  if (service.error || expenses.error) throw new Error("No se pudo cargar el servicio");
+  if (service.error || expenses.error || shop.error) throw new Error("No se pudo cargar el servicio");
   if (!service.data) return null;
 
   const row = service.data;
@@ -106,7 +114,56 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
       amount: e.monto,
       usd: toUsd(e.monto_usd, e.tipo_cambio),
     })),
+    shop: {
+      entryId: shop.data?.entrada_taller_id ?? null,
+      noEntry: shop.data?.sin_entrada_taller ?? null,
+      noEntryReason: shop.data?.motivo_sin_entrada ?? null,
+    },
   };
+}
+
+/** Unidad actual y relación del servicio con el taller (5E). RLS: solo si el usuario ve el servicio. */
+export async function getServiceShopLink(id: string): Promise<(ServiceShopLink & { unitId: string; date: string }) | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("servicios")
+    .select("unidad_id, fecha, entrada_taller_id, sin_entrada_taller, motivo_sin_entrada")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error("No se pudo cargar el servicio");
+  return data
+    ? {
+        unitId: data.unidad_id,
+        date: data.fecha,
+        entryId: data.entrada_taller_id,
+        noEntry: data.sin_entrada_taller,
+        noEntryReason: data.motivo_sin_entrada,
+      }
+    : null;
+}
+
+/** Estancias abiertas en taller, por unidad (las ven los tres roles). */
+async function listOpenShopStays(): Promise<Map<string, ShopStay>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("entradas_taller")
+    .select("id, unidad_id, fecha_entrada, falla")
+    .is("fecha_salida", null);
+  if (error) throw new Error("No se pudieron cargar las unidades en taller");
+  return new Map(data.map((e) => [e.unidad_id, { entryId: e.id, entryDate: e.fecha_entrada, fault: e.falla }]));
+}
+
+/** Estancia abierta de una unidad, o null. El servidor la usa para validar el formulario. */
+export async function getOpenShopStay(unitId: string): Promise<ShopStay | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("entradas_taller")
+    .select("id, fecha_entrada, falla")
+    .eq("unidad_id", unitId)
+    .is("fecha_salida", null)
+    .maybeSingle();
+  if (error) throw new Error("No se pudo revisar si la unidad está en taller");
+  return data ? { entryId: data.id, entryDate: data.fecha_entrada, fault: data.falla } : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -189,12 +246,15 @@ export async function getExpenseSummary(query: ExpenseQuery): Promise<ExpenseSum
 /** Unidades para elegir en el formulario: todas menos las de baja o vendidas, en orden natural. */
 export async function listUnitOptions(): Promise<UnitOption[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("unidades")
-    .select("id, numero_economico, tipo, operacion, estatus, longitud_pies, marca, modelo")
-    .not("estatus", "in", "(baja,vendida)")
-    .order("tipo")
-    .order("numero_orden");
+  const [{ data, error }, stays] = await Promise.all([
+    supabase
+      .from("unidades")
+      .select("id, numero_economico, tipo, operacion, estatus, longitud_pies, marca, modelo")
+      .not("estatus", "in", "(baja,vendida)")
+      .order("tipo")
+      .order("numero_orden"),
+    listOpenShopStays(),
+  ]);
 
   if (error) throw new Error("No se pudieron cargar las unidades");
 
@@ -210,6 +270,7 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
       operation: u.operacion,
       status: u.estatus,
       detail: parts.join(" · "),
+      shopStay: stays.get(u.id) ?? null,
     };
   });
 }
@@ -338,6 +399,7 @@ const SERVICE_FIELDS: [string, string][] = [
   ["kilometraje", "Kilometraje"],
   ["proveedor_id", "Proveedor"],
   ["descripcion", "Descripción"],
+  ["motivo_sin_entrada", "Motivo sin entrada a taller"],
 ];
 
 function expenseSummary(row: Row, names: Names) {
