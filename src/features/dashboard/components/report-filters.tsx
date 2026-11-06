@@ -71,7 +71,7 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         {period === "rango" && (
-          <div className="grid grid-cols-2 gap-3 sm:flex">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:flex">
             <label className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground">
               Desde
               <Input
@@ -79,7 +79,7 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
                 value={searchParams.get("desde") ?? from}
                 max={searchParams.get("hasta") ?? to}
                 onChange={(event) => event.target.value && update({ desde: event.target.value })}
-                className="h-11 bg-white text-base"
+                className="h-11 w-full min-w-0 bg-white text-base"
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground">
@@ -89,7 +89,7 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
                 value={searchParams.get("hasta") ?? to}
                 min={searchParams.get("desde") ?? from}
                 onChange={(event) => event.target.value && update({ hasta: event.target.value })}
-                className="h-11 bg-white text-base"
+                className="h-11 w-full min-w-0 bg-white text-base"
               />
             </label>
           </div>

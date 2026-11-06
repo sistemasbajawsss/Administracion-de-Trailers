@@ -24,6 +24,10 @@ insert into x select 'baja', id from b;
 insert into public.unidades (numero_economico, tipo, operacion) values ('T-99999', 'trailer', 'local');
 insert into x values ('temp', (select id from public.unidades where numero_economico = 'T-99999'));
 
+-- Entradas abiertas antes de la prueba (dependen de los datos reales del momento).
+create temp table abiertas_antes as select count(*) as n from public.entradas_taller where fecha_salida is null;
+grant select on abiertas_antes to authenticated;
+
 -- Migración: lo que ya estaba en taller tiene su entrada abierta.
 insert into r(caso, ok, detalle)
 select 'Migración: cada unidad en taller tiene entrada abierta',
@@ -111,7 +115,7 @@ begin
   end;
 
   insert into r(caso, ok, detalle)
-  select 'Capturista ve las entradas abiertas', count(*) >= 2, count(*)::text
+  select 'Capturista ve las entradas abiertas (todas, también las de otros)', count(*) = (select n from abiertas_antes) + 1, count(*)::text
   from public.entradas_taller where fecha_salida is null;
 end $$;
 reset role;

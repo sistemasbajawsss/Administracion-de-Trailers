@@ -177,6 +177,15 @@
   input[type="date"] {
     min-width: 0;
   }
+  /* Con su aspecto nativo, iOS ignora el min-width: dos fechas lado a lado
+     (Desde / Hasta) se enciman en 375 px. Sin él, el campo se encoge como
+     cualquier otro; tocarlo sigue abriendo el calendario del teléfono. */
+  @media (pointer: coarse) {
+    input[type="date"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+  }
   input[type="date"]::-webkit-date-and-time-value {
     text-align: left;
   }

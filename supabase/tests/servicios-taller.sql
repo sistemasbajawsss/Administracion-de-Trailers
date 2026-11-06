@@ -24,8 +24,11 @@ insert into x values ('viejo', (
   order by s.created_at desc limit 1));
 
 insert into r(caso, ok, detalle)
-select 'Servicios existentes quedan sin liga ni marca', count(*) = 0, count(*)::text || ' marcados'
-from public.servicios where sin_entrada_taller is not null or entrada_taller_id is not null or motivo_sin_entrada is not null;
+-- Los capturados antes de la migración de la Etapa 3 (aplicada 2026-11-06 20:56 UTC).
+select 'Servicios de antes de la 5E quedan sin liga ni marca', count(*) = 0, count(*)::text || ' marcados'
+from public.servicios
+where created_at < '2026-11-06 20:56:00+00'
+  and (sin_entrada_taller is not null or entrada_taller_id is not null or motivo_sin_entrada is not null);
 
 -- ---------------------------------------------------------------------------
 -- Capturista
