@@ -101,6 +101,23 @@
 
 ## Historial de secciones
 
+### Sección 5E — Entradas a taller y unidades vendidas (en curso, rama `seccion-5e-taller`)
+- **Etapa 0 — Línea base (2026-11-06, hecha).** Sin cambios en la app ni en la BD.
+  - Baterías (en transacción sin commit): capturista 42/43 (el caso restante es el conocido: los `[PRUEBA]` comparten PDF), validaciones 13/13, gerente 14/14, Lote 1 de la 5D 24/24, dólares 17/17. Igual que al cerrar la 5D. A la batería de validaciones se le quitaron las definiciones viejas de `preparar_servicio` / `preparar_gasto` que traía dentro, para probar las de producción.
+  - Tiempos en la BD (mediana de 5, ms) con los datos actuales:
+
+    | Consulta | Admin | Capturista |
+    |---|---|---|
+    | Servicios: lista (25) | 3.6 | 4.5 |
+    | Servicios: total filtrado | 3.7 | 4.5 |
+    | Servicios: búsqueda | 9.8 | 9.4 |
+    | Inicio | 6.0 | 6.6 |
+    | Unidades: lista | 0.6 | — |
+    | Ficha de unidad | 6.6 | — |
+    | Reportes 12 meses | 17.3 | — |
+
+  - Respaldos: diarios y completos en Supabase (el último, 2026-11-06 11:05 UTC); PITR apagado.
+
 ### Corrección posterior — "En taller" ya no se pone a mano (2026-11-06, pedida por el usuario)
 - En alta y edición de unidad, el estatus "En taller" ya no aparece. Solo se muestra si la unidad ya lo tiene (hoy 1), para poder cambiarla a Activo.
 - El servidor rechaza `en_taller` en `createUnit` y en `updateUnit` si la unidad no lo tenía (`getUnitStatus` en `unidades/queries.ts`). El candado en la BD llega con la 5E (entradas a taller).
