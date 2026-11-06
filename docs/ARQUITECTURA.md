@@ -65,6 +65,7 @@ src/
 
 supabase/
 ├── migrations/                  # Una migración por cambio, nunca editar aplicadas
+├── tests/                       # Pruebas en SQL (begin … rollback) que se corren antes y después de cada cambio
 └── seed.sql                     # Solo para entornos locales: `db push` NO lo aplica.
                                  # Datos iniciales de producción (categorías) van dentro de una migración.
 ```
