@@ -45,6 +45,14 @@ begin
       perform count(*) from public.unidades where estatus = 'en_taller';
       insert into t values (rol, 'Inicio', extract(epoch from clock_timestamp() - t0) * 1000);
 
+      -- Taller (5E): unidades en taller con su unidad.
+      t0 := clock_timestamp();
+      perform count(*) from (
+        select e.id from public.entradas_taller e join public.unidades u on u.id = e.unidad_id
+        where e.fecha_salida is null order by e.fecha_entrada
+      ) s;
+      insert into t values (rol, 'Taller', extract(epoch from clock_timestamp() - t0) * 1000);
+
       if rol = 'admin' then
         -- Unidades: lista de la primera página
         t0 := clock_timestamp();
@@ -60,7 +68,21 @@ begin
         perform count(*) from public.gastos g join public.servicios s on s.id = g.servicio_id where s.unidad_id = v_unidad;
         perform count(*) from public.listar_gastos(p_unidad_id => v_unidad, p_numero => null, p_busqueda => null, p_desde => null, p_hasta => null, p_limite => 25, p_desde_renglon => 0);
         perform public.resumen_gastos(p_unidad_id => v_unidad, p_numero => null, p_busqueda => null, p_desde => null, p_hasta => null);
+        -- 5E: estancias en taller de la unidad y su venta.
+        perform count(*) from (
+          select e.id from public.entradas_taller e where e.unidad_id = v_unidad order by e.fecha_entrada desc limit 20
+        ) s;
+        perform * from public.ventas_unidades where unidad_id = v_unidad and deshecha_at is null;
         insert into t values (rol, 'Ficha de unidad', extract(epoch from clock_timestamp() - t0) * 1000);
+
+        -- Inicio del admin (5E): servicios sin entrada a taller de los últimos 30 días.
+        t0 := clock_timestamp();
+        perform count(*) from (
+          select id from public.servicios_resumen where sin_entrada_taller and fecha >= hoy - 30
+          order by fecha desc, created_at desc limit 50
+        ) s;
+        perform count(*) from public.servicios_resumen where sin_entrada_taller and fecha >= hoy - 30;
+        insert into t values (rol, 'Inicio: sin entrada a taller', extract(epoch from clock_timestamp() - t0) * 1000);
 
         -- Reportes: últimos 12 meses
         t0 := clock_timestamp();

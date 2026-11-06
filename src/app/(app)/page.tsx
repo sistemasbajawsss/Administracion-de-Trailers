@@ -6,11 +6,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import {
   HomePanelSkeleton,
+  NoShopEntryPanel,
   PendingReceiptsPanel,
   RecentServicesPanel,
 } from "@/features/servicios/components/home-panels";
 import { UnitsInShopPanel } from "@/features/unidades/components/units-in-shop";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { todayInTijuana } from "@/lib/utils/format";
 
 const newServiceLink = (className = "") => (
   <Link href="/servicios/nuevo" className={`${buttonVariants({ size: "touch" })} ${className}`}>
@@ -60,9 +62,16 @@ async function Welcome() {
         <Suspense fallback={<HomePanelSkeleton />}>
           <PendingReceiptsPanel title="Servicios sin factura" showAuthor />
         </Suspense>
-        <Suspense fallback={<HomePanelSkeleton />}>
-          <UnitsInShopPanel />
-        </Suspense>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <UnitsInShopPanel today={todayInTijuana()} />
+          </Suspense>
+          {user.role === "admin" && (
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <NoShopEntryPanel today={todayInTijuana()} />
+            </Suspense>
+          )}
+        </div>
       </div>
     </>
   );

@@ -14,11 +14,14 @@ export function ServiceBriefList({
   services,
   showAuthor = false,
   showReceipts = false,
+  showNoEntryReason = false,
 }: {
   services: ServiceBrief[];
   showAuthor?: boolean;
   /** Marca "Sin factura" o cuántos comprobantes tiene. */
   showReceipts?: boolean;
+  /** Motivo de "sin entrada a taller" (5E) en un renglón más. */
+  showNoEntryReason?: boolean;
 }) {
   return (
     <ul className="divide-y">
@@ -37,6 +40,14 @@ export function ServiceBriefList({
                 {UNIT_TYPE_LABELS[service.unitType]}
                 {showAuthor && service.author && ` · ${service.author}`}
               </span>
+              {showNoEntryReason && (
+                <span
+                  className={`block truncate text-sm ${service.noEntryReason ? "" : "font-medium text-amber-800"}`}
+                  title={service.noEntryReason ?? undefined}
+                >
+                  {service.noEntryReason ?? "Sin motivo"}
+                </span>
+              )}
             </span>
             <span className="shrink-0 text-right">
               <span className="block font-semibold tabular-nums">{formatMoney(service.total)}</span>

@@ -73,7 +73,8 @@ export type ServiceDetail = ServiceListItem & {
   createdBy: string;
   createdAt: string;
   expenses: ExpenseLine[];
-  shop: ServiceShopLink;
+  /** stay: fechas de su estancia (null si no tiene, o si el capturista ya no la ve porque cerró). */
+  shop: ServiceShopLink & { stay: { entryDate: string; exitDate: string | null; fault: string } | null };
 };
 
 /** Un cambio de un campo: "Monto: $1,500.50 → $1,600.00". */
@@ -127,4 +128,6 @@ export type ServiceBrief = {
   unitType: UnitType;
   author: string | null;
   receiptCount: number;
+  /** Solo en el aviso de servicios sin entrada a taller (5E). */
+  noEntryReason?: string | null;
 };

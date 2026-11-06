@@ -13,9 +13,10 @@ import { ServiceFilters } from "@/features/servicios/components/service-filters"
 import { getUnitTotals } from "@/features/servicios/queries";
 import { serviceFiltersSchema } from "@/features/servicios/schemas";
 import { DeleteUnitZone } from "@/features/unidades/components/delete-unit-zone";
+import { ShopStays } from "@/features/unidades/components/shop-stays";
 import { SellUnitZone, SoldBanner } from "@/features/unidades/components/unit-sale";
 import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badge";
-import { getUnit, getUnitSale } from "@/features/unidades/queries";
+import { getUnit, getUnitSale, listUnitShopStays } from "@/features/unidades/queries";
 import { isRetired, UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
@@ -29,7 +30,13 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [user, unit, totals, sale] = await Promise.all([getCurrentUser(), getUnit(id), getUnitTotals(id), getUnitSale(id)]);
+  const [user, unit, totals, sale, shopStays] = await Promise.all([
+    getCurrentUser(),
+    getUnit(id),
+    getUnitTotals(id),
+    getUnitSale(id),
+    listUnitShopStays(id),
+  ]);
   if (!unit) notFound();
   const isAdmin = user.role === "admin";
 
@@ -94,6 +101,8 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
           </dd>
         </div>
       </dl>
+
+      <ShopStays stays={shopStays.stays} total={shopStays.total} today={todayInTijuana()} />
 
       <h2 className="mb-4 text-2xl font-semibold">Gastos</h2>
       <ServiceFilters unitSearch={false} />

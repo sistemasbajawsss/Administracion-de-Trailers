@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 import type { UnitFilters } from "./schemas";
-import type { UnitDetail, UnitGroup, UnitListItem, UnitSale } from "./types";
+import type { UnitDetail, UnitGroup, UnitInShop, UnitListItem, UnitSale, UnitShopStay } from "./types";
 
 export const UNITS_PAGE_SIZE = 25;
 
@@ -104,19 +104,53 @@ export async function getUnit(id: string): Promise<UnitDetail | null> {
   return { ...toListItem(data), driverId: data.chofer_id, year: data.anio, vin: data.vin };
 }
 
-/** Unidades en taller ahora mismo (Inicio del admin y el gerente), en orden natural. */
-export async function listUnitsInShop(): Promise<UnitListItem[]> {
+/**
+ * Unidades en taller ahora mismo (Inicio del admin y el gerente), de sus entradas
+ * abiertas (5E): la que lleva más días primero, con su falla.
+ */
+export async function listUnitsInShop(): Promise<UnitInShop[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("unidades")
-    .select(LIST_COLUMNS)
-    .eq("estatus", "en_taller")
-    .order("tipo")
-    .order("numero_orden")
-    .returns<UnitRow[]>();
+    .from("entradas_taller")
+    .select("fecha_entrada, falla, unidad:unidades!inner(id, numero_economico, tipo, operacion)")
+    .is("fecha_salida", null)
+    .order("fecha_entrada", { ascending: true });
 
   if (error) throw new Error("No se pudieron cargar las unidades en taller");
-  return data.map(toListItem);
+  return data.map((row) => ({
+    id: row.unidad.id,
+    economicNumber: row.unidad.numero_economico,
+    type: row.unidad.tipo,
+    operation: row.unidad.operacion,
+    entryDate: row.fecha_entrada,
+    fault: row.falla,
+  }));
+}
+
+/** Estancias en taller de una unidad (ficha; admin y gerente), la más reciente primero. */
+export async function listUnitShopStays(unitId: string, limit = 20): Promise<{ stays: UnitShopStay[]; total: number }> {
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("entradas_taller")
+    .select("id, fecha_entrada, fecha_salida, falla, nota_salida, reporta_nombre, servicios(count)", { count: "exact" })
+    .eq("unidad_id", unitId)
+    .order("fecha_entrada", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error("No se pudieron cargar las estancias en taller");
+  return {
+    stays: data.map((row) => ({
+      id: row.id,
+      entryDate: row.fecha_entrada,
+      exitDate: row.fecha_salida,
+      fault: row.falla,
+      exitNote: row.nota_salida,
+      reportedBy: row.reporta_nombre,
+      serviceCount: row.servicios[0]?.count ?? 0,
+    })),
+    total: count ?? 0,
+  };
 }
 
 /** Venta vigente de la unidad (solo admin y gerente la ven; RLS). null si no está vendida. */

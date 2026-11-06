@@ -675,18 +675,28 @@ export type Database = {
           created_by: string | null
           descripcion: string | null
           editado: boolean | null
+          entrada_taller_id: string | null
           fecha: string | null
           id: string | null
           kilometraje: number | null
+          motivo_sin_entrada: string | null
           num_comprobantes: number | null
           num_gastos: number | null
           proveedor_id: string | null
+          sin_entrada_taller: boolean | null
           total: number | null
           unidad_id: string | null
           updated_at: string | null
           updated_by: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "servicios_entrada_taller_id_fkey"
+            columns: ["entrada_taller_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_taller"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "servicios_proveedor_id_fkey"
             columns: ["proveedor_id"]

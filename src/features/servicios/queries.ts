@@ -88,10 +88,10 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
           categoria: { nombre: string } | null;
         }[]
       >(),
-    // La vista servicios_resumen no trae las columnas de taller (5E).
+    // Taller (5E) con su estancia anidada; RLS: el capturista solo ve las estancias abiertas.
     supabase
       .from("servicios")
-      .select("entrada_taller_id, sin_entrada_taller, motivo_sin_entrada")
+      .select("entrada_taller_id, sin_entrada_taller, motivo_sin_entrada, entrada:entradas_taller(fecha_entrada, fecha_salida, falla)")
       .eq("id", id)
       .maybeSingle(),
   ]);
@@ -118,6 +118,9 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
       entryId: shop.data?.entrada_taller_id ?? null,
       noEntry: shop.data?.sin_entrada_taller ?? null,
       noEntryReason: shop.data?.motivo_sin_entrada ?? null,
+      stay: shop.data?.entrada
+        ? { entryDate: shop.data.entrada.fecha_entrada, exitDate: shop.data.entrada.fecha_salida, fault: shop.data.entrada.falla }
+        : null,
     },
   };
 }
@@ -579,4 +582,30 @@ export async function listRecentServices(limit = 5): Promise<ServiceBrief[]> {
 
   if (error) throw new Error("No se pudieron cargar los últimos servicios");
   return data.map(toBrief);
+}
+
+/**
+ * Servicios sin entrada a taller desde `since` (aviso de Inicio del admin, 5E),
+ * con el motivo. Solo los nuevos (desde la 5E); el índice parcial los encuentra.
+ */
+export async function listServicesWithoutShopEntry(
+  since: string,
+  limit = 50,
+): Promise<{ services: ServiceBrief[]; total: number }> {
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("servicios_resumen")
+    .select(`${BRIEF_COLUMNS}, motivo_sin_entrada`, { count: "exact" })
+    .eq("sin_entrada_taller", true)
+    .gte("fecha", since)
+    .order("fecha", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit)
+    .returns<(BriefRow & { motivo_sin_entrada: string | null })[]>();
+
+  if (error) throw new Error("No se pudieron cargar los servicios sin entrada a taller");
+  return {
+    services: data.map((row) => ({ ...toBrief(row), noEntryReason: row.motivo_sin_entrada })),
+    total: count ?? 0,
+  };
 }
