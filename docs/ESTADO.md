@@ -100,6 +100,11 @@
 
 ## Historial de secciones
 
+### Corrección posterior — "En taller" ya no se pone a mano (2026-11-06, pedida por el usuario)
+- En alta y edición de unidad, el estatus "En taller" ya no aparece. Solo se muestra si la unidad ya lo tiene (hoy 1), para poder cambiarla a Activo.
+- El servidor rechaza `en_taller` en `createUnit` y en `updateUnit` si la unidad no lo tenía (`getUnitStatus` en `unidades/queries.ts`). El candado en la BD llega con la 5E (entradas a taller).
+- Sección 5E escrita en `docs/PLAN.md` con las decisiones D12; pendiente de aprobar.
+
 ### Corrección posterior — PDF de Reportes en iPhone (2026-11-06, pedida por el usuario)
 - En iPhone con la app abierta desde la pantalla de inicio, "Imprimir o guardar PDF" no hacía nada: iOS no tiene cuadro de impresión en las apps de pantalla de inicio (`window.print()` no hace nada y no da error).
 - Ahora, solo ahí (`navigator.standalone`), el botón pide los datos con `dashboard/actions.ts › getReportPdfData` (admin y gerente, mismos filtros de la URL), arma el PDF en el celular con jsPDF (`dashboard/components/report-pdf.ts`, se carga solo al tocar el botón) y abre el menú de compartir (Guardar en Archivos, Imprimir, WhatsApp…). Si iOS no deja abrir el menú por el tiempo transcurrido, el botón cambia a "Compartir PDF". En el navegador (escritorio, Safari, Android) sigue el cuadro de impresión de siempre.

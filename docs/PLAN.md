@@ -227,6 +227,26 @@ Auditoría con 5 agentes en paralelo (BD, permisos, servidor, dinero y fechas, p
 **Terminado cuando**
 - Cada hallazgo tiene una prueba que antes fallaba y ahora pasa, y las baterías de capturista, gerente, dólares y validaciones siguen pasando.
 
+### 5E — Entradas a taller (propuesta 2026-11-06, pendiente de aprobar)
+Decisiones del usuario (D12): un servicio sin entrada a taller se permite con aviso; la salida se da con una casilla en el servicio o con un botón en Taller; entrada y salida las dan admin y capturista, el gerente solo ve.
+
+**Alcance**
+- Tabla `entradas_taller`: unidad_id, fecha_entrada (`date`), falla (texto obligatorio), fecha_salida (`date`, nula mientras esté en taller), nota_salida, created_by, salida_by, created_at, updated_at. Una sola entrada abierta por unidad (índice único parcial). Columna nueva `servicios.entrada_taller_id` (opcional).
+- Funciones: `registrar_entrada_taller()` (unidad no dada de baja ni ya en taller; pone `estatus = en_taller`) y `dar_salida_taller()` (cierra la entrada y regresa la unidad a `activo`). `registrar_servicio()` liga el servicio a la entrada abierta de la unidad y, si se marcó la casilla, da la salida en la misma transacción.
+- `en_taller` ya no se pone a mano al editar una unidad: solo con una entrada (en la BD y en el formulario). La unidad que hoy está en taller recibe una entrada abierta con la falla "Registrada antes de las entradas a taller".
+- RLS: admin, capturista y gerente ven todas las entradas (el capturista necesita ver qué unidades están en taller aunque otro las haya reportado); admin y capturista registran entrada y salida; nadie borra. Entrada, salida y cambios quedan en `historial_cambios`.
+- Página `/taller` (los tres roles; mobile-first): unidades en taller con días que llevan, falla, quién la reportó y servicios registrados en esta estancia; botones "Registrar servicio" (abre el formulario con la unidad y la entrada) y "Dar salida"; botón "Registrar entrada a taller". Enlace en la navegación.
+- Formulario de servicio: si la unidad está en taller, muestra la falla y la casilla "La unidad sale de taller con este servicio" (marcada). Si no, aviso "Esta unidad no tiene entrada a taller" y el servicio se guarda marcado "Sin entrada a taller".
+- Marca "Sin entrada a taller" en el detalle del servicio y aviso en el Inicio del admin con esos servicios. Inicio de admin y gerente toma "Unidades en taller" de las entradas abiertas.
+- Ficha de la unidad: historial de entradas a taller (fecha de entrada y salida, días, falla).
+
+**Terminado cuando**
+- Una unidad no puede tener dos entradas abiertas ni quedar `en_taller` sin entrada, ni por API directa.
+- El gerente ve Taller pero no registra entradas ni salidas, ni por API directa.
+- Registrar un servicio con la casilla marcada saca la unidad del taller; desmarcada, la deja en taller con el servicio ligado a la misma entrada.
+- Un servicio de una unidad sin entrada abierta se guarda y aparece marcado y en el aviso del admin.
+- Las baterías de capturista, gerente, dólares y validaciones siguen pasando.
+
 ### Otros extras (por decidir)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.
 - Bitácora de auditoría para el resto de las tablas (catálogos y usuarios). Servicios y gastos ya la tienen desde la Sección 2.

@@ -105,6 +105,10 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
     [NO_DRIVER]: "Sin chofer",
     ...Object.fromEntries(driverOptions.map((d) => [d.id, d.name])),
   };
+  // "En taller" no se pone a mano (llegará con las entradas a taller). Solo se
+  // muestra si la unidad ya lo tiene, para poder sacarla.
+  const wasInShop = unit?.status === "en_taller";
+  const statusOptions = Object.entries(UNIT_STATUS_LABELS).filter(([value]) => value !== "en_taller" || wasInShop);
   const lengthItems = {
     [NO_LENGTH]: "Sin dato",
     ...Object.fromEntries(BOX_LENGTHS.map((l) => [String(l), `${l} pies`])),
@@ -231,18 +235,23 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
               render={({ field }) => (
                 <Field>
                   <FieldLabel htmlFor="status">Estatus</FieldLabel>
-                  <Select items={UNIT_STATUS_LABELS} value={field.value} onValueChange={field.onChange}>
+                  <Select items={Object.fromEntries(statusOptions)} value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger id="status" className={`${inputClass} w-full`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(UNIT_STATUS_LABELS).map(([value, label]) => (
+                      {statusOptions.map(([value, label]) => (
                         <SelectItem key={value} value={value} className="min-h-10">
                           {label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {status === "en_taller" && (
+                    <FieldDescription>
+                      Está en taller. Cuando salga, cámbiala a Activo. El estatus En taller ya no se elige aquí.
+                    </FieldDescription>
+                  )}
                   {status === "baja" && (
                     <FieldDescription className="text-amber-800">
                       Una unidad dada de baja ya no aparece para los capturistas. Su historial se conserva.

@@ -8,9 +8,12 @@ import { requireRole } from "@/lib/auth/get-current-user";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
 
+import { getUnitStatus } from "./queries";
 import { deleteUnitSchema, normalizeEconomicNumber, unitSchema, type UnitInput } from "./schemas";
 
-const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
+const SHOP_STATUS_ERROR = "El estatus En taller ya no se pone a mano. Elige otro estatus.";
+
+const emptyToNull =(value: string) => (value.trim() === "" ? null : value.trim());
 
 /** Del formulario (camelCase, strings) a columnas de la BD. */
 function toRow(unit: UnitInput) {
@@ -47,6 +50,7 @@ export async function createUnit(input: unknown): Promise<ActionResult<{ id: str
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
 
   const user = await requireRole("admin");
+  if (parsed.data.status === "en_taller") return fail(SHOP_STATUS_ERROR);
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -66,6 +70,15 @@ export async function updateUnit(id: string, input: unknown): Promise<ActionResu
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
 
   await requireRole("admin");
+
+  // "En taller" solo se conserva si la unidad ya lo tenía; no se pone a mano.
+  if (parsed.data.status === "en_taller") {
+    try {
+      if ((await getUnitStatus(id)) !== "en_taller") return fail(SHOP_STATUS_ERROR);
+    } catch {
+      return fail("No se pudo guardar la unidad. Inténtalo de nuevo.");
+    }
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
