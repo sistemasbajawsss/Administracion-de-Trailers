@@ -6,6 +6,7 @@
 **Salida a producción (2026-10-30).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B, 5C y 5D. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
 
 ### Próximos pasos para retomar
+- **Sección 5E (Entradas a taller y unidades vendidas):** plan acordado en `docs/PLAN.md` (reglas D12 y plan de trabajo por etapas 0–5). No se empieza hasta que el usuario diga "empieza". La rama `fix-estatus-taller` (sin subir) es el primer paso de la Etapa 1. Después, Fase 2 (Almacén) cuando el almacén físico esté ordenado.
 0. **Probar en el navegador lo de la 5D** que depende de cómo navega Next (no se puede probar por SQL): guardar un servicio y volver a "Nuevo servicio" (debe salir vacío); eliminar o editar un servicio y regresar a la lista (debe actualizarse); "Nuevo proveedor" dentro del formulario (no debe guardar el servicio); escribir `1500,50` (debe quedar $1,500.50); salir de un formulario con cambios (debe avisar).
 1. **Limpieza:** los 700 servicios `[PRUEBA]` se quedan por ahora para pruebas (decisión del usuario, 2026-10-28). Borrarlos con sus gastos, historial y PDF (~970 MB) antes de que se capturen datos reales: suman en Reportes, totales e Inicio.
 2. **Arranque:** gerente ya creado y probado (2026-10-28: 14 casos de RLS, ve todo y no escribe nada). Faltan los capturistas reales en Admin → Usuarios.

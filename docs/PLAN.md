@@ -227,25 +227,100 @@ Auditoría con 5 agentes en paralelo (BD, permisos, servidor, dinero y fechas, p
 **Terminado cuando**
 - Cada hallazgo tiene una prueba que antes fallaba y ahora pasa, y las baterías de capturista, gerente, dólares y validaciones siguen pasando.
 
-### 5E — Entradas a taller (propuesta 2026-11-06, pendiente de aprobar)
-Decisiones del usuario (D12): un servicio sin entrada a taller se permite con aviso; la salida se da con una casilla en el servicio o con un botón en Taller; entrada y salida las dan admin y capturista, el gerente solo ve.
+### 5E — Entradas a taller y unidades vendidas (propuesta 2026-11-06, pendiente de que el usuario diga "empieza")
+Decisiones del usuario (D12, 2026-11-06):
+- Un servicio sin entrada a taller se permite con aviso.
+- La salida se da con una casilla en el servicio o con un botón en Taller.
+- Entrada y salida las dan admin y capturista; el gerente solo ve.
+- "En taller" no se elige a mano (hecho en la rama `fix-estatus-taller`).
+- Estatus propio "Vendida" (solo admin, desde la ficha de la unidad, con confirmación); libera la entrada a taller en automático; se puede deshacer (solo admin).
+- Una unidad en taller no se da de "Baja" directo: primero salida.
 
 **Alcance**
-- Tabla `entradas_taller`: unidad_id, fecha_entrada (`date`), falla (texto obligatorio), fecha_salida (`date`, nula mientras esté en taller), nota_salida, created_by, salida_by, created_at, updated_at. Una sola entrada abierta por unidad (índice único parcial). Columna nueva `servicios.entrada_taller_id` (opcional).
-- Funciones: `registrar_entrada_taller()` (unidad no dada de baja ni ya en taller; pone `estatus = en_taller`) y `dar_salida_taller()` (cierra la entrada y regresa la unidad a `activo`). `registrar_servicio()` liga el servicio a la entrada abierta de la unidad y, si se marcó la casilla, da la salida en la misma transacción.
-- `en_taller` ya no se pone a mano al editar una unidad: solo con una entrada (en la BD y en el formulario). La unidad que hoy está en taller recibe una entrada abierta con la falla "Registrada antes de las entradas a taller".
-- RLS: admin, capturista y gerente ven todas las entradas (el capturista necesita ver qué unidades están en taller aunque otro las haya reportado); admin y capturista registran entrada y salida; nadie borra. Entrada, salida y cambios quedan en `historial_cambios`.
-- Página `/taller` (los tres roles; mobile-first): unidades en taller con días que llevan, falla, quién la reportó y servicios registrados en esta estancia; botones "Registrar servicio" (abre el formulario con la unidad y la entrada) y "Dar salida"; botón "Registrar entrada a taller". Enlace en la navegación.
-- Formulario de servicio: si la unidad está en taller, muestra la falla y la casilla "La unidad sale de taller con este servicio" (marcada). Si no, aviso "Esta unidad no tiene entrada a taller" y el servicio se guarda marcado "Sin entrada a taller".
-- Marca "Sin entrada a taller" en el detalle del servicio y aviso en el Inicio del admin con esos servicios. Inicio de admin y gerente toma "Unidades en taller" de las entradas abiertas.
-- Ficha de la unidad: historial de entradas a taller (fecha de entrada y salida, días, falla).
+- BD:
+  - Valor `vendida` en `estatus_unidad` (en su propia migración).
+  - Tabla `entradas_taller`: unidad_id, fecha_entrada (`date`), falla (obligatoria), fecha_salida (`date`, nula mientras esté en taller), nota_salida, salida_by, created_by, created_at, updated_at. Índice único parcial: una sola entrada abierta por unidad.
+  - Columnas en `servicios`: `entrada_taller_id` (opcional) y `sin_entrada_taller` (boolean; solo la pone `registrar_servicio()` en servicios nuevos, para no marcar los que ya existen).
+  - Columnas en `unidades`: `fecha_venta`, `nota_venta`.
+- Funciones (todas revisan rol por dentro):
+  - `registrar_entrada_taller()`: ni dada de baja, ni vendida, ni ya en taller. Pone `estatus = en_taller`.
+  - `dar_salida_taller()`: fecha de salida ≥ fecha de entrada. Regresa la unidad a `activo`.
+  - `marcar_unidad_vendida()` y `deshacer_venta()`, solo admin. Vender cierra la entrada abierta con la fecha de venta y la nota "Unidad vendida". Deshacer regresa la unidad a `activo`, no a taller.
+  - `registrar_servicio()` y `actualizar_servicio()`:
+    - Ligan el servicio a la entrada abierta de la unidad solo si la fecha del servicio es ≥ la fecha de entrada.
+    - Con la casilla marcada, dan la salida en la misma transacción (fecha de salida = fecha del servicio).
+    - Si se cambia la unidad, el servicio se desliga y se vuelve a evaluar.
+- Reglas: con una entrada abierta, el estatus no se cambia a mano (solo con salida o venta). Eliminar un servicio no regresa la unidad a taller. Restaurarlo lo vuelve a ligar si la entrada existe. Las vendidas se ocultan al capturista igual que las de baja y no admiten servicios nuevos ni entradas.
+- RLS: admin, capturista y gerente ven todas las entradas; admin y capturista registran entrada y salida; nadie borra. Entrada, salida, venta y deshacer venta quedan en `historial_cambios`.
+- Página `/taller` (los tres roles; mobile-first):
+  - Unidades en taller con los días que llevan, la falla, quién la reportó y los servicios de la estancia.
+  - Botones "Registrar servicio" (abre el formulario con la unidad), "Dar salida" y "Registrar entrada a taller".
+  - Enlace en la navegación.
+- Formulario de servicio: si la unidad está en taller, muestra la falla y la casilla "La unidad sale de taller con este servicio" (marcada). Si no, aviso "Esta unidad no tiene entrada a taller".
+- Marca "Sin entrada a taller" en el detalle del servicio y aviso en el Inicio del admin. El Inicio de admin y gerente toma "Unidades en taller" de las entradas abiertas.
+- Ficha de la unidad: historial de entradas a taller (entrada, salida, días, falla); botones "Marcar como vendida" / "Deshacer venta" (solo admin, con confirmación).
+- La unidad que hoy está en taller recibe una entrada abierta con la falla "Registrada antes de las entradas a taller".
 
 **Terminado cuando**
 - Una unidad no puede tener dos entradas abiertas ni quedar `en_taller` sin entrada, ni por API directa.
-- El gerente ve Taller pero no registra entradas ni salidas, ni por API directa.
+- El gerente ve Taller pero no registra entradas, salidas ni ventas; el capturista no vende ni deshace ventas, ni por API directa.
 - Registrar un servicio con la casilla marcada saca la unidad del taller; desmarcada, la deja en taller con el servicio ligado a la misma entrada.
-- Un servicio de una unidad sin entrada abierta se guarda y aparece marcado y en el aviso del admin.
-- Las baterías de capturista, gerente, dólares y validaciones siguen pasando.
+- Un servicio nuevo de una unidad sin entrada abierta (o con fecha anterior a la entrada) se guarda marcado y aparece en el aviso del admin; los servicios anteriores a la 5E no se marcan.
+- Vender una unidad en taller la quita de Taller y conserva su historial y gastos en Reportes; deshacer la venta la regresa a Activo.
+- Las baterías de capturista, gerente, dólares y validaciones siguen pasando; Taller e Inicio responden en menos de ~1 s.
+
+#### Plan de trabajo de la 5E (acordado 2026-11-06)
+Cada etapa se sube y se prueba sola. No se pasa a la siguiente hasta que el usuario confirme en producción que todo lo anterior sigue funcionando. Ninguna etapa empieza sin su "empieza".
+
+**Reglas para todas las etapas**
+1. La BD va un paso adelante y es compatible con la app publicada (las migraciones se aplican antes de que Vercel publique):
+   - Solo se agregan tablas y columnas opcionales.
+   - Las funciones existentes conservan su firma; lo nuevo va con parámetros con valor por defecto.
+   - Nada se borra ni se renombra.
+2. Cada migración se ensaya en `begin … rollback` con los tres roles. Se le enseña al usuario antes del `db push`.
+3. En cada etapa se corren las baterías existentes (capturista 43, gerente 14, dólares 17, validaciones 13) más las pruebas nuevas. Si una prueba que pasaba ahora falla, la etapa no se sube.
+4. Antes de unir a `main`: `tsc`, lint y build completo en una copia aparte, `npm audit --omit=dev` en 0 y tipos regenerados.
+5. El usuario prueba en el navegador (celular de 360 px y escritorio, con texto de 200 caracteres sin espacios).
+6. Se miden los tiempos de Inicio, Servicios, Unidades, ficha de unidad y Reportes antes de empezar y al final de cada etapa. Si algo sale más lento, se corrige antes de subir.
+7. Plan de regreso: cada etapa es un merge que se puede revertir. Si se cambia una función existente, su versión anterior se guarda para regresarla con otra migración.
+
+**Etapas**
+- **Etapa 0 — Línea base** (sin cambios): correr las baterías y guardar los resultados; medir tiempos; confirmar los respaldos diarios de Supabase.
+- **Etapa 1 — Entradas a taller y página Taller.**
+  - Se agrega: tabla `entradas_taller` con RLS, `registrar_entrada_taller()` y `dar_salida_taller()`, página `/taller` y su enlace; la unidad que hoy está en taller recibe su entrada abierta. Incluye la rama `fix-estatus-taller`.
+  - No se toca: servicios, Reportes ni gastos.
+  - Riesgo: bajo.
+- **Etapa 2 — Estatus "Vendida".**
+  - Se agrega: el valor de enum en su propia migración, `fecha_venta` / `nota_venta`, `marcar_unidad_vendida()` y `deshacer_venta()`, botones en la ficha y el filtro en Unidades.
+  - Se ajusta: las políticas que ocultan las de baja al capturista también ocultan las vendidas; no se registran servicios a vendidas.
+  - Prueba clave: el total de Reportes es igual antes y después de vender.
+  - Riesgo: medio-bajo (se repiten completas las baterías de capturista y gerente).
+- **Etapa 3 — Ligar servicios con el taller.**
+  - Se agregan columnas opcionales en `servicios`.
+  - Se ajustan `registrar_servicio()` y `actualizar_servicio()` (parámetros nuevos opcionales: llamadas como las de hoy se comportan igual) y el formulario de servicio.
+  - Prueba clave: los totales de Reportes y por unidad son idénticos al centavo antes y después.
+  - Riesgo: medio. Va sola, después de que las etapas 1 y 2 estén probadas en producción.
+- **Etapa 4 — Avisos, Inicio y ficha.** Marca "Sin entrada a taller", aviso en el Inicio del admin, "Unidades en taller" desde las entradas abiertas, historial de estancias en la ficha. Los servicios anteriores no se marcan. Riesgo: bajo.
+- **Etapa 5 — Cierre.** Prueba de carga como la de la 5C (Taller, Inicio, formulario y Reportes en menos de ~1 s), regresión completa, Advisors y `docs/ESTADO.md`.
+
+Costo: ninguno extra (los ensayos van en transacciones). El proyecto aparte `administracion-trailers-dev` se usará cuando haya datos reales.
+
+### Fase 2 — Almacén (a futuro, cuando el almacén físico esté ordenado)
+Decisiones del usuario (2026-11-06):
+- Un solo almacén, con ubicaciones (pasillo / anaquel).
+- La compatibilidad se marca directo contra las unidades (sin ficha técnica de motores).
+- Usar una pieza del stock cuenta como gasto del servicio, para saber qué se gastó y cuánto, y reponer.
+
+Etapas:
+- **A — Almacén:** catálogo de piezas (número de parte, categoría, ubicación, mínimo), compatibilidad con unidades (atajos por tipo o longitud, o copiar de otra unidad), entradas de stock con costo y proveedor, ajustes. Independiente: no toca servicios.
+- **B — Servicios con piezas:** al elegir unidad y categoría, sugiere las piezas compatibles con existencia y ubicación; al usarlas descuenta el stock y crea el gasto. Se cuelga de la entrada a taller.
+- **C — Reposición y consumo:** piezas en o bajo el mínimo y consumo por periodo.
+
+Rendimiento: existencias precalculadas (se actualizan con cada movimiento, sin sumar todo el historial), compatibilidad resuelta en SQL con índices, listas por tandas y prueba de carga antes de cerrar cada etapa.
+
+Por decidir antes de la Etapa A:
+- Costo de la pieza usada: promedio ponderado (recomendado) o último costo.
+- Compras al almacén como inventario y no como gasto, para no contar dos veces en Reportes (recomendado).
 
 ### Otros extras (por decidir)
 - Mantenimientos preventivos por kilometraje o fecha, con alertas.
