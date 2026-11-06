@@ -545,6 +545,59 @@ export type Database = {
           },
         ]
       }
+      ventas_unidades: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deshecha_at: string | null
+          deshecha_by: string | null
+          deshecha_nombre: string | null
+          fecha_venta: string
+          id: string
+          motivo_deshacer: string | null
+          nota: string | null
+          unidad_id: string
+          updated_at: string
+          vendida_nombre: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deshecha_at?: string | null
+          deshecha_by?: string | null
+          deshecha_nombre?: string | null
+          fecha_venta: string
+          id?: string
+          motivo_deshacer?: string | null
+          nota?: string | null
+          unidad_id: string
+          updated_at?: string
+          vendida_nombre?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deshecha_at?: string | null
+          deshecha_by?: string | null
+          deshecha_nombre?: string | null
+          fecha_venta?: string
+          id?: string
+          motivo_deshacer?: string | null
+          nota?: string | null
+          unidad_id?: string
+          updated_at?: string
+          vendida_nombre?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ventas_unidades_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       gastos_detalle: {
@@ -681,6 +734,10 @@ export type Database = {
         Args: { p_entrada_id: string; p_fecha: string; p_nota?: string }
         Returns: undefined
       }
+      deshacer_venta: {
+        Args: { p_motivo: string; p_unidad_id: string }
+        Returns: undefined
+      }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
         Returns: undefined
@@ -803,6 +860,10 @@ export type Database = {
           ultimo_acceso: string
         }[]
       }
+      marcar_unidad_vendida: {
+        Args: { p_fecha: string; p_nota?: string; p_unidad_id: string }
+        Returns: undefined
+      }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
       prefijo_tipo_unidad: {
@@ -870,7 +931,7 @@ export type Database = {
     }
     Enums: {
       accion_historial: "insert" | "update" | "delete"
-      estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja"
+      estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja" | "vendida"
       moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista" | "gerente"
@@ -1006,7 +1067,7 @@ export const Constants = {
   public: {
     Enums: {
       accion_historial: ["insert", "update", "delete"],
-      estatus_unidad: ["activo", "en_taller", "por_llegar", "baja"],
+      estatus_unidad: ["activo", "en_taller", "por_llegar", "baja", "vendida"],
       moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista", "gerente"],

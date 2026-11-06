@@ -186,13 +186,13 @@ export async function getExpenseSummary(query: ExpenseQuery): Promise<ExpenseSum
   return { total: data.total, count: data.num_gastos };
 }
 
-/** Unidades para elegir en el formulario: todas menos las de baja, en orden natural. */
+/** Unidades para elegir en el formulario: todas menos las de baja o vendidas, en orden natural. */
 export async function listUnitOptions(): Promise<UnitOption[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("unidades")
     .select("id, numero_economico, tipo, operacion, estatus, longitud_pies, marca, modelo")
-    .neq("estatus", "baja")
+    .not("estatus", "in", "(baja,vendida)")
     .order("tipo")
     .order("numero_orden");
 

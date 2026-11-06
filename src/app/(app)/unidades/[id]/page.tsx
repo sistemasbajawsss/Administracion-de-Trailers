@@ -13,12 +13,13 @@ import { ServiceFilters } from "@/features/servicios/components/service-filters"
 import { getUnitTotals } from "@/features/servicios/queries";
 import { serviceFiltersSchema } from "@/features/servicios/schemas";
 import { DeleteUnitZone } from "@/features/unidades/components/delete-unit-zone";
+import { SellUnitZone, SoldBanner } from "@/features/unidades/components/unit-sale";
 import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badge";
-import { getUnit } from "@/features/unidades/queries";
-import { UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
+import { getUnit, getUnitSale } from "@/features/unidades/queries";
+import { isRetired, UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
-import { formatDate, formatMoney } from "@/lib/utils/format";
+import { formatDate, formatMoney, todayInTijuana } from "@/lib/utils/format";
 
 export const metadata: Metadata = { title: "Ficha de unidad" };
 
@@ -28,7 +29,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [user, unit, totals] = await Promise.all([getCurrentUser(), getUnit(id), getUnitTotals(id)]);
+  const [user, unit, totals, sale] = await Promise.all([getCurrentUser(), getUnit(id), getUnitTotals(id), getUnitSale(id)]);
   if (!unit) notFound();
   const isAdmin = user.role === "admin";
 
@@ -63,7 +64,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
               <Pencil aria-hidden="true" />
               Editar unidad
             </Link>
-            {unit.status !== "baja" && (
+            {!isRetired(unit.status) && (
               <Link href={`/servicios/nuevo?unidad=${unit.id}`} className={buttonVariants({ size: "touch" })}>
                 <ClipboardPlus aria-hidden="true" />
                 Registrar servicio
@@ -72,6 +73,10 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
           </div>
         )}
       </header>
+
+      {sale && (
+        <SoldBanner unitId={unit.id} economicNumber={unit.economicNumber} sale={sale} canUndo={isAdmin} />
+      )}
 
       <dl className="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
         <div className="col-span-2 bg-brand-ink px-5 py-4 text-white sm:col-span-1">
@@ -95,6 +100,15 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
       <Suspense fallback={<ExpenseListSkeleton />}>
         <ExpenseList filters={filters} unitId={unit.id} />
       </Suspense>
+
+      {isAdmin && unit.status !== "vendida" && (
+        <SellUnitZone
+          unitId={unit.id}
+          economicNumber={unit.economicNumber}
+          inShop={unit.status === "en_taller"}
+          today={todayInTijuana()}
+        />
+      )}
 
       {isAdmin && (
         <DeleteUnitZone

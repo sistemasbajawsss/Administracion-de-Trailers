@@ -107,8 +107,13 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
   };
   // "En taller" solo lo ponen y quitan las entradas a taller (la BD lo exige).
   // Si la unidad está en taller, el estatus queda fijo: la salida se da en Taller.
+  // Igual "Vendida": solo con "Marcar como vendida" / "Deshacer venta" en la ficha.
   const wasInShop = unit?.status === "en_taller";
-  const statusOptions = Object.entries(UNIT_STATUS_LABELS).filter(([value]) => value !== "en_taller" || wasInShop);
+  const wasSold = unit?.status === "vendida";
+  const statusLocked = wasInShop || wasSold;
+  const statusOptions = Object.entries(UNIT_STATUS_LABELS).filter(
+    ([value]) => !["en_taller", "vendida"].includes(value) || value === unit?.status,
+  );
   const lengthItems = {
     [NO_LENGTH]: "Sin dato",
     ...Object.fromEntries(BOX_LENGTHS.map((l) => [String(l), `${l} pies`])),
@@ -239,7 +244,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
                     items={Object.fromEntries(statusOptions)}
                     value={field.value}
                     onValueChange={field.onChange}
-                    disabled={wasInShop}
+                    disabled={statusLocked}
                   >
                     <SelectTrigger id="status" className={`${inputClass} w-full`}>
                       <SelectValue />
@@ -259,6 +264,11 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
                         Taller
                       </Link>
                       .
+                    </FieldDescription>
+                  )}
+                  {wasSold && (
+                    <FieldDescription>
+                      Está vendida. Si fue un error, usa &ldquo;Deshacer venta&rdquo; en su ficha.
                     </FieldDescription>
                   )}
                   {status === "baja" && (

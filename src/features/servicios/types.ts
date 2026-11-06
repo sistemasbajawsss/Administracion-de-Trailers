@@ -1,6 +1,6 @@
 import type { UnitOperation, UnitStatus, UnitType } from "@/features/unidades/types";
 
-/** Unidad elegible en el formulario de servicio (las de baja no aparecen). */
+/** Unidad elegible en el formulario de servicio (las de baja o vendidas no aparecen). */
 export type UnitOption = {
   id: string;
   economicNumber: string;

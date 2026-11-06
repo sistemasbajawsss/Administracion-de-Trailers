@@ -149,7 +149,7 @@ function ServiceFormBody({
   }, [fields]);
   const indexOf = (lineKey: string) => fieldsRef.current.findIndex((f) => f.id === lineKey);
 
-  // La unidad del servicio puede estar de baja: se sigue mostrando para no perderla.
+  // La unidad del servicio puede estar de baja o vendida: se sigue mostrando para no perderla.
   const unitOptions =
     service && !units.some((u) => u.id === service.unit.id)
       ? [
@@ -160,7 +160,7 @@ function ServiceFormBody({
             type: service.unit.type,
             operation: null,
             status: "baja" as const,
-            detail: "Dada de baja",
+            detail: "Dada de baja o vendida",
           },
         ]
       : units;

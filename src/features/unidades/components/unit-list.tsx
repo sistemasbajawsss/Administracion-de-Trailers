@@ -16,7 +16,7 @@ import {
 
 import { listUnits, UNITS_PAGE_SIZE } from "../queries";
 import type { UnitFilters } from "../schemas";
-import { UNIT_GROUP_LABELS, UNIT_TYPE_LABELS, type UnitListItem } from "../types";
+import { isRetired, UNIT_GROUP_LABELS, UNIT_TYPE_LABELS, type UnitListItem } from "../types";
 
 import { UnitStatusBadge } from "./unit-status-badge";
 
@@ -93,7 +93,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
                     className="rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
                     aria-label={`Ficha de ${unit.economicNumber}`}
                   >
-                    <EconomicNumber value={unit.economicNumber} muted={unit.status === "baja"} />
+                    <EconomicNumber value={unit.economicNumber} muted={isRetired(unit.status)} />
                   </Link>
                 </TableCell>
                 <TableCell className="text-base">
@@ -134,7 +134,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
               className="flex min-h-16 items-center gap-4 px-4 py-3 outline-none focus-visible:bg-muted active:bg-muted"
             >
               <span className="w-16 shrink-0">
-                <EconomicNumber value={unit.economicNumber} muted={unit.status === "baja"} />
+                <EconomicNumber value={unit.economicNumber} muted={isRetired(unit.status)} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{unitDetail(unit)}</span>

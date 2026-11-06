@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 import type { UnitFilters } from "./schemas";
-import type { UnitDetail, UnitGroup, UnitListItem } from "./types";
+import type { UnitDetail, UnitGroup, UnitListItem, UnitSale } from "./types";
 
 export const UNITS_PAGE_SIZE = 25;
 
@@ -117,4 +117,18 @@ export async function listUnitsInShop(): Promise<UnitListItem[]> {
 
   if (error) throw new Error("No se pudieron cargar las unidades en taller");
   return data.map(toListItem);
+}
+
+/** Venta vigente de la unidad (solo admin y gerente la ven; RLS). null si no está vendida. */
+export async function getUnitSale(unitId: string): Promise<UnitSale | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ventas_unidades")
+    .select("fecha_venta, nota, vendida_nombre")
+    .eq("unidad_id", unitId)
+    .is("deshecha_at", null)
+    .maybeSingle();
+
+  if (error) throw new Error("No se pudo cargar la venta de la unidad");
+  return data ? { date: data.fecha_venta, note: data.nota, soldBy: data.vendida_nombre } : null;
 }
