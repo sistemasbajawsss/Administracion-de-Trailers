@@ -246,20 +246,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "entradas_taller_servicio_salida_id_fkey"
-            columns: ["servicio_salida_id"]
-            isOneToOne: false
-            referencedRelation: "servicios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entradas_taller_servicio_salida_id_fkey"
-            columns: ["servicio_salida_id"]
-            isOneToOne: false
-            referencedRelation: "servicios_resumen"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "entradas_taller_unidad_id_fkey"
             columns: ["unidad_id"]
             isOneToOne: false
@@ -656,20 +642,6 @@ export type Database = {
           unidad_id: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "entradas_taller_servicio_salida_id_fkey"
-            columns: ["servicio_salida_id"]
-            isOneToOne: false
-            referencedRelation: "servicios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entradas_taller_servicio_salida_id_fkey"
-            columns: ["servicio_salida_id"]
-            isOneToOne: false
-            referencedRelation: "servicios_resumen"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "entradas_taller_unidad_id_fkey"
             columns: ["unidad_id"]
