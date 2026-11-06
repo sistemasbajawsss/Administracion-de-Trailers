@@ -100,6 +100,13 @@
 
 ## Historial de secciones
 
+### Corrección posterior — PDF de Reportes en iPhone (2026-11-06, pedida por el usuario)
+- En iPhone con la app abierta desde la pantalla de inicio, "Imprimir o guardar PDF" no hacía nada: iOS no tiene cuadro de impresión en las apps de pantalla de inicio (`window.print()` no hace nada y no da error).
+- Ahora, solo ahí (`navigator.standalone`), el botón pide los datos con `dashboard/actions.ts › getReportPdfData` (admin y gerente, mismos filtros de la URL), arma el PDF en el celular con jsPDF (`dashboard/components/report-pdf.ts`, se carga solo al tocar el botón) y abre el menú de compartir (Guardar en Archivos, Imprimir, WhatsApp…). Si iOS no deja abrir el menú por el tiempo transcurrido, el botón cambia a "Compartir PDF". En el navegador (escritorio, Safari, Android) sigue el cuadro de impresión de siempre.
+- PDF: carta vertical, mismo contenido que la hoja impresa (encabezado con logo, cifras clave, gasto por mes, grupos y tipos, listas completas), textos largos recortados con "…", número de página. Sin costo de servidor.
+- Dependencia nueva: `jspdf` 4.2.1 (la 3.x tiene avisos de seguridad; `npm audit --omit=dev` = 0).
+- Verificado: `tsc` y lint; PDF de prueba con nombres de 200 caracteres sin espacios revisado en pantalla. Falta que el usuario lo pruebe en el iPhone.
+
 ### Corrección posterior — Celular y app instalable (2026-11-04, pedida por el usuario)
 - App instalable: `src/app/manifest.ts` (`/manifest.webmanifest`, `display: standalone`, fuera del proxy de sesión), `appleWebApp` y `themeColor` en `src/app/layout.tsx`, íconos en `public/brand/` (`icon-192`, `icon-512`, `icon-maskable-512`, `apple-touch-icon`, hechos con la gota del logo). Agregada a la pantalla de inicio se abre sin barra del navegador. Por D9, cerrar la app pide entrar de nuevo.
 - Elegir unidad: en pantalla táctil el foco va a la lista y no al buscador (se abría el teclado, tapaba las unidades y no se podía deslizar); deslizar la lista cierra el teclado.

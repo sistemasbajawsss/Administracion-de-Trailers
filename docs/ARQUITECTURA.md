@@ -137,7 +137,7 @@ Para ver un archivo, la app nunca guarda URLs firmadas: enlaza a `/comprobantes/
 | Archivos | Navegador → Supabase Storage | Ver "Excepción: subida de comprobantes". |
 
 - NO crear endpoints `/api/*` para que la propia app lea o escriba datos.
-- Excepción, lecturas que pide el navegador después de cargar la página: la siguiente tanda del scroll infinito (`servicios/actions.ts › loadMoreExpenses`) y los comprobantes al abrir el visor (`comprobantes/actions.ts › getServiceReceipts`). Son Server Actions que solo llaman a `queries.ts` con la sesión del usuario (RLS aplica) y validan su entrada con Zod.
+- Excepción, lecturas que pide el navegador después de cargar la página: la siguiente tanda del scroll infinito (`servicios/actions.ts › loadMoreExpenses`) los comprobantes al abrir el visor (`comprobantes/actions.ts › getServiceReceipts`) y los datos de Reportes para armar el PDF en el iPhone con la app en la pantalla de inicio (`dashboard/actions.ts › getReportPdfData`). Son Server Actions que solo llaman a `queries.ts` con la sesión del usuario (RLS aplica) y validan su entrada con Zod.
 - NO consultar Supabase desde el navegador (`lib/supabase/client.ts`) salvo para Storage o algo que realmente lo requiera.
 - La cookie de sesión es `httpOnly`: el navegador no tiene sesión de Supabase. Lo que haga desde ahí (subir comprobantes) usa URLs firmadas que genera una Server Action.
 
