@@ -105,8 +105,8 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
     [NO_DRIVER]: "Sin chofer",
     ...Object.fromEntries(driverOptions.map((d) => [d.id, d.name])),
   };
-  // "En taller" no se pone a mano (llegará con las entradas a taller). Solo se
-  // muestra si la unidad ya lo tiene, para poder sacarla.
+  // "En taller" solo lo ponen y quitan las entradas a taller (la BD lo exige).
+  // Si la unidad está en taller, el estatus queda fijo: la salida se da en Taller.
   const wasInShop = unit?.status === "en_taller";
   const statusOptions = Object.entries(UNIT_STATUS_LABELS).filter(([value]) => value !== "en_taller" || wasInShop);
   const lengthItems = {
@@ -235,7 +235,12 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
               render={({ field }) => (
                 <Field>
                   <FieldLabel htmlFor="status">Estatus</FieldLabel>
-                  <Select items={Object.fromEntries(statusOptions)} value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    items={Object.fromEntries(statusOptions)}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={wasInShop}
+                  >
                     <SelectTrigger id="status" className={`${inputClass} w-full`}>
                       <SelectValue />
                     </SelectTrigger>
@@ -247,9 +252,13 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
                       ))}
                     </SelectContent>
                   </Select>
-                  {status === "en_taller" && (
+                  {wasInShop && (
                     <FieldDescription>
-                      Está en taller. Cuando salga, cámbiala a Activo. El estatus En taller ya no se elige aquí.
+                      Está en taller. Para cambiar su estatus, dale salida desde{" "}
+                      <Link href="/taller" className="font-medium text-brand-cyan underline-offset-2 hover:underline">
+                        Taller
+                      </Link>
+                      .
                     </FieldDescription>
                   )}
                   {status === "baja" && (

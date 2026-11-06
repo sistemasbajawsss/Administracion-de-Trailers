@@ -118,11 +118,3 @@ export async function listUnitsInShop(): Promise<UnitListItem[]> {
   if (error) throw new Error("No se pudieron cargar las unidades en taller");
   return data.map(toListItem);
 }
-
-/** Estatus actual de una unidad (null si no existe o no se puede ver). */
-export async function getUnitStatus(id: string): Promise<UnitDetail["status"] | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("unidades").select("estatus").eq("id", id).maybeSingle();
-  if (error) throw new Error("No se pudo leer la unidad");
-  return data?.estatus ?? null;
-}

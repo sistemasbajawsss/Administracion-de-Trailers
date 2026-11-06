@@ -31,11 +31,14 @@ export function UnitPicker({
   value,
   onChange,
   invalid,
+  title = "¿A qué unidad se le hizo el servicio?",
 }: {
   units: UnitOption[];
   value: string;
   onChange: (unit: UnitOption) => void;
   invalid?: boolean;
+  /** Pregunta de la hoja; también lo usa Taller ("¿Qué unidad entra a taller?"). */
+  title?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -101,7 +104,7 @@ export function UnitPicker({
           className="mx-auto flex max-h-[88dvh] max-w-3xl flex-col gap-0 rounded-t-2xl p-0"
         >
           <SheetHeader className="border-b pb-4">
-            <SheetTitle className="font-heading text-2xl font-semibold">¿A qué unidad se le hizo el servicio?</SheetTitle>
+            <SheetTitle className="font-heading text-2xl font-semibold">{title}</SheetTitle>
             <SheetDescription className="sr-only">Busca por número económico o toca la unidad.</SheetDescription>
             <div className="relative mt-3">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />

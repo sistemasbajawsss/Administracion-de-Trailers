@@ -2,6 +2,7 @@ import type { Role } from "@/lib/auth/types";
 
 export type NavIcon =
   | "inicio"
+  | "taller"
   | "unidades"
   | "servicios"
   | "registrar"
@@ -18,6 +19,7 @@ export type NavItem = {
 export const NAVIGATION: Record<Role, NavItem[]> = {
   admin: [
     { href: "/", label: "Inicio", icon: "inicio" },
+    { href: "/taller", label: "Taller", icon: "taller" },
     { href: "/unidades", label: "Unidades", icon: "unidades" },
     { href: "/servicios", label: "Servicios", icon: "servicios" },
     { href: "/dashboard", label: "Reportes", icon: "reportes" },
@@ -26,11 +28,13 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
   ],
   capturista: [
     { href: "/", label: "Inicio", icon: "inicio" },
+    { href: "/taller", label: "Taller", icon: "taller" },
     { href: "/servicios/nuevo", label: "Registrar servicio", icon: "registrar" },
     { href: "/servicios", label: "Mis servicios", icon: "servicios" },
   ],
   gerente: [
     { href: "/", label: "Inicio", icon: "inicio" },
+    { href: "/taller", label: "Taller", icon: "taller" },
     { href: "/unidades", label: "Unidades", icon: "unidades" },
     { href: "/servicios", label: "Servicios", icon: "servicios" },
     { href: "/dashboard", label: "Reportes", icon: "reportes" },

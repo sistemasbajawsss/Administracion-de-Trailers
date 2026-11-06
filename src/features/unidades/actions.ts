@@ -8,12 +8,9 @@ import { requireRole } from "@/lib/auth/get-current-user";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
 
-import { getUnitStatus } from "./queries";
 import { deleteUnitSchema, normalizeEconomicNumber, unitSchema, type UnitInput } from "./schemas";
 
-const SHOP_STATUS_ERROR = "El estatus En taller ya no se pone a mano. Elige otro estatus.";
-
-const emptyToNull =(value: string) => (value.trim() === "" ? null : value.trim());
+const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
 /** Del formulario (camelCase, strings) a columnas de la BD. */
 function toRow(unit: UnitInput) {
@@ -39,6 +36,8 @@ function errorMessage(error: { code?: string; message?: string }) {
       ? "Ya existe una unidad con ese VIN."
       : "Ya existe una unidad con ese número económico.";
   }
+  // El candado de taller (BD) explica qué hacer: "registra su entrada" / "dale salida desde Taller".
+  if (error.code === "23514" && error.message?.includes("Taller")) return error.message;
   if (error.code === "23514") return "Revisa los datos: hay un campo que no cumple las reglas.";
   if (error.code === "23503") return "El chofer elegido ya no existe.";
   if (error.code === "42501") return "No tienes permiso para modificar unidades.";
@@ -50,7 +49,6 @@ export async function createUnit(input: unknown): Promise<ActionResult<{ id: str
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
 
   const user = await requireRole("admin");
-  if (parsed.data.status === "en_taller") return fail(SHOP_STATUS_ERROR);
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -70,15 +68,6 @@ export async function updateUnit(id: string, input: unknown): Promise<ActionResu
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
 
   await requireRole("admin");
-
-  // "En taller" solo se conserva si la unidad ya lo tenía; no se pone a mano.
-  if (parsed.data.status === "en_taller") {
-    try {
-      if ((await getUnitStatus(id)) !== "en_taller") return fail(SHOP_STATUS_ERROR);
-    } catch {
-      return fail("No se pudo guardar la unidad. Inténtalo de nuevo.");
-    }
-  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
