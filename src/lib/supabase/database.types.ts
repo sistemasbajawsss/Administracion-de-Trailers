@@ -198,6 +198,59 @@ export type Database = {
           },
         ]
       }
+      entradas_taller: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          falla: string
+          fecha_entrada: string
+          fecha_salida: string | null
+          id: string
+          nota_salida: string | null
+          reporta_nombre: string | null
+          salida_by: string | null
+          salida_nombre: string | null
+          unidad_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          falla: string
+          fecha_entrada: string
+          fecha_salida?: string | null
+          id?: string
+          nota_salida?: string | null
+          reporta_nombre?: string | null
+          salida_by?: string | null
+          salida_nombre?: string | null
+          unidad_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          falla?: string
+          fecha_entrada?: string
+          fecha_salida?: string | null
+          id?: string
+          nota_salida?: string | null
+          reporta_nombre?: string | null
+          salida_by?: string | null
+          salida_nombre?: string | null
+          unidad_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_taller_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos: {
         Row: {
           categoria_id: string
@@ -624,6 +677,10 @@ export type Database = {
         }[]
       }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
+      dar_salida_taller: {
+        Args: { p_entrada_id: string; p_fecha: string; p_nota?: string }
+        Returns: undefined
+      }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
         Returns: undefined
@@ -756,6 +813,10 @@ export type Database = {
       puede_ver_todo: { Args: never; Returns: boolean }
       quitar_comprobante: {
         Args: { p_comprobante_id: string; p_motivo: string }
+        Returns: string
+      }
+      registrar_entrada_taller: {
+        Args: { p_falla: string; p_fecha: string; p_unidad_id: string }
         Returns: string
       }
       registrar_servicio: {

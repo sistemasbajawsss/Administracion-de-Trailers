@@ -277,7 +277,7 @@ Cada etapa se sube y se prueba sola. No se pasa a la siguiente hasta que el usua
    - Solo se agregan tablas y columnas opcionales.
    - Las funciones existentes conservan su firma; lo nuevo va con parámetros con valor por defecto.
    - Nada se borra ni se renombra.
-2. Cada migración se ensaya en `begin … rollback` con los tres roles. Se le enseña al usuario antes del `db push`.
+2. Cada migración se ensaya en `begin … rollback` con los tres roles y con las pruebas de `supabase/tests`. Si todo pasa, Claude la aplica (`db push`) y reporta el resultado.
 3. En cada etapa se corren las baterías existentes (capturista 43, gerente 14, dólares 17, validaciones 13) más las pruebas nuevas. Si una prueba que pasaba ahora falla, la etapa no se sube.
 4. Antes de unir a `main`: `tsc`, lint y build completo en una copia aparte, `npm audit --omit=dev` en 0 y tipos regenerados.
 5. El usuario prueba en el navegador (celular de 360 px y escritorio, con texto de 200 caracteres sin espacios).
