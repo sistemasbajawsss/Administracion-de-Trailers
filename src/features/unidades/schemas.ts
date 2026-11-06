@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isRealDate } from "@/lib/utils/format";
+
 import {
   UNIT_OPERATIONS,
   UNIT_STATUSES,
@@ -97,3 +99,16 @@ export const unitFiltersSchema = z.object({
 });
 
 export type UnitFilters = z.infer<typeof unitFiltersSchema>;
+
+/** Marcar como vendida (solo admin). La BD vuelve a revisar la fecha y el rol. */
+export const sellUnitSchema = z.object({
+  date: z.string().refine(isRealDate, "Elige la fecha de venta"),
+  note: z.string().trim().max(1000, "Nota: máximo 1000 caracteres"),
+});
+
+export type SellUnitInput = z.infer<typeof sellUnitSchema>;
+
+/** Deshacer una venta (solo admin), con motivo. */
+export const undoSaleSchema = z.object({
+  reason: z.string().trim().min(1, "Escribe el motivo").max(1000, "Motivo: máximo 1000 caracteres"),
+});

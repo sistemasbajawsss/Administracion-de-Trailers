@@ -51,11 +51,13 @@ import { createService, suggestExchangeRate, updateService } from "../actions";
 import {
   serviceEditSchema,
   serviceSchema,
+  shopIssues,
   type Currency,
   type ServiceEditInput,
 } from "../schemas";
 import type { CategoryOption, ServiceDetail, SupplierOption, UnitOption } from "../types";
 
+import { ServiceShopPanel, shopState } from "./service-shop-panel";
 import { UnitPicker } from "./unit-picker";
 
 const NO_SUPPLIER = "sin-proveedor";
@@ -84,9 +86,19 @@ function toFormValues(service: ServiceDetail | undefined, today: string, initial
       amount: e.usd?.amount ?? e.amount,
       exchangeRate: e.usd ? formatRate(e.usd.rate) : "",
     })) ?? [emptyExpense],
+    // Taller (5E): en alta la casilla viene marcada; al editar, no (editar no saca de taller).
+    leavesShop: !service,
+    noEntryReason: service?.shop.noEntryReason ?? "",
+    forgotEntry: false,
+    forgotEntryDate: "",
+    forgotEntryFault: "",
     reason: "",
   };
 }
+
+/** Al cambiar de unidad, lo de taller vuelve a empezar. */
+const shopDefaults = (isEdit: boolean) =>
+  ({ leavesShop: !isEdit, noEntryReason: "", forgotEntry: false, forgotEntryDate: "", forgotEntryFault: "" }) as const;
 
 /** Pesos de un renglón en centavos (en dólares, con su tipo de cambio). null si falta algo. */
 function lineMxnCents(line: Partial<ServiceEditInput["expenses"][number]>) {
@@ -149,7 +161,7 @@ function ServiceFormBody({
   }, [fields]);
   const indexOf = (lineKey: string) => fieldsRef.current.findIndex((f) => f.id === lineKey);
 
-  // La unidad del servicio puede estar de baja: se sigue mostrando para no perderla.
+  // La unidad del servicio puede estar de baja o vendida: se sigue mostrando para no perderla.
   const unitOptions =
     service && !units.some((u) => u.id === service.unit.id)
       ? [
@@ -160,7 +172,8 @@ function ServiceFormBody({
             type: service.unit.type,
             operation: null,
             status: "baja" as const,
-            detail: "Dada de baja",
+            detail: "Dada de baja o vendida",
+            shopStay: null,
           },
         ]
       : units;
@@ -169,6 +182,17 @@ function ServiceFormBody({
   const expenses = useWatch({ control: form.control, name: "expenses" });
   const selectedUnit = unitOptions.find((u) => u.id === unitId);
   const isBox = selectedUnit?.type === "caja";
+
+  // Taller (5E): estancia abierta de la unidad elegida y qué pasa con este servicio.
+  const serviceDate = useWatch({ control: form.control, name: "date" });
+  const stay = selectedUnit?.shopStay ?? null;
+  const shop = shopState({
+    stay,
+    date: serviceDate,
+    unitId,
+    link: service?.shop,
+    original: service ? { unitId: service.unit.id, date: service.date } : undefined,
+  });
 
   const totalCents = expenses.reduce((sum, e) => sum + (lineMxnCents(e) ?? 0), 0);
   const usdCents = expenses.reduce((sum, e) => sum + (e.currency === "USD" ? (toCents(e.amount ?? "") ?? 0) : 0), 0);
@@ -251,6 +275,18 @@ function ServiceFormBody({
     });
     if (missingConcept) return;
 
+    // Taller (5E, D13): motivo o datos de la entrada olvidada (el servidor vuelve a revisarlo).
+    const shopProblems = shopIssues(values, {
+      stay,
+      linked: shop.legacy || shop.linkedOpen || shop.linkedClosed,
+      needsReason: shop.needsReason,
+      allowForgot: shop.allowForgot,
+    });
+    if (shopProblems.length) {
+      for (const problem of shopProblems) form.setError(problem.path, { message: problem.message });
+      return void toast.error(shopProblems[0]!.message);
+    }
+
     const pendingReceipts = pendingReceiptMessage(receipts);
     if (pendingReceipts) return void toast.error(pendingReceipts);
 
@@ -318,13 +354,25 @@ function ServiceFormBody({
               <UnitPicker
                 units={unitOptions}
                 value={field.value}
-                onChange={(unit) => field.onChange(unit.id)}
+                onChange={(unit) => {
+                  if (unit.id !== field.value) {
+                    for (const [name, value] of Object.entries(shopDefaults(isEdit))) {
+                      form.setValue(name as keyof ReturnType<typeof shopDefaults>, value as never, { shouldDirty: true });
+                    }
+                  }
+                  field.onChange(unit.id);
+                }}
                 invalid={fieldState.invalid}
               />
               <FieldError id="unitId-error" errors={[fieldState.error]} />
             </Field>
           )}
         />
+
+        {unitId && (
+          // key: al cambiar de unidad, el panel empieza de cero (motivo elegido, etc.).
+          <ServiceShopPanel key={unitId} form={form} stay={stay} state={shop} today={today} />
+        )}
 
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Datos del servicio</FieldLegend>

@@ -51,7 +51,8 @@ export function DeleteServiceDialog({
         toast.success("Servicio eliminado. Puedes restaurarlo desde Servicios › Eliminados.");
         setOpen(false);
         // Regresa a la pantalla anterior (lista, ficha…), que ya no lo muestra.
-        goBack("/servicios", { refresh: true });
+        // Si "atrás" es una pantalla de este mismo servicio (su Editar), va a la lista.
+        goBack("/servicios", { refresh: true, gone: `/servicios/${serviceId}` });
       } catch {
         toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
       }

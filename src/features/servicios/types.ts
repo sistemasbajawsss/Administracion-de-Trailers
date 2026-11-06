@@ -1,6 +1,6 @@
 import type { UnitOperation, UnitStatus, UnitType } from "@/features/unidades/types";
 
-/** Unidad elegible en el formulario de servicio (las de baja no aparecen). */
+/** Unidad elegible en el formulario de servicio (las de baja o vendidas no aparecen). */
 export type UnitOption = {
   id: string;
   economicNumber: string;
@@ -9,7 +9,15 @@ export type UnitOption = {
   status: UnitStatus;
   /** "Caja · 53 pies", "Ford F-150". */
   detail: string;
+  /** Estancia abierta en taller (5E), si la unidad está en taller. */
+  shopStay: ShopStay | null;
 };
+
+/** Estancia abierta en taller de una unidad: a ella se liga un servicio con fecha igual o posterior a la entrada. */
+export type ShopStay = { entryId: string; entryDate: string; fault: string };
+
+/** Relación del servicio con el taller (5E). noEntry null = servicio de antes de la 5E (no se evalúa). */
+export type ServiceShopLink = { entryId: string | null; noEntry: boolean | null; noEntryReason: string | null };
 
 export type CategoryOption = { id: string; name: string; requiresConcept: boolean };
 export type SupplierOption = { id: string; name: string };
@@ -65,6 +73,8 @@ export type ServiceDetail = ServiceListItem & {
   createdBy: string;
   createdAt: string;
   expenses: ExpenseLine[];
+  /** stay: fechas de su estancia (null si no tiene, o si el capturista ya no la ve porque cerró). */
+  shop: ServiceShopLink & { stay: { entryDate: string; exitDate: string | null; fault: string } | null };
 };
 
 /** Un cambio de un campo: "Monto: $1,500.50 → $1,600.00". */
@@ -118,4 +128,6 @@ export type ServiceBrief = {
   unitType: UnitType;
   author: string | null;
   receiptCount: number;
+  /** Solo en el aviso de servicios sin entrada a taller (5E). */
+  noEntryReason?: string | null;
 };

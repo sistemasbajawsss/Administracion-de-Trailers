@@ -6,6 +6,42 @@ import type { ServiceDetail } from "../types";
 import { EditedBadge } from "./edited-badge";
 
 /**
+ * Taller (5E): a qué estancia pertenece o por qué no tuvo entrada. Los servicios
+ * de antes de la 5E no muestran nada.
+ */
+function ShopRow({ shop }: { shop: ServiceDetail["shop"] }) {
+  if (shop.noEntry === null) return null;
+
+  if (shop.entryId) {
+    return (
+      <div className="sm:col-span-3">
+        <dt className="text-sm text-muted-foreground">Taller</dt>
+        <dd className="text-base">
+          {shop.stay
+            ? `Entró el ${formatDate(shop.stay.entryDate)}${shop.stay.exitDate ? ` · salió el ${formatDate(shop.stay.exitDate)}` : " · sigue en taller"}`
+            : "Dentro de una estancia en taller"}
+          {shop.stay && (
+            <span className="block text-sm whitespace-pre-line text-muted-foreground">Falla: {shop.stay.fault}</span>
+          )}
+        </dd>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sm:col-span-3">
+      <dt className="text-sm text-muted-foreground">Taller</dt>
+      <dd className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
+        <span className="inline-flex h-6 shrink-0 items-center rounded-full border border-amber-500/40 bg-amber-50 px-2.5 text-xs font-medium text-amber-800">
+          Sin entrada a taller
+        </span>
+        <span className="min-w-0">{shop.noEntryReason ?? "Sin motivo"}</span>
+      </dd>
+    </div>
+  );
+}
+
+/**
  * Detalle de un servicio como un ticket: unidad y total arriba, renglones de
  * gasto en medio y el total oficial (sumado en la BD) al pie.
  */
@@ -48,6 +84,7 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
             <dd className="text-base whitespace-pre-line wrap-anywhere">{service.description}</dd>
           </div>
         )}
+        <ShopRow shop={service.shop} />
       </dl>
 
       <ul className="divide-y px-5 sm:px-6">

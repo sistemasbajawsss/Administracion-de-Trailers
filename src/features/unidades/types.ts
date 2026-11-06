@@ -19,6 +19,7 @@ export const UNIT_STATUSES = [
   "en_taller",
   "por_llegar",
   "baja",
+  "vendida",
 ] as const satisfies readonly UnitStatus[];
 
 export const UNIT_OPERATIONS = ["local", "foraneo"] as const satisfies readonly UnitOperation[];
@@ -36,6 +37,7 @@ export const UNIT_STATUS_LABELS: Record<UnitStatus, string> = {
   en_taller: "En taller",
   por_llegar: "Por llegar",
   baja: "Baja",
+  vendida: "Vendida",
 };
 
 export const UNIT_OPERATION_LABELS: Record<UnitOperation, string> = {
@@ -90,4 +92,37 @@ export type UnitDetail = UnitListItem & {
   driverId: string | null;
   year: number | null;
   vin: string | null;
+};
+
+/** Estatus que sacan a una unidad de la operación: el capturista no la ve ni se le registran servicios. */
+export const RETIRED_STATUSES = ["baja", "vendida"] as const satisfies readonly UnitStatus[];
+
+export const isRetired = (status: UnitStatus) => (RETIRED_STATUSES as readonly UnitStatus[]).includes(status);
+
+/** Unidad en taller ahora (Inicio): de su entrada abierta (5E). */
+export type UnitInShop = {
+  id: string;
+  economicNumber: string;
+  type: UnitType;
+  operation: UnitOperation | null;
+  entryDate: string;
+  fault: string;
+};
+
+/** Una estancia en taller de la unidad (ficha, 5E). exitDate null = sigue en taller. */
+export type UnitShopStay = {
+  id: string;
+  entryDate: string;
+  exitDate: string | null;
+  fault: string;
+  exitNote: string | null;
+  reportedBy: string | null;
+  serviceCount: number;
+};
+
+/** Venta vigente de una unidad (Sección 5E). */
+export type UnitSale = {
+  date: string;
+  note: string | null;
+  soldBy: string | null;
 };

@@ -105,6 +105,15 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
     [NO_DRIVER]: "Sin chofer",
     ...Object.fromEntries(driverOptions.map((d) => [d.id, d.name])),
   };
+  // "En taller" solo lo ponen y quitan las entradas a taller (la BD lo exige).
+  // Si la unidad está en taller, el estatus queda fijo: la salida se da en Taller.
+  // Igual "Vendida": solo con "Marcar como vendida" / "Deshacer venta" en la ficha.
+  const wasInShop = unit?.status === "en_taller";
+  const wasSold = unit?.status === "vendida";
+  const statusLocked = wasInShop || wasSold;
+  const statusOptions = Object.entries(UNIT_STATUS_LABELS).filter(
+    ([value]) => !["en_taller", "vendida"].includes(value) || value === unit?.status,
+  );
   const lengthItems = {
     [NO_LENGTH]: "Sin dato",
     ...Object.fromEntries(BOX_LENGTHS.map((l) => [String(l), `${l} pies`])),
@@ -231,18 +240,37 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
               render={({ field }) => (
                 <Field>
                   <FieldLabel htmlFor="status">Estatus</FieldLabel>
-                  <Select items={UNIT_STATUS_LABELS} value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    items={Object.fromEntries(statusOptions)}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={statusLocked}
+                  >
                     <SelectTrigger id="status" className={`${inputClass} w-full`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(UNIT_STATUS_LABELS).map(([value, label]) => (
+                      {statusOptions.map(([value, label]) => (
                         <SelectItem key={value} value={value} className="min-h-10">
                           {label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {wasInShop && (
+                    <FieldDescription>
+                      Está en taller. Para cambiar su estatus, dale salida desde{" "}
+                      <Link href="/taller" className="font-medium text-brand-cyan underline-offset-2 hover:underline">
+                        Taller
+                      </Link>
+                      .
+                    </FieldDescription>
+                  )}
+                  {wasSold && (
+                    <FieldDescription>
+                      Está vendida. Si fue un error, usa &ldquo;Deshacer venta&rdquo; en su ficha.
+                    </FieldDescription>
+                  )}
                   {status === "baja" && (
                     <FieldDescription className="text-amber-800">
                       Una unidad dada de baja ya no aparece para los capturistas. Su historial se conserva.

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { isRealDate, normalizeAmount, toCents, toRateUnits } from "@/lib/utils/format";
 
+import type { ShopStay } from "./types";
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const CURRENCIES = ["MXN", "USD"] as const;
@@ -73,9 +75,51 @@ export const serviceSchema = z.object({
   supplierId: z.union([z.literal(""), z.uuid()]),
   description: z.string().trim().max(1000, "Descripción: máximo 1000 caracteres"),
   expenses: z.array(expenseLineSchema).min(1, "Agrega al menos un gasto").max(50, "Máximo 50 gastos por servicio"),
+  // ---- Taller (5E, D13) ----
+  /** Casilla "La unidad sale de taller con este servicio". */
+  leavesShop: z.boolean(),
+  /** Por qué no tuvo entrada a taller (solo si el servicio no queda ligado a una estancia). */
+  noEntryReason: z.string().trim().max(300, "Motivo: máximo 300 caracteres"),
+  /** "Se olvidó la entrada": se registra con el servicio (solo en alta y si la unidad no está en taller). */
+  forgotEntry: z.boolean(),
+  forgotEntryDate: z.union([z.literal(""), z.string().regex(DATE_PATTERN).refine(isRealDate, "Fecha no válida")]),
+  forgotEntryFault: z.string().trim().max(1000, "Falla: máximo 1000 caracteres"),
 });
 
 export type ServiceInput = z.infer<typeof serviceSchema>;
+
+/** Motivos rápidos cuando la unidad no tuvo entrada a taller (D13). Además: "Se olvidó la entrada" y "Otro…". */
+export const NO_ENTRY_REASONS = ["Reparación en camino", "Mantenimiento en patio"] as const;
+
+/** ¿El servicio queda dentro de la estancia abierta? (misma regla que preparar_servicio en la BD). */
+export const fallsInStay = (stay: ShopStay | null, date: string) => Boolean(stay && date >= stay.entryDate);
+
+/**
+ * Reglas de taller del formulario, iguales en el navegador y en el servidor.
+ * `stay`: estancia abierta de la unidad elegida. `linked`: el servicio queda ligado
+ * a una estancia (abierta o, al editar, la que ya tenía). `needsReason`: falta
+ * motivo si no queda ligado (al editar, no si ya tenía uno o es de antes de la 5E).
+ */
+export function shopIssues(
+  values: Pick<ServiceInput, "date" | "noEntryReason" | "forgotEntry" | "forgotEntryDate" | "forgotEntryFault">,
+  { stay, linked, needsReason, allowForgot }: { stay: ShopStay | null; linked: boolean; needsReason: boolean; allowForgot: boolean },
+): { path: "noEntryReason" | "forgotEntryDate" | "forgotEntryFault"; message: string }[] {
+  if (linked) return [];
+  if (values.forgotEntry && allowForgot) {
+    const issues: ReturnType<typeof shopIssues> = [];
+    if (stay) issues.push({ path: "noEntryReason", message: "La unidad ya está en taller: no se puede registrar otra entrada" });
+    if (!values.forgotEntryDate) issues.push({ path: "forgotEntryDate", message: "Elige la fecha en que entró a taller" });
+    else if (values.forgotEntryDate > values.date) {
+      issues.push({ path: "forgotEntryDate", message: "La entrada no puede ser después del servicio" });
+    }
+    if (!values.forgotEntryFault.trim()) issues.push({ path: "forgotEntryFault", message: "Describe la falla" });
+    return issues;
+  }
+  if (needsReason && !values.noEntryReason.trim()) {
+    return [{ path: "noEntryReason", message: "Elige o escribe por qué no tuvo entrada a taller" }];
+  }
+  return [];
+}
 
 /** Edición: el mismo formulario más el motivo obligatorio (D1). */
 export const serviceEditSchema = serviceSchema.extend({

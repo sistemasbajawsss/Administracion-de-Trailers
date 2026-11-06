@@ -198,6 +198,59 @@ export type Database = {
           },
         ]
       }
+      entradas_taller: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          falla: string
+          fecha_entrada: string
+          fecha_salida: string | null
+          id: string
+          nota_salida: string | null
+          reporta_nombre: string | null
+          salida_by: string | null
+          salida_nombre: string | null
+          unidad_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          falla: string
+          fecha_entrada: string
+          fecha_salida?: string | null
+          id?: string
+          nota_salida?: string | null
+          reporta_nombre?: string | null
+          salida_by?: string | null
+          salida_nombre?: string | null
+          unidad_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          falla?: string
+          fecha_entrada?: string
+          fecha_salida?: string | null
+          id?: string
+          nota_salida?: string | null
+          reporta_nombre?: string | null
+          salida_by?: string | null
+          salida_nombre?: string | null
+          unidad_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_taller_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos: {
         Row: {
           categoria_id: string
@@ -375,10 +428,13 @@ export type Database = {
           created_at: string
           created_by: string
           descripcion: string | null
+          entrada_taller_id: string | null
           fecha: string
           id: string
           kilometraje: number | null
+          motivo_sin_entrada: string | null
           proveedor_id: string | null
+          sin_entrada_taller: boolean | null
           unidad_id: string
           updated_at: string
           updated_by: string | null
@@ -387,10 +443,13 @@ export type Database = {
           created_at?: string
           created_by?: string
           descripcion?: string | null
+          entrada_taller_id?: string | null
           fecha: string
           id?: string
           kilometraje?: number | null
+          motivo_sin_entrada?: string | null
           proveedor_id?: string | null
+          sin_entrada_taller?: boolean | null
           unidad_id: string
           updated_at?: string
           updated_by?: string | null
@@ -399,15 +458,25 @@ export type Database = {
           created_at?: string
           created_by?: string
           descripcion?: string | null
+          entrada_taller_id?: string | null
           fecha?: string
           id?: string
           kilometraje?: number | null
+          motivo_sin_entrada?: string | null
           proveedor_id?: string | null
+          sin_entrada_taller?: boolean | null
           unidad_id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "servicios_entrada_taller_id_fkey"
+            columns: ["entrada_taller_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_taller"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "servicios_proveedor_id_fkey"
             columns: ["proveedor_id"]
@@ -492,6 +561,59 @@ export type Database = {
           },
         ]
       }
+      ventas_unidades: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deshecha_at: string | null
+          deshecha_by: string | null
+          deshecha_nombre: string | null
+          fecha_venta: string
+          id: string
+          motivo_deshacer: string | null
+          nota: string | null
+          unidad_id: string
+          updated_at: string
+          vendida_nombre: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deshecha_at?: string | null
+          deshecha_by?: string | null
+          deshecha_nombre?: string | null
+          fecha_venta: string
+          id?: string
+          motivo_deshacer?: string | null
+          nota?: string | null
+          unidad_id: string
+          updated_at?: string
+          vendida_nombre?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deshecha_at?: string | null
+          deshecha_by?: string | null
+          deshecha_nombre?: string | null
+          fecha_venta?: string
+          id?: string
+          motivo_deshacer?: string | null
+          nota?: string | null
+          unidad_id?: string
+          updated_at?: string
+          vendida_nombre?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ventas_unidades_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       gastos_detalle: {
@@ -553,18 +675,28 @@ export type Database = {
           created_by: string | null
           descripcion: string | null
           editado: boolean | null
+          entrada_taller_id: string | null
           fecha: string | null
           id: string | null
           kilometraje: number | null
+          motivo_sin_entrada: string | null
           num_comprobantes: number | null
           num_gastos: number | null
           proveedor_id: string | null
+          sin_entrada_taller: boolean | null
           total: number | null
           unidad_id: string | null
           updated_at: string | null
           updated_by: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "servicios_entrada_taller_id_fkey"
+            columns: ["entrada_taller_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_taller"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "servicios_proveedor_id_fkey"
             columns: ["proveedor_id"]
@@ -607,7 +739,9 @@ export type Database = {
           p_gastos: Json
           p_kilometraje: number
           p_motivo: string
+          p_motivo_sin_entrada?: string
           p_proveedor_id: string
+          p_salida_taller?: boolean
           p_servicio_id: string
           p_unidad_id: string
         }
@@ -624,6 +758,14 @@ export type Database = {
         }[]
       }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
+      dar_salida_taller: {
+        Args: { p_entrada_id: string; p_fecha: string; p_nota?: string }
+        Returns: undefined
+      }
+      deshacer_venta: {
+        Args: { p_motivo: string; p_unidad_id: string }
+        Returns: undefined
+      }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
         Returns: undefined
@@ -746,6 +888,10 @@ export type Database = {
           ultimo_acceso: string
         }[]
       }
+      marcar_unidad_vendida: {
+        Args: { p_fecha: string; p_nota?: string; p_unidad_id: string }
+        Returns: undefined
+      }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
       prefijo_tipo_unidad: {
@@ -758,13 +904,21 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: string
       }
+      registrar_entrada_taller: {
+        Args: { p_falla: string; p_fecha: string; p_unidad_id: string }
+        Returns: string
+      }
       registrar_servicio: {
         Args: {
           p_descripcion: string
+          p_entrada_falla?: string
+          p_entrada_fecha?: string
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_motivo_sin_entrada?: string
           p_proveedor_id: string
+          p_salida_taller?: boolean
           p_unidad_id: string
         }
         Returns: string
@@ -809,7 +963,7 @@ export type Database = {
     }
     Enums: {
       accion_historial: "insert" | "update" | "delete"
-      estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja"
+      estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja" | "vendida"
       moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista" | "gerente"
@@ -945,7 +1099,7 @@ export const Constants = {
   public: {
     Enums: {
       accion_historial: ["insert", "update", "delete"],
-      estatus_unidad: ["activo", "en_taller", "por_llegar", "baja"],
+      estatus_unidad: ["activo", "en_taller", "por_llegar", "baja", "vendida"],
       moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista", "gerente"],

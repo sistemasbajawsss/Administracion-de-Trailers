@@ -1,6 +1,7 @@
 import {
   ChartColumn,
   ClipboardPlus,
+  Hammer,
   House,
   Tags,
   Truck,
@@ -13,6 +14,7 @@ import type { NavIcon as NavIconName } from "./navigation";
 
 const ICONS: Record<NavIconName, LucideIcon> = {
   inicio: House,
+  taller: Hammer,
   unidades: Truck,
   servicios: Wrench,
   registrar: ClipboardPlus,

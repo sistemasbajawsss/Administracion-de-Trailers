@@ -6,6 +6,7 @@
 **Salida a producción (2026-10-30).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B, 5C y 5D. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
 
 ### Próximos pasos para retomar
+- **Sección 5E (Entradas a taller y unidades vendidas):** plan acordado en `docs/PLAN.md` (reglas D12 y plan de trabajo por etapas 0–5). No se empieza hasta que el usuario diga "empieza". La rama `fix-estatus-taller` (sin subir) es el primer paso de la Etapa 1. Después, Fase 2 (Almacén) cuando el almacén físico esté ordenado.
 0. **Probar en el navegador lo de la 5D** que depende de cómo navega Next (no se puede probar por SQL): guardar un servicio y volver a "Nuevo servicio" (debe salir vacío); eliminar o editar un servicio y regresar a la lista (debe actualizarse); "Nuevo proveedor" dentro del formulario (no debe guardar el servicio); escribir `1500,50` (debe quedar $1,500.50); salir de un formulario con cambios (debe avisar).
 1. **Limpieza:** los 700 servicios `[PRUEBA]` se quedan por ahora para pruebas (decisión del usuario, 2026-10-28). Borrarlos con sus gastos, historial y PDF (~970 MB) antes de que se capturen datos reales: suman en Reportes, totales e Inicio.
 2. **Arranque:** gerente ya creado y probado (2026-10-28: 14 casos de RLS, ve todo y no escribe nada). Faltan los capturistas reales en Admin → Usuarios.
@@ -99,6 +100,53 @@
 - Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 5E — Entradas a taller y unidades vendidas (en curso, rama `seccion-5e-taller`)
+- **Etapa 0 — Línea base (2026-11-06, hecha).** Sin cambios en la app ni en la BD.
+  - Baterías (en transacción sin commit): capturista 42/43 (el caso restante es el conocido: los `[PRUEBA]` comparten PDF), validaciones 13/13, gerente 14/14, Lote 1 de la 5D 24/24, dólares 17/17. Igual que al cerrar la 5D. A la batería de validaciones se le quitaron las definiciones viejas de `preparar_servicio` / `preparar_gasto` que traía dentro, para probar las de producción.
+  - Tiempos en la BD (mediana de 5, ms) con los datos actuales:
+
+    | Consulta | Admin | Capturista |
+    |---|---|---|
+    | Servicios: lista (25) | 3.6 | 4.5 |
+    | Servicios: total filtrado | 3.7 | 4.5 |
+    | Servicios: búsqueda | 9.8 | 9.4 |
+    | Inicio | 6.0 | 6.6 |
+    | Unidades: lista | 0.6 | — |
+    | Ficha de unidad | 6.6 | — |
+    | Reportes 12 meses | 17.3 | — |
+
+  - Respaldos: diarios y completos en Supabase (el último, 2026-11-06 11:05 UTC); PITR apagado.
+  - Pruebas guardadas en `supabase/tests/` (README con cómo correrlas y el resultado esperado).
+- **Etapa 1 — Entradas a taller (2026-11-06, hecha; falta revisar en celular y subir).**
+  - BD (`20261106201328_entradas_taller.sql`, aplicada): tabla `entradas_taller` sin escritura directa (RLS: los tres roles ven las abiertas; las cerradas, admin y gerente); `registrar_entrada_taller()` y `dar_salida_taller()` (admin y capturista); trigger `proteger_estatus_taller` en `unidades`: `en_taller` solo lo ponen y quitan esas funciones. P-05 (ya estaba en taller) recibió su entrada abierta. Cambio respecto al plan: la entrada y la salida no van a `historial_cambios` (es solo de servicios); cada renglón guarda quién la abrió y quién la cerró.
+  - App: `/taller` (los tres roles; días en taller, en ámbar desde 7), `/taller/entrada` (admin y capturista; `?unidad=` preselecciona), "Dar salida" con fecha y nota, enlace "Taller" en el menú. Editar unidad: estatus fijo si está en taller. `servicios/components/unit-picker` ahora es público y recibe `title`.
+  - Pruebas: `supabase/tests/taller.sql` 32/32; regresión igual a la línea base; tiempos iguales. En el navegador (escritorio): entrada con falla de 200 caracteres sin espacios, salida con nota, formulario de unidad bloqueado.
+- **Etapa 2 — Unidades vendidas (2026-11-06, hecha; falta revisar en celular y subir).**
+  - BD (`20261106203640_estatus_vendida.sql` sola por ser valor de enum, y `20261106203645_ventas_unidades.sql`, aplicadas): tabla `ventas_unidades` (venta vigente y ventas deshechas con quién, cuándo y motivo; solo admin y gerente la leen); `marcar_unidad_vendida()` y `deshacer_venta()` (solo admin); vender una unidad en taller cierra su entrada con la fecha de venta. "Vendida" se trata como "baja": política de lectura de `unidades`, `preparar_servicio()` (copia de la 5D, solo cambia esa condición) y `registrar_entrada_taller()`. El candado de estatus también cubre `vendida`. Cambio respecto al plan: la fecha y nota de venta van en `ventas_unidades`, no en columnas de `unidades`, para que deshacer quede registrado.
+  - App: "Marcar como vendida" (sección Venta de la ficha) y "Deshacer venta" con motivo (aviso arriba de la ficha; el gerente solo lo ve); etiqueta y filtro "Vendida"; lista de unidades la muestra atenuada; formulario de unidad con estatus fijo; ya no aparece para elegir en servicio nuevo ni en entrada a taller.
+  - Pruebas: `supabase/tests/ventas.sql` 36/36 (incluye: total de Reportes y suma de gastos iguales antes y después de vender); regresión igual a la línea base; taller 32/32; tiempos iguales. En el navegador: T-17 a taller → vendida (salió de Taller, total igual) → filtro Vendida → deshacer venta con motivo.
+- **Etapa 3 — Servicios ligados al taller (2026-11-06, hecha; falta revisar en celular y subir).**
+  - BD (`20261106205646_servicios_taller.sql`, aplicada): `servicios.entrada_taller_id`, `sin_entrada_taller` (null = anterior a la 5E, no se evalúa) y `motivo_sin_entrada`. La liga la calcula `preparar_servicio()` (estancia abierta de la unidad con entrada ≤ fecha del servicio; al editar se desliga si cambia la unidad o la fecha queda antes de la entrada). `registrar_servicio()` y `actualizar_servicio()` se reemplazaron por una sola versión con parámetros opcionales (`p_salida_taller`, `p_motivo_sin_entrada`, `p_entrada_fecha`, `p_entrada_falla`): llamadas como las de antes guardan igual. `restaurar_servicio()` regresa la liga. Las versiones anteriores están en las migraciones que cita el encabezado.
+  - App: panel de taller en el formulario de servicio (`servicios/components/service-shop-panel`): en taller, falla y casilla "La unidad sale de taller con este servicio" (marcada en alta, desmarcada al editar); sin entrada, motivo obligatorio (D13) con "Reparación en camino", "Mantenimiento en patio", "Se olvidó la entrada" (fecha y falla; solo en alta y si no está en taller) y "Otro…". Mismas reglas en el navegador, en el servidor (`shopIssues` / `fallsInStay` en `servicios/schemas.ts`) y en la BD. `listUnitOptions` trae la estancia abierta de cada unidad. La línea de cambios muestra el motivo.
+  - Pruebas: `supabase/tests/servicios-taller.sql` 22/22; totales, número de servicios y datos de cada servicio idénticos antes y después de la migración; regresión igual a la línea base (ventas.sql ahora cuenta solo sus ventas); guardar un servicio ~4 ms antes y después. En el navegador: caso A (P-05, sin guardar), caso C (fecha antes de la entrada, sin "Se olvidó"), "Se olvidó la entrada" guardado (estancia creada y cerrada, T-17 Activo), sin motivo rechazado, motivo guardado, edición con el motivo elegido. Los dos servicios de prueba ($1.00 c/u, "PRUEBA 5E") se mandaron a Eliminados; el total de gastos volvió a $8,944,518.81.
+  - Encontrado y corregido (no era de la 5E): después de eliminar un servicio, "volver" podía caer en la pantalla de editar de ese mismo servicio (404). `useGoBack` acepta `gone`: si la pantalla anterior es del servicio eliminado, va a la lista. Falta probarlo en el navegador.
+- **Etapa 4 — Avisos (2026-11-06, hecha; falta revisarla en el navegador).**
+  - BD (`20261106215754_servicios_resumen_taller.sql`, aplicada): `servicios_resumen` con `entrada_taller_id`, `sin_entrada_taller` y `motivo_sin_entrada` al final (las columnas de antes, idénticas en los 705 servicios) e índice parcial `servicios_sin_entrada_idx`.
+  - App: detalle del servicio con renglón "Taller" (entrada / salida y falla de su estancia, o "Sin entrada a taller" con su motivo; nada en servicios de antes de la 5E). Inicio del admin con "Sin entrada a taller" (últimos 30 días, con motivo y quién lo capturó). "Unidades en taller" de Inicio sale de las entradas abiertas (días, falla, enlace a Taller). Ficha de la unidad con sus estancias en taller (entrada → salida, días, falla, quién reportó, nota de salida, número de servicios; 20 más recientes).
+  - Pruebas: regresión completa igual a la línea base; tiempos nuevos < 1 ms (Taller, aviso, estancias).
+- **Etapa 5 — Cierre (2026-11-06).**
+  - Prueba de carga (`supabase/tests/carga-5e.sql`, en transacción sin commit): 35,705 servicios, 71,408 gastos, 1,024 estancias cerradas con 5,488 servicios ligados, 9 unidades en taller y 29,512 servicios sin entrada. Admin: Servicios 3.9 ms, búsqueda 340 ms, total 141 ms, Inicio sin factura 82 ms, Reportes 12 meses 410 ms, Excel 156 ms, Taller 0.6 ms, aviso sin entrada 2.0 ms, estancias de la ficha 0.8 ms, guardar servicio 2.6 ms. Capturista: Servicios 15 ms, búsqueda 292 ms. Todo igual o mejor que la 5C.
+  - Advisors: Security con 4 avisos nuevos `authenticated_security_definer_function_executable` (`registrar_entrada_taller`, `dar_salida_taller`, `marcar_unidad_vendida`, `deshacer_venta`), intencionales como los anteriores: revisan rol por dentro (probado con gerente, capturista, desactivado y anon). Performance: sin avisos. **Sigue `auth_leaked_password_protection`**: la protección contra contraseñas filtradas aparece apagada en Supabase Auth; hay que volver a activarla en el dashboard (Authentication → Sign In / Providers → Email) y confirmar con "Rerun linter".
+  - Build completo en copia aparte (`npm ci`): sin errores; `npm audit --omit=dev` = 0; `tsc` y lint sin errores.
+  - Pendiente para cerrar la sección: revisar en el navegador las Etapas 4 y la corrección de "volver" (el servidor de desarrollo se apagó por memoria baja de la computadora); revisar todas las etapas en celular (360 px); unir a `main` y subir (Vercel) cuando el usuario lo diga.
+- Datos de prueba que quedaron (todos con "PRUEBA 5E"): dos estancias cerradas de T-17 en `entradas_taller` y una venta deshecha en `ventas_unidades`. T-17 quedó Activo. Se borran junto con los `[PRUEBA]`.
+- El servidor de desarrollo tuvo que reiniciarse dos veces (error "Jest worker" y un módulo que no se recargó): ambos por el proyecto dentro de OneDrive.
+
+### Corrección posterior — "En taller" ya no se pone a mano (2026-11-06, pedida por el usuario)
+- En alta y edición de unidad, el estatus "En taller" ya no aparece. Solo se muestra si la unidad ya lo tiene (hoy 1), para poder cambiarla a Activo.
+- El servidor rechaza `en_taller` en `createUnit` y en `updateUnit` si la unidad no lo tenía (`getUnitStatus` en `unidades/queries.ts`). El candado en la BD llega con la 5E (entradas a taller).
+- Sección 5E escrita en `docs/PLAN.md` con las decisiones D12; pendiente de aprobar.
 
 ### Corrección posterior — PDF de Reportes en iPhone (2026-11-06, pedida por el usuario)
 - En iPhone con la app abierta desde la pantalla de inicio, "Imprimir o guardar PDF" no hacía nada: iOS no tiene cuadro de impresión en las apps de pantalla de inicio (`window.print()` no hace nada y no da error).

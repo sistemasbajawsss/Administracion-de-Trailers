@@ -8,7 +8,14 @@ import { requireRole } from "@/lib/auth/get-current-user";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
 
-import { deleteUnitSchema, normalizeEconomicNumber, unitSchema, type UnitInput } from "./schemas";
+import {
+  deleteUnitSchema,
+  normalizeEconomicNumber,
+  sellUnitSchema,
+  undoSaleSchema,
+  unitSchema,
+  type UnitInput,
+} from "./schemas";
 
 const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
@@ -36,6 +43,8 @@ function errorMessage(error: { code?: string; message?: string }) {
       ? "Ya existe una unidad con ese VIN."
       : "Ya existe una unidad con ese número económico.";
   }
+  // El candado de taller (BD) explica qué hacer: "registra su entrada" / "dale salida desde Taller".
+  if (error.code === "23514" && error.message?.includes("Taller")) return error.message;
   if (error.code === "23514") return "Revisa los datos: hay un campo que no cumple las reglas.";
   if (error.code === "23503") return "El chofer elegido ya no existe.";
   if (error.code === "42501") return "No tienes permiso para modificar unidades.";
@@ -106,5 +115,56 @@ export async function deleteUnit(id: string, input: unknown): Promise<ActionResu
   revalidatePath("/unidades", "layout");
   revalidatePath("/servicios", "layout");
   revalidatePath("/");
+  return ok();
+}
+
+/** Mensajes de las funciones de venta: ya vienen en español y dicen qué corregir. */
+function saleErrorMessage(error: { code?: string; message?: string }, fallback: string) {
+  if (error.code === "42501") return "Solo un administrador puede hacer esto.";
+  if (["23505", "23514", "P0002"].includes(error.code ?? "") && error.message) return error.message;
+  return fallback;
+}
+
+/** Pantallas donde cambia una unidad vendida (lista, ficha, Taller, Inicio, servicio nuevo). */
+function revalidateSale() {
+  revalidatePath("/unidades", "layout");
+  revalidatePath("/taller");
+  revalidatePath("/servicios/nuevo");
+  revalidatePath("/");
+}
+
+/** Marca la unidad como vendida (solo admin). Si estaba en taller, su entrada se cierra. */
+export async function sellUnit(id: string, input: unknown): Promise<ActionResult> {
+  if (!isUuid(id)) return fail("Unidad no válida.");
+  const parsed = sellUnitSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa los datos de la venta.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("marcar_unidad_vendida", {
+    p_unidad_id: id,
+    p_fecha: parsed.data.date,
+    p_nota: parsed.data.note || undefined,
+  });
+  if (error) return fail(saleErrorMessage(error, "No se pudo marcar como vendida. Inténtalo de nuevo."));
+
+  revalidateSale();
+  return ok();
+}
+
+/** Deshace la venta (solo admin, con motivo). La unidad regresa a Activo. */
+export async function undoUnitSale(id: string, input: unknown): Promise<ActionResult> {
+  if (!isUuid(id)) return fail("Unidad no válida.");
+  const parsed = undoSaleSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Escribe el motivo.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("deshacer_venta", { p_unidad_id: id, p_motivo: parsed.data.reason });
+  if (error) return fail(saleErrorMessage(error, "No se pudo deshacer la venta. Inténtalo de nuevo."));
+
+  revalidateSale();
   return ok();
 }
