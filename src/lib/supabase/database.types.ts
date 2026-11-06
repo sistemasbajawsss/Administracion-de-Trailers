@@ -428,10 +428,13 @@ export type Database = {
           created_at: string
           created_by: string
           descripcion: string | null
+          entrada_taller_id: string | null
           fecha: string
           id: string
           kilometraje: number | null
+          motivo_sin_entrada: string | null
           proveedor_id: string | null
+          sin_entrada_taller: boolean | null
           unidad_id: string
           updated_at: string
           updated_by: string | null
@@ -440,10 +443,13 @@ export type Database = {
           created_at?: string
           created_by?: string
           descripcion?: string | null
+          entrada_taller_id?: string | null
           fecha: string
           id?: string
           kilometraje?: number | null
+          motivo_sin_entrada?: string | null
           proveedor_id?: string | null
+          sin_entrada_taller?: boolean | null
           unidad_id: string
           updated_at?: string
           updated_by?: string | null
@@ -452,15 +458,25 @@ export type Database = {
           created_at?: string
           created_by?: string
           descripcion?: string | null
+          entrada_taller_id?: string | null
           fecha?: string
           id?: string
           kilometraje?: number | null
+          motivo_sin_entrada?: string | null
           proveedor_id?: string | null
+          sin_entrada_taller?: boolean | null
           unidad_id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "servicios_entrada_taller_id_fkey"
+            columns: ["entrada_taller_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_taller"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "servicios_proveedor_id_fkey"
             columns: ["proveedor_id"]
@@ -713,7 +729,9 @@ export type Database = {
           p_gastos: Json
           p_kilometraje: number
           p_motivo: string
+          p_motivo_sin_entrada?: string
           p_proveedor_id: string
+          p_salida_taller?: boolean
           p_servicio_id: string
           p_unidad_id: string
         }
@@ -883,10 +901,14 @@ export type Database = {
       registrar_servicio: {
         Args: {
           p_descripcion: string
+          p_entrada_falla?: string
+          p_entrada_fecha?: string
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_motivo_sin_entrada?: string
           p_proveedor_id: string
+          p_salida_taller?: boolean
           p_unidad_id: string
         }
         Returns: string

@@ -198,7 +198,7 @@ set local role authenticated;
 insert into r(caso, ok, detalle)
 select 'Gerente ve la unidad vendida', count(*) = 1, count(*)::text from public.unidades where id = (select v from x where k = 'u');
 insert into r(caso, ok, detalle)
-select 'Gerente ve la venta', count(*) = 1, count(*)::text from public.ventas_unidades where unidad_id = (select v from x where k = 'u');
+select 'Gerente ve la venta', count(*) = 1, count(*)::text from public.ventas_unidades where unidad_id = (select v from x where k = 'u') and deshecha_at is null;
 do $$
 begin
   begin
@@ -252,7 +252,7 @@ begin
   perform public.marcar_unidad_vendida(v_u, hoy, null);
   insert into r(caso, ok, detalle)
   select 'Se puede volver a vender (queda la venta deshecha en el historial)', count(*) = 2, count(*)::text
-  from public.ventas_unidades where unidad_id = v_u;
+  from public.ventas_unidades where unidad_id = v_u and created_at >= now(); -- solo las de esta prueba
 
   -- Una unidad de baja también se puede vender.
   perform public.marcar_unidad_vendida((select v from x where k = 'u4'), hoy, null);
