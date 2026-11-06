@@ -117,6 +117,17 @@
     | Reportes 12 meses | 17.3 | — |
 
   - Respaldos: diarios y completos en Supabase (el último, 2026-11-06 11:05 UTC); PITR apagado.
+  - Pruebas guardadas en `supabase/tests/` (README con cómo correrlas y el resultado esperado).
+- **Etapa 1 — Entradas a taller (2026-11-06, hecha; falta revisar en celular y subir).**
+  - BD (`20261106201328_entradas_taller.sql`, aplicada): tabla `entradas_taller` sin escritura directa (RLS: los tres roles ven las abiertas; las cerradas, admin y gerente); `registrar_entrada_taller()` y `dar_salida_taller()` (admin y capturista); trigger `proteger_estatus_taller` en `unidades`: `en_taller` solo lo ponen y quitan esas funciones. P-05 (ya estaba en taller) recibió su entrada abierta. Cambio respecto al plan: la entrada y la salida no van a `historial_cambios` (es solo de servicios); cada renglón guarda quién la abrió y quién la cerró.
+  - App: `/taller` (los tres roles; días en taller, en ámbar desde 7), `/taller/entrada` (admin y capturista; `?unidad=` preselecciona), "Dar salida" con fecha y nota, enlace "Taller" en el menú. Editar unidad: estatus fijo si está en taller. `servicios/components/unit-picker` ahora es público y recibe `title`.
+  - Pruebas: `supabase/tests/taller.sql` 32/32; regresión igual a la línea base; tiempos iguales. En el navegador (escritorio): entrada con falla de 200 caracteres sin espacios, salida con nota, formulario de unidad bloqueado.
+- **Etapa 2 — Unidades vendidas (2026-11-06, hecha; falta revisar en celular y subir).**
+  - BD (`20261106203640_estatus_vendida.sql` sola por ser valor de enum, y `20261106203645_ventas_unidades.sql`, aplicadas): tabla `ventas_unidades` (venta vigente y ventas deshechas con quién, cuándo y motivo; solo admin y gerente la leen); `marcar_unidad_vendida()` y `deshacer_venta()` (solo admin); vender una unidad en taller cierra su entrada con la fecha de venta. "Vendida" se trata como "baja": política de lectura de `unidades`, `preparar_servicio()` (copia de la 5D, solo cambia esa condición) y `registrar_entrada_taller()`. El candado de estatus también cubre `vendida`. Cambio respecto al plan: la fecha y nota de venta van en `ventas_unidades`, no en columnas de `unidades`, para que deshacer quede registrado.
+  - App: "Marcar como vendida" (sección Venta de la ficha) y "Deshacer venta" con motivo (aviso arriba de la ficha; el gerente solo lo ve); etiqueta y filtro "Vendida"; lista de unidades la muestra atenuada; formulario de unidad con estatus fijo; ya no aparece para elegir en servicio nuevo ni en entrada a taller.
+  - Pruebas: `supabase/tests/ventas.sql` 36/36 (incluye: total de Reportes y suma de gastos iguales antes y después de vender); regresión igual a la línea base; taller 32/32; tiempos iguales. En el navegador: T-17 a taller → vendida (salió de Taller, total igual) → filtro Vendida → deshacer venta con motivo.
+- Datos de prueba que quedaron (todos con "PRUEBA 5E"): dos estancias cerradas de T-17 en `entradas_taller` y una venta deshecha en `ventas_unidades`. T-17 quedó Activo. Se borran junto con los `[PRUEBA]`.
+- El servidor de desarrollo tuvo que reiniciarse dos veces (error "Jest worker" y un módulo que no se recargó): ambos por el proyecto dentro de OneDrive.
 
 ### Corrección posterior — "En taller" ya no se pone a mano (2026-11-06, pedida por el usuario)
 - En alta y edición de unidad, el estatus "En taller" ya no aparece. Solo se muestra si la unidad ya lo tiene (hoy 1), para poder cambiarla a Activo.
