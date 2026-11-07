@@ -80,7 +80,7 @@ export function UnitPicker({
               {selected.economicNumber}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-base">{selected.detail}</span>
+              <span className="block text-base">{selected.detail}</span>
               <span className="block text-sm text-muted-foreground">{UNIT_GROUP_LABELS[groupOf(selected)]}</span>
             </span>
             <span className="text-sm font-medium text-brand-cyan">Cambiar</span>
@@ -150,12 +150,12 @@ export function UnitPicker({
                         type="button"
                         onClick={() => pick(unit)}
                         aria-pressed={unit.id === value}
-                        className="flex h-16 w-full flex-col items-center justify-center rounded-lg border bg-white outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-muted aria-pressed:border-brand-cyan aria-pressed:bg-brand-cyan aria-pressed:text-white"
+                        className="flex min-h-16 w-full flex-col items-center justify-center rounded-lg py-1 border bg-white outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-muted aria-pressed:border-brand-cyan aria-pressed:bg-brand-cyan aria-pressed:text-white"
                       >
                         <span className="font-heading text-xl leading-tight font-bold tracking-wide tabular-nums">
                           {unit.economicNumber}
                         </span>
-                        <span className="max-w-full truncate px-1 text-xs opacity-75">
+                        <span className="max-w-full px-1 text-xs opacity-75">
                           {unit.detail.split(" · ")[0]}
                           {unit.status === "en_taller" ? " · taller" : ""}
                         </span>

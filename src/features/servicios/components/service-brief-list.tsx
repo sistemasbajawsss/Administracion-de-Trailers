@@ -36,7 +36,7 @@ export function ServiceBriefList({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm tabular-nums">{formatDate(service.date)}</span>
-              <span className="block truncate text-sm text-muted-foreground">
+              <span className="block text-sm text-muted-foreground">
                 {UNIT_TYPE_LABELS[service.unitType]}
                 {showAuthor && service.author && ` · ${service.author}`}
               </span>

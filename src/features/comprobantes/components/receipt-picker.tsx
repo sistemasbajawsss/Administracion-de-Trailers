@@ -237,7 +237,7 @@ function DraftRow({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{name}</p>
+          <p className="font-medium">{name}</p>
           <p
             className={`text-sm ${draft.status === "error" ? "text-destructive" : "text-muted-foreground"}`}
             aria-live="polite"

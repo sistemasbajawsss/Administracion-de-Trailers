@@ -105,7 +105,7 @@ export function UsersView({ users, currentUserId }: { users: UserListItem[]; cur
                       </span>
                     )}
                   </p>
-                  <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
                   <p className="text-xs text-muted-foreground">
                     {user.lastSignInAt ? `Último acceso: ${formatDateTime(user.lastSignInAt)}` : "Todavía no entra"}
                   </p>
