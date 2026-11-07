@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, DoorOpen } from "lucide-react";
+import { ChevronRight, DoorOpen } from "lucide-react";
 import Link from "next/link";
 
 import { formatDate, formatMoney } from "@/lib/utils/format";
@@ -17,9 +17,9 @@ const serviceLabel = (n: number) => (n === 0 ? "sin servicios" : n === 1 ? "1 se
 
 /**
  * Estancias en taller de la unidad (ficha; admin y gerente, 5E). Cada una es una
- * tarjeta que se abre: cerrada, fechas, días, falla y lo gastado; abierta, sus
- * servicios (cada uno lleva a su detalle) y cuál la sacó de taller. La que sigue
- * en taller va resaltada; la más reciente viene abierta.
+ * tarjeta con todo a la vista (el usuario no quiere tocar para abrir ni textos
+ * cortados con "…"): fechas, días, falla, lo gastado, sus servicios (cada uno
+ * lleva a su detalle) y cuál la sacó de taller. La que sigue en taller va en ámbar.
  */
 export function ShopStays({ stays, total, today }: { stays: UnitShopStay[]; total: number; today: string }) {
   if (total === 0) return null;
@@ -34,90 +34,74 @@ export function ShopStays({ stays, total, today }: { stays: UnitShopStay[]; tota
       </h2>
 
       <ol className="space-y-3">
-        {stays.map((stay, index) => {
+        {stays.map((stay) => {
           const open = stay.exitDate === null;
           const days = daysBetween(stay.entryDate, stay.exitDate ?? today);
           return (
-            <li key={stay.id}>
-              <details
-                open={index === 0}
-                className={`group rounded-xl border bg-white ${open ? "border-amber-300" : ""}`}
-              >
-                <summary className="flex min-h-14 cursor-pointer list-none items-start gap-3 px-4 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-5 [&::-webkit-details-marker]:hidden">
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-medium tabular-nums">
-                      {formatDate(stay.entryDate)}
-                      {" → "}
-                      {open ? <span className="text-amber-800">sigue en taller</span> : formatDate(stay.exitDate!)}
-                    </span>
-                    <span className="block text-sm text-muted-foreground">
-                      {open ? `Lleva ${dayLabel(days)}` : `Estuvo ${dayLabel(days)}`} · {serviceLabel(stay.serviceCount)}
-                    </span>
-                    <span className="mt-1 block truncate" title={stay.fault}>
-                      {stay.fault}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <span className="font-heading text-lg font-semibold whitespace-nowrap tabular-nums">{formatMoney(stay.total)}</span>
-                    <ChevronDown className="size-5 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
-                  </span>
-                </summary>
-
-                <div className="border-t px-4 py-3 sm:px-5">
-                  <p className="text-sm whitespace-pre-line">
-                    <span className="text-muted-foreground">Falla: </span>
-                    {stay.fault}
+            <li key={stay.id} className={`rounded-xl border bg-white ${open ? "border-amber-300" : ""}`}>
+              <div className="flex items-start gap-3 px-4 pt-3 sm:px-5">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium tabular-nums">
+                    {formatDate(stay.entryDate)}
+                    {" → "}
+                    {open ? <span className="text-amber-800">sigue en taller</span> : formatDate(stay.exitDate!)}
                   </p>
-
-                  {stay.services.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted-foreground">No se registraron servicios en esta estancia.</p>
-                  ) : (
-                    <ul className="mt-2 divide-y">
-                      {stay.services.map((service) => {
-                        const releasedIt = service.id === stay.exitServiceId;
-                        return (
-                          <li key={service.id}>
-                            <Link
-                              href={`/servicios/${service.id}`}
-                              className="flex min-h-12 items-center gap-3 py-2 outline-none hover:bg-muted/50 focus-visible:bg-muted"
-                            >
-                              <span className="w-12 shrink-0 text-sm tabular-nums">{formatDate(service.date).slice(0, 5)}</span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-sm" title={service.supplier ?? undefined}>
-                                  {service.supplier ?? "Sin proveedor"}
-                                </span>
-                                {service.description && (
-                                  <span className="block truncate text-sm text-muted-foreground" title={service.description}>
-                                    {service.description}
-                                  </span>
-                                )}
-                                {releasedIt && (
-                                  <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-[#3d6b1c]">
-                                    <DoorOpen className="size-3.5" aria-hidden="true" />
-                                    Salió de taller con este servicio
-                                  </span>
-                                )}
-                              </span>
-                              <span className="shrink-0 font-semibold whitespace-nowrap tabular-nums">{formatMoney(service.total)}</span>
-                              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {[
-                      stay.reportedBy && `Reportó ${stay.reportedBy}`,
-                      // La nota automática del servicio ya se ve arriba como "Salió de taller con este servicio".
-                      !stay.exitServiceId && stay.exitNote && `Salida: ${stay.exitNote}`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                  <p className="text-sm text-muted-foreground">
+                    {open ? `Lleva ${dayLabel(days)}` : `Estuvo ${dayLabel(days)}`} · {serviceLabel(stay.serviceCount)}
                   </p>
                 </div>
-              </details>
+                <p className="shrink-0 font-heading text-lg font-semibold whitespace-nowrap tabular-nums">
+                  {formatMoney(stay.total)}
+                </p>
+              </div>
+
+              <p className="mt-2 px-4 whitespace-pre-line sm:px-5">
+                <span className="text-sm text-muted-foreground">Falla: </span>
+                {stay.fault}
+              </p>
+
+              {stay.services.length > 0 && (
+                <ul className="mt-2 divide-y border-t px-4 sm:px-5">
+                  {stay.services.map((service) => {
+                    const releasedIt = service.id === stay.exitServiceId;
+                    return (
+                      <li key={service.id}>
+                        <Link
+                          href={`/servicios/${service.id}`}
+                          className="flex min-h-12 items-start gap-3 py-2 outline-none hover:bg-muted/50 focus-visible:bg-muted"
+                        >
+                          <span className="w-12 shrink-0 pt-0.5 text-sm tabular-nums">{formatDate(service.date).slice(0, 5)}</span>
+                          <span className="min-w-0 flex-1 text-sm">
+                            <span className="block">{service.supplier ?? "Sin proveedor"}</span>
+                            {service.description && (
+                              <span className="block whitespace-pre-line text-muted-foreground">{service.description}</span>
+                            )}
+                            {releasedIt && (
+                              <span className="mt-0.5 flex items-center gap-1 text-xs font-medium text-[#3d6b1c]">
+                                <DoorOpen className="size-3.5 shrink-0" aria-hidden="true" />
+                                Salió de taller con este servicio
+                              </span>
+                            )}
+                          </span>
+                          <span className="shrink-0 pt-0.5 font-semibold whitespace-nowrap tabular-nums">{formatMoney(service.total)}</span>
+                          <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
+                {[
+                  stay.services.length === 0 && "No se registraron servicios en esta estancia",
+                  stay.reportedBy && `Reportó ${stay.reportedBy}`,
+                  // La nota automática del servicio ya se ve arriba como "Salió de taller con este servicio".
+                  !stay.exitServiceId && stay.exitNote && `Salida: ${stay.exitNote}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             </li>
           );
         })}

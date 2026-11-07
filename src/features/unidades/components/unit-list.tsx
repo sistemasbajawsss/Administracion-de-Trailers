@@ -99,7 +99,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
                 <TableCell className="text-base">
                   {unitDetail(unit)}
                   {unit.notes && (
-                    <p className="max-w-md truncate text-sm text-muted-foreground">{unit.notes}</p>
+                    <p className="max-w-md text-sm text-muted-foreground">{unit.notes}</p>
                   )}
                 </TableCell>
                 <TableCell className="text-base">
@@ -137,8 +137,8 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
                 <EconomicNumber value={unit.economicNumber} muted={isRetired(unit.status)} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate">{unitDetail(unit)}</span>
-                <span className="block truncate text-sm">
+                <span className="block">{unitDetail(unit)}</span>
+                <span className="block text-sm">
                   <DriverName name={unit.driverName} />
                 </span>
               </span>

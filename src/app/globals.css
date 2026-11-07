@@ -152,7 +152,8 @@
   }
   /* Sin scroll lateral nunca: lo que se pase del ancho se recorta. `clip` (no
      `hidden`) para no romper el encabezado `sticky`. Lo que no quepa se arregla
-     en su componente (truncate, flex-wrap); esto es la última red. */
+     en su componente (min-w-0, flex-wrap, columnas minmax(0,1fr)); esto es la
+     última red. El texto no se corta con "…": baja de renglón. */
   html,
   body {
     overflow-x: clip;
@@ -160,17 +161,11 @@
   /* Listas desplegables (shadcn Select): el botón traía `whitespace-nowrap` sin
      poder encogerse, así que un proveedor o categoría largos, o "Todos los
      grupos" en media pantalla de celular, lo hacían más ancho que su columna.
-     Se encoge y el texto elegido se corta con "…". */
+     Se encoge a su columna; el texto elegido baja de renglón (ver abajo, fuera
+     de las capas, "Textos completos"). */
   [data-slot="select-trigger"] {
     min-width: 0;
     max-width: 100%;
-  }
-  [data-slot="select-trigger"] > [data-slot="select-value"] {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   /* iPhone: el campo de fecha trae un ancho mínimo propio y se salía de la
      pantalla; además centraba la fecha. */
@@ -216,4 +211,23 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+/* Textos completos (decisión del usuario, 2026-11-06; CLAUDE.md › UI): nada se
+   corta con "…". Fuera de @layer a propósito: así le gana a las clases del
+   componente Select de shadcn (whitespace-nowrap, line-clamp-1 y alto fijo) sin
+   editar components/ui. El botón crece si el texto elegido no cabe y nunca baja
+   de 44 px (mínimo táctil). */
+[data-slot="select-trigger"] {
+  height: auto;
+  min-height: 2.75rem;
+  white-space: normal;
+  text-align: left;
+}
+[data-slot="select-trigger"] > [data-slot="select-value"] {
+  display: block;
+  min-width: 0;
+  overflow: visible;
+  -webkit-line-clamp: none;
+  white-space: normal;
 }

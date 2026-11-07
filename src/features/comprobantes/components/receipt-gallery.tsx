@@ -50,7 +50,7 @@ export function ReceiptGallery({
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block max-w-48 truncate text-sm font-medium" title={receipt.fileName}>
+                <span className="block max-w-48 text-sm font-medium" title={receipt.fileName}>
                   {receipt.fileName}
                 </span>
                 <span className="block text-xs text-muted-foreground tabular-nums">

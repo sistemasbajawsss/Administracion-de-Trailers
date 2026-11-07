@@ -73,8 +73,8 @@ export function UserMenu({
         {!compact && (
           <>
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-sm text-muted-foreground">
+              <span className="font-medium">{user.name}</span>
+              <span className="text-sm text-muted-foreground">
                 {ROLE_LABELS[user.role]}
               </span>
             </span>
@@ -85,8 +85,8 @@ export function UserMenu({
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
-            <span className="truncate font-medium text-foreground" title={user.name}>{user.name}</span>
-            <span className="truncate font-normal text-muted-foreground" title={user.email}>{user.email}</span>
+            <span className="font-medium text-foreground" title={user.name}>{user.name}</span>
+            <span className="font-normal text-muted-foreground" title={user.email}>{user.email}</span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

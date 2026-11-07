@@ -123,11 +123,11 @@ export function ExpenseFeed({
               {/* El enlace cubre todo el renglón; el botón de factura queda encima. */}
               <Link
                 href={`/servicios/${item.serviceId}`}
-                className="block truncate font-medium outline-none after:absolute after:inset-0 focus-visible:underline"
+                className="block font-medium outline-none after:absolute after:inset-0 focus-visible:underline"
               >
                 {item.category}
               </Link>
-              {item.concept && <span className="block truncate text-sm text-muted-foreground">{item.concept}</span>}
+              {item.concept && <span className="block text-sm text-muted-foreground">{item.concept}</span>}
             </span>
             <span className="col-start-2 row-start-1 text-right font-semibold tabular-nums md:col-start-auto md:row-start-auto">
               {formatMoney(item.amount)}
