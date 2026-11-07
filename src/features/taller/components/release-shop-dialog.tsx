@@ -29,23 +29,29 @@ export function ReleaseShopDialog({
   economicNumber,
   entryDate,
   today,
+  serviceCount,
 }: {
   entryId: string;
   economicNumber: string;
   entryDate: string;
   today: string;
+  /** Sin servicios en la estancia, el motivo es obligatorio (la BD también lo exige). */
+  serviceCount: number;
 }) {
+  const reasonRequired = serviceCount === 0;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(today);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [noteError, setNoteError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function reset() {
     setDate(today);
     setNote("");
     setError(null);
+    setNoteError(null);
   }
 
   function confirm() {
@@ -53,6 +59,7 @@ export function ReleaseShopDialog({
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Revisa la fecha");
     if (parsed.data.date < entryDate) return setError(`La salida no puede ser antes de la entrada (${formatDate(entryDate)})`);
     if (parsed.data.date > today) return setError("La fecha de salida no puede ser futura");
+    if (reasonRequired && !parsed.data.note) return setNoteError("Escribe por qué sale sin servicios registrados");
 
     startTransition(async () => {
       try {
@@ -105,18 +112,27 @@ export function ReleaseShopDialog({
             />
             {error && <FieldError>{error}</FieldError>}
           </Field>
-          <Field>
-            <FieldLabel htmlFor={`salida-nota-${entryId}`}>Nota (opcional)</FieldLabel>
+          <Field data-invalid={Boolean(noteError)}>
+            <FieldLabel htmlFor={`salida-nota-${entryId}`}>{reasonRequired ? "Motivo" : "Nota (opcional)"}</FieldLabel>
             <Textarea
               id={`salida-nota-${entryId}`}
               rows={2}
               value={note}
               maxLength={1000}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="Ej. Se cambiaron balatas, quedó lista"
+              onChange={(event) => {
+                setNote(event.target.value);
+                setNoteError(null);
+              }}
+              placeholder={reasonRequired ? "Ej. Se revisó y no tenía nada" : "Ej. Se cambiaron balatas, quedó lista"}
+              aria-invalid={Boolean(noteError)}
               className="text-base"
             />
-            <FieldDescription>Si registras el servicio, ahí van los gastos; aquí solo cómo quedó.</FieldDescription>
+            {noteError && <FieldError>{noteError}</FieldError>}
+            <FieldDescription>
+              {reasonRequired
+                ? "No tiene servicios registrados en esta estancia: explica por qué sale. Si se le hizo algo, mejor registra el servicio con la casilla de salida."
+                : "Si registras el servicio, ahí van los gastos; aquí solo cómo quedó."}
+            </FieldDescription>
           </Field>
           <AlertDialogFooter>
             <AlertDialogCancel size="touch">Cancelar</AlertDialogCancel>

@@ -12,6 +12,7 @@ insert into x values
   ('capt', (select id from public.perfiles where rol = 'capturista' and activo limit 1)),
   ('ua', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1)),
   ('ub', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 1)),
+  ('uc', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 2)),
   ('cat', (select id from public.categorias where activo and not requiere_concepto order by nombre limit 1));
 
 select set_config('request.jwt.claims', json_build_object('sub', (select v from x where k = 'capt'), 'role', 'authenticated')::text, true);
@@ -41,6 +42,17 @@ begin
   end;
   perform public.dar_salida_taller(p_entrada_id => v_e2, p_fecha => hoy, p_nota => 'Manual');
   insert into x values ('e2', v_e2);
+
+  -- Estancia sin servicios: "Dar salida" exige motivo; con motivo, sale.
+  v_e2 := public.registrar_entrada_taller((select v from x where k = 'uc'), hoy - 1, 'Sin servicios');
+  begin
+    perform public.dar_salida_taller(p_entrada_id => v_e2, p_fecha => hoy, p_nota => '   ');
+    insert into r(caso, ok, detalle) values ('Salida sin servicios y sin motivo rechazada', false, 'pudo');
+  exception when others then
+    insert into r(caso, ok, detalle) values ('Salida sin servicios y sin motivo rechazada', sqlstate = '23514', sqlerrm);
+  end;
+  perform public.dar_salida_taller(p_entrada_id => v_e2, p_fecha => hoy, p_nota => 'Se revisó y no tenía nada');
+  insert into r(caso, ok, detalle) values ('Salida sin servicios con motivo', true, '');
 exception when others then
   insert into r(caso, ok, detalle) values ('Bloque capturista', false, sqlerrm);
 end $$;
