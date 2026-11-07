@@ -104,6 +104,7 @@ export function ShopBoard({
                   economicNumber={entry.economicNumber}
                   entryDate={entry.entryDate}
                   today={today}
+                  serviceCount={entry.serviceCount}
                 />
               </div>
             )}

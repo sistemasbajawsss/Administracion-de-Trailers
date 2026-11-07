@@ -12,7 +12,8 @@ export async function listOpenShopEntries(): Promise<ShopEntry[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("entradas_taller")
-    .select("id, unidad_id, fecha_entrada, falla, reporta_nombre, unidad:unidades!inner(numero_economico, tipo, operacion)")
+    // servicios(count): cuántos servicios lleva la estancia (RLS: el capturista cuenta los suyos).
+    .select("id, unidad_id, fecha_entrada, falla, reporta_nombre, unidad:unidades!inner(numero_economico, tipo, operacion), servicios(count)")
     .is("fecha_salida", null)
     .order("fecha_entrada", { ascending: true })
     .order("created_at", { ascending: true });
@@ -28,5 +29,6 @@ export async function listOpenShopEntries(): Promise<ShopEntry[]> {
     entryDate: row.fecha_entrada,
     fault: row.falla,
     reportedBy: row.reporta_nombre,
+    serviceCount: row.servicios[0]?.count ?? 0,
   }));
 }

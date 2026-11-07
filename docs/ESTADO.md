@@ -101,6 +101,14 @@
 
 ## Historial de secciones
 
+### Corrección posterior — Salida de taller sin servicios con motivo (2026-11-06, pedida por el usuario)
+- "Dar salida" de una estancia sin ningún servicio registrado exige motivo (la nota). Con servicios, o cuando la salida la da un servicio con la casilla, la nota sigue opcional. En la BD (`20261107005412_salida_sin_servicio_con_motivo.sql`, `dar_salida_taller()` con la misma firma) y en el diálogo de Taller (el campo pasa a "Motivo" y explica por qué). La venta de una unidad en taller no cambia (cierra la entrada con "Unidad vendida").
+- Pruebas: `salida-servicio.sql` 9/9 (sin servicios y sin motivo rechazada, con motivo sale); regresión igual a la línea base.
+- Nota: el capturista cuenta solo sus propios servicios en la estancia (RLS), así que puede pedírsele motivo aunque otro ya haya registrado uno; nunca al revés.
+
+### Corrección posterior — Tarjetas desplegables y scroll de la página (2026-11-06, pedida por el usuario)
+- Estancias en taller de la ficha: tarjetas desplegables que salen cerradas y se abren al tocarlas; se cargan de 10 en 10 con el scroll de la página (`unidades/actions.ts › loadMoreShopStays`). Gastos (Servicios y ficha) sin cuadro con scroll propio: la siguiente tanda se pide con el scroll de la página. Inicio: "Servicios sin factura" y "Sin entrada a taller" muestran los 10 más recientes sin scroll propio. Reglas nuevas en CLAUDE.md › UI (sin "…", sin cuadros con scroll propio, sin emojis).
+
 ### Corrección posterior — Celular y estancias en taller (2026-11-06, pedida por el usuario al probar la 5E en el iPhone)
 - Jalar hacia abajo para actualizar en la app instalada (`components/layout/pull-to-refresh.tsx`, en `(app)/layout.tsx`): desde el tope de la pantalla, sin diálogos abiertos ni dentro de una lista con scroll propio; usa `router.refresh()` (no se pierde lo escrito en formularios). Además, en app y navegador, la pantalla se actualiza sola al volver después de 30 s en otra app.
 - Ficha de la unidad: cada estancia en taller es una tarjeta que se abre (`<details>`; la más reciente abierta): fechas, días, falla y total; abierta, sus servicios con enlace y "Salió de taller con este servicio". BD (`20261106233851_salida_con_servicio.sql`): `entradas_taller.servicio_salida_id`, `dar_salida_taller()` con `p_servicio_id` opcional (versión de 3 argumentos reemplazada), `registrar_servicio()` / `actualizar_servicio()` le pasan su servicio, vista `entradas_taller_resumen` (total y número de servicios por estancia, `security_invoker`); la salida real de P-05 quedó ligada a su servicio.

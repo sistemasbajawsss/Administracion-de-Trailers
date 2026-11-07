@@ -12,4 +12,6 @@ export type ShopEntry = {
   fault: string;
   /** Nombre de quien la reportó, como estaba al registrar la entrada. */
   reportedBy: string | null;
+  /** Servicios registrados en la estancia. Sin ninguno, "Dar salida" exige motivo. */
+  serviceCount: number;
 };
