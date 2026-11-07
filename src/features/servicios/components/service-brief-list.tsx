@@ -41,10 +41,7 @@ export function ServiceBriefList({
                 {showAuthor && service.author && ` · ${service.author}`}
               </span>
               {showNoEntryReason && (
-                <span
-                  className={`block truncate text-sm ${service.noEntryReason ? "" : "font-medium text-amber-800"}`}
-                  title={service.noEntryReason ?? undefined}
-                >
+                <span className={`block text-sm ${service.noEntryReason ? "" : "font-medium text-amber-800"}`}>
                   {service.noEntryReason ?? "Sin motivo"}
                 </span>
               )}
