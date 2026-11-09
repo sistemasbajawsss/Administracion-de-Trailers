@@ -34,6 +34,7 @@ src/
 │   ├── servicios/               # servicios y sus gastos
 │   ├── comprobantes/
 │   ├── taller/                  # entradas a taller: entrada, salida, lista (5E)
+│   ├── mantenimientos/          # mantenimientos programados por unidad y lo pendiente (5F)
 │   ├── usuarios/                # alta, rol, desactivar, contraseña (solo admin)
 │   └── dashboard/
 │       ├── components/          # Componentes propios del feature

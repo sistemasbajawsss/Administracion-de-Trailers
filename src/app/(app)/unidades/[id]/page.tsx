@@ -16,6 +16,8 @@ import { DeleteUnitZone } from "@/features/unidades/components/delete-unit-zone"
 import { ShopStays } from "@/features/unidades/components/shop-stays";
 import { SellUnitZone, SoldBanner } from "@/features/unidades/components/unit-sale";
 import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badge";
+import { UnitMaintenance } from "@/features/mantenimientos/components/unit-maintenance";
+import { listMaintenanceSources, listUnitMaintenance } from "@/features/mantenimientos/queries";
 import { UnitMileageActions } from "@/features/unidades/components/unit-mileage";
 import {
   getUnit,
@@ -37,13 +39,15 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [user, unit, totals, sale, shopStays, mileage] = await Promise.all([
+  const [user, unit, totals, sale, shopStays, mileage, maintenance, maintenanceSources] = await Promise.all([
     getCurrentUser(),
     getUnit(id),
     getUnitTotals(id),
     getUnitSale(id),
     listUnitShopStays(id),
     getUnitMileage(id),
+    listUnitMaintenance(id),
+    listMaintenanceSources(id),
   ]);
   if (!unit) notFound();
   const isAdmin = user.role === "admin";
@@ -136,6 +140,18 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
           </div>
         )}
       </dl>
+
+      <UnitMaintenance
+        unitId={unit.id}
+        economicNumber={unit.economicNumber}
+        isBox={!hasOdometer}
+        currentKm={mileage.last?.km ?? null}
+        items={maintenance}
+        sources={maintenanceSources}
+        // Una unidad de baja o vendida ya no se programa; lo que tenía se sigue viendo.
+        canEdit={isAdmin && !isRetired(unit.status)}
+        today={todayInTijuana()}
+      />
 
       <ShopStays
         // key: al actualizar la pantalla (router.refresh) la lista empieza de nuevo con los datos frescos.
