@@ -198,6 +198,50 @@ export type Database = {
           },
         ]
       }
+      correcciones_kilometraje: {
+        Row: {
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          kilometraje: number
+          kilometraje_anterior: number | null
+          motivo: string
+          unidad_id: string
+        }
+        Insert: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          id?: string
+          kilometraje: number
+          kilometraje_anterior?: number | null
+          motivo: string
+          unidad_id: string
+        }
+        Update: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          kilometraje?: number
+          kilometraje_anterior?: number | null
+          motivo?: string
+          unidad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correcciones_kilometraje_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entradas_taller: {
         Row: {
           created_at: string
@@ -206,6 +250,7 @@ export type Database = {
           fecha_entrada: string
           fecha_salida: string | null
           id: string
+          kilometraje: number | null
           nota_salida: string | null
           reporta_nombre: string | null
           salida_by: string | null
@@ -221,6 +266,7 @@ export type Database = {
           fecha_entrada: string
           fecha_salida?: string | null
           id?: string
+          kilometraje?: number | null
           nota_salida?: string | null
           reporta_nombre?: string | null
           salida_by?: string | null
@@ -236,6 +282,7 @@ export type Database = {
           fecha_entrada?: string
           fecha_salida?: string | null
           id?: string
+          kilometraje?: number | null
           nota_salida?: string | null
           reporta_nombre?: string | null
           salida_by?: string | null
@@ -800,6 +847,15 @@ export type Database = {
         }[]
       }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
+      corregir_kilometraje: {
+        Args: {
+          p_fecha: string
+          p_kilometraje: number
+          p_motivo: string
+          p_unidad_id: string
+        }
+        Returns: string
+      }
       dar_salida_taller: {
         Args: {
           p_entrada_id: string
@@ -886,6 +942,15 @@ export type Database = {
           unidad_id: string
         }[]
       }
+      kilometraje_unidades: {
+        Args: { p_unidad_id?: string }
+        Returns: {
+          fecha: string
+          fuente: string
+          kilometraje: number
+          unidad_id: string
+        }[]
+      }
       listar_gastos: {
         Args: {
           p_busqueda?: string
@@ -952,7 +1017,12 @@ export type Database = {
         Returns: string
       }
       registrar_entrada_taller: {
-        Args: { p_falla: string; p_fecha: string; p_unidad_id: string }
+        Args: {
+          p_falla: string
+          p_fecha: string
+          p_kilometraje?: number
+          p_unidad_id: string
+        }
         Returns: string
       }
       registrar_servicio: {
@@ -1002,6 +1072,16 @@ export type Database = {
       rol_actual: {
         Args: never
         Returns: Database["public"]["Enums"]["rol_usuario"]
+      }
+      validar_kilometraje: {
+        Args: {
+          p_entrada_id?: string
+          p_fecha: string
+          p_kilometraje: number
+          p_servicio_id?: string
+          p_unidad_id: string
+        }
+        Returns: undefined
       }
       validar_reporte: {
         Args: { p_desde: string; p_grupo: string; p_hasta: string }

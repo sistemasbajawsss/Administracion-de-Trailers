@@ -58,13 +58,13 @@ begin
     from storage.objects o where o.bucket_id = 'comprobantes' and split_part(o.name, '/', 1) = x.s_admin::text;
 
   -- Capturar y editar lo suyo
-  v_s := public.registrar_servicio(x.u_ok, ((now() at time zone 'America/Tijuana')::date), 1000, null, '[TEST capturista]', jsonb_build_array(jsonb_build_object('categoria_id', x.c_ok, 'monto', '150.00')));
+  v_s := public.registrar_servicio(x.u_ok, ((now() at time zone 'America/Tijuana')::date), null, null, '[TEST capturista]', jsonb_build_array(jsonb_build_object('categoria_id', x.c_ok, 'monto', '150.00')));
   insert into r(grupo, caso, ok, detalle) values ('Capturar', 'Registra servicio', v_s is not null, '');
-  perform public.actualizar_servicio(v_s, x.u_ok, ((now() at time zone 'America/Tijuana')::date), 1000, null, '[TEST capturista] editado',
+  perform public.actualizar_servicio(v_s, x.u_ok, ((now() at time zone 'America/Tijuana')::date), null, null, '[TEST capturista] editado',
     (select jsonb_agg(jsonb_build_object('id', id, 'categoria_id', categoria_id, 'monto', '175.00')) from public.gastos where servicio_id = v_s), 'Corrijo el monto');
   insert into r(grupo, caso, ok, detalle) select 'Capturar', 'Edita lo suyo con motivo', monto = 175, monto::text from public.gastos where servicio_id = v_s;
   begin
-    perform public.actualizar_servicio(v_s, x.u_ok, ((now() at time zone 'America/Tijuana')::date), 1000, null, 'x',
+    perform public.actualizar_servicio(v_s, x.u_ok, ((now() at time zone 'America/Tijuana')::date), null, null, 'x',
       (select jsonb_agg(jsonb_build_object('id', id, 'categoria_id', categoria_id, 'monto', '1')) from public.gastos where servicio_id = v_s), '');
     insert into r(grupo, caso, ok, detalle) values ('Capturar', 'Editar sin motivo rechazado', false, 'pudo');
   exception when others then insert into r(grupo, caso, ok, detalle) values ('Capturar', 'Editar sin motivo rechazado', true, sqlerrm); end;

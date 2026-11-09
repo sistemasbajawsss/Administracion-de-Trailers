@@ -27,13 +27,13 @@ declare
   v_e uuid; v_s1 uuid; v_s2 uuid; v_e2 uuid; v_s3 uuid;
 begin
   v_e := public.registrar_entrada_taller((select v from x where k = 'ua'), hoy - 3, 'Prueba');
-  v_s1 := public.registrar_servicio((select v from x where k = 'ua'), hoy - 2, 1000, null, 'S1', g, false);
-  v_s2 := public.registrar_servicio((select v from x where k = 'ua'), hoy - 1, 1000, null, 'S2', g, true);
+  v_s1 := public.registrar_servicio((select v from x where k = 'ua'), hoy - 2, null, null, 'S1', g, false);
+  v_s2 := public.registrar_servicio((select v from x where k = 'ua'), hoy - 1, null, null, 'S2', g, true);
   insert into x values ('e', v_e), ('s2', v_s2);
 
   -- Llamada a dar_salida como la app (con nombres, sin servicio) sigue igual.
   v_e2 := public.registrar_entrada_taller((select v from x where k = 'ub'), hoy - 2, 'Prueba 2');
-  v_s3 := public.registrar_servicio((select v from x where k = 'ub'), hoy - 1, 1000, null, 'S3', g, false);
+  v_s3 := public.registrar_servicio((select v from x where k = 'ub'), hoy - 1, null, null, 'S3', g, false);
   begin
     perform public.dar_salida_taller(p_entrada_id => v_e2, p_fecha => hoy, p_nota => 'Manual', p_servicio_id => v_s1);
     insert into r(caso, ok, detalle) values ('Servicio de otra estancia rechazado', false, 'pudo');
