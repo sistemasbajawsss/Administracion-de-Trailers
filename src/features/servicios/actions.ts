@@ -91,6 +91,7 @@ function revalidateServices(unitIds: string[]) {
   revalidatePath("/taller");
   revalidatePath("/unidades", "layout");
   revalidatePath("/");
+  revalidatePath("/mantenimientos");
   for (const unitId of unitIds) revalidatePath(`/unidades/${unitId}`);
 }
 

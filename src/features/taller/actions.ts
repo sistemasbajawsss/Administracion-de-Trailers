@@ -23,6 +23,7 @@ function revalidateShop() {
   revalidatePath("/taller");
   revalidatePath("/unidades", "layout");
   revalidatePath("/");
+  revalidatePath("/mantenimientos");
 }
 
 export async function registerShopEntry(input: unknown): Promise<ActionResult<{ id: string }>> {

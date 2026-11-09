@@ -24,6 +24,7 @@ npx supabase db query --linked -f supabase/tests/<archivo>.sql
 | `servicios-taller.sql` | Servicios ligados al taller, motivo, "se olvidó la entrada" (5E) | 22/22 |
 | `salida-servicio.sql` | Servicio que dio la salida, total de cada estancia y salida sin servicios con motivo (5E) | 9/9 |
 | `carga-5e.sql` | Prueba de carga (~35 mil servicios); tarda ~1 min | Ver `docs/ESTADO.md` |
+| `carga-5f.sql` | Prueba de carga de Mantenimientos con los tres roles (~35 mil servicios, 176 mantenimientos); tarda ~20 s | Ver `docs/ESTADO.md` |
 | `kilometraje.sql` | Kilometraje por fecha, entrada a taller, correcciones del admin (5F) | 31/31 |
 | `tipo-servicio.sql` | Tipo de servicio: alta, edición, restaurar, Reportes y Excel (5F) | 15/15 |
 | `mantenimientos.sql` | Mantenimientos por unidad: cálculo de lo pendiente, validaciones, copiar, permisos (5F) | 27/27 |

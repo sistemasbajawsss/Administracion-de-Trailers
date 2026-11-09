@@ -36,6 +36,7 @@ function errorMessage(error: { code?: string; message?: string }, fallback: stri
 function revalidateMaintenance(unitId: string) {
   revalidatePath(`/unidades/${unitId}`);
   revalidatePath("/");
+  revalidatePath("/mantenimientos");
 }
 
 export async function createMaintenance(unitId: string, input: unknown): Promise<ActionResult> {

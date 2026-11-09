@@ -120,6 +120,7 @@ export async function deleteUnit(id: string, input: unknown): Promise<ActionResu
   revalidatePath("/unidades", "layout");
   revalidatePath("/servicios", "layout");
   revalidatePath("/");
+  revalidatePath("/mantenimientos");
   return ok();
 }
 
@@ -136,6 +137,7 @@ function revalidateSale() {
   revalidatePath("/taller");
   revalidatePath("/servicios/nuevo");
   revalidatePath("/");
+  revalidatePath("/mantenimientos");
 }
 
 /** Marca la unidad como vendida (solo admin). Si estaba en taller, su entrada se cierra. */
@@ -216,5 +218,8 @@ export async function correctUnitMileage(id: string, input: unknown): Promise<Ac
   revalidatePath(`/unidades/${id}`);
   revalidatePath("/servicios/nuevo");
   revalidatePath("/taller/entrada");
+  // El kilometraje mueve lo que falta de los mantenimientos (5F).
+  revalidatePath("/mantenimientos");
+  revalidatePath("/");
   return ok();
 }
