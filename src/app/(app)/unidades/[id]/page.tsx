@@ -16,11 +16,18 @@ import { DeleteUnitZone } from "@/features/unidades/components/delete-unit-zone"
 import { ShopStays } from "@/features/unidades/components/shop-stays";
 import { SellUnitZone, SoldBanner } from "@/features/unidades/components/unit-sale";
 import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badge";
-import { getUnit, getUnitSale, listUnitShopStays, SHOP_STAYS_BATCH_SIZE } from "@/features/unidades/queries";
-import { isRetired, UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
+import { UnitMileageActions } from "@/features/unidades/components/unit-mileage";
+import {
+  getUnit,
+  getUnitMileage,
+  getUnitSale,
+  listUnitShopStays,
+  SHOP_STAYS_BATCH_SIZE,
+} from "@/features/unidades/queries";
+import { isRetired, MILEAGE_SOURCE_LABELS, UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
-import { formatDate, formatMoney, todayInTijuana } from "@/lib/utils/format";
+import { formatDate, formatKm, formatMoney, todayInTijuana } from "@/lib/utils/format";
 
 export const metadata: Metadata = { title: "Ficha de unidad" };
 
@@ -30,15 +37,18 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [user, unit, totals, sale, shopStays] = await Promise.all([
+  const [user, unit, totals, sale, shopStays, mileage] = await Promise.all([
     getCurrentUser(),
     getUnit(id),
     getUnitTotals(id),
     getUnitSale(id),
     listUnitShopStays(id),
+    getUnitMileage(id),
   ]);
   if (!unit) notFound();
   const isAdmin = user.role === "admin";
+  // Las cajas no tienen odómetro (5F).
+  const hasOdometer = unit.type !== "caja";
 
   const filters = serviceFiltersSchema.parse(query);
   const group = unit.type === "camioneta" ? "camionetas" : unit.operation === "foraneo" ? "foraneo" : "local";
@@ -85,7 +95,9 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
         <SoldBanner unitId={unit.id} economicNumber={unit.economicNumber} sale={sale} canUndo={isAdmin} />
       )}
 
-      <dl className="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
+      <dl
+        className={`mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border ${hasOdometer ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}
+      >
         <div className="col-span-2 bg-brand-ink px-5 py-4 text-white sm:col-span-1">
           <dt className="text-sm text-white/75">Total invertido</dt>
           <dd className="font-heading text-4xl font-bold tabular-nums">{formatMoney(totals.total)}</dd>
@@ -100,6 +112,29 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
             {totals.lastServiceDate ? formatDate(totals.lastServiceDate) : "—"}
           </dd>
         </div>
+        {hasOdometer && (
+          // En celular ocupa todo el renglón (con 2 columnas quedaría un hueco).
+          <div className="col-span-2 min-w-0 bg-white px-5 py-4 sm:col-span-1">
+            <dt className="text-sm text-muted-foreground">Kilometraje</dt>
+            <dd className="min-w-0">
+              <span className="block font-heading text-3xl font-semibold whitespace-nowrap tabular-nums">
+                {mileage.last ? formatKm(mileage.last.km) : "Sin registrar"}
+              </span>
+              {mileage.last && (
+                <span className="block text-sm text-muted-foreground">
+                  Al {formatDate(mileage.last.date)}, {MILEAGE_SOURCE_LABELS[mileage.last.source]}
+                </span>
+              )}
+              <UnitMileageActions
+                unitId={unit.id}
+                economicNumber={unit.economicNumber}
+                mileage={mileage}
+                canCorrect={isAdmin && !isRetired(unit.status)}
+                today={todayInTijuana()}
+              />
+            </dd>
+          </div>
+        )}
       </dl>
 
       <ShopStays

@@ -11,8 +11,9 @@ import { getFixRate, type FixRate } from "@/lib/banxico";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
 import { normalizeAmount, normalizeRate } from "@/lib/utils/format";
+import { mileageIssue } from "@/lib/utils/mileage";
 
-import { getOpenShopStay, getServiceShopLink, listExpenses } from "./queries";
+import { getOpenShopStay, getServiceShopLink, getUnitMileageRule, listExpenses } from "./queries";
 import {
   exchangeRateDateSchema,
   fallsInStay,
@@ -94,14 +95,22 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
 
   await requireRole(CAPTURE_ROLES);
 
-  // Taller (5E, D13): misma regla que el formulario, con lo que hay hoy en la BD.
+  // Taller (5E, D13) y kilometraje (5F, D14): mismas reglas que el formulario, con lo que hay hoy en la BD.
   let stay: ShopStay | null;
+  let mileageRule: Awaited<ReturnType<typeof getUnitMileageRule>>;
   try {
-    stay = await getOpenShopStay(parsed.data.unitId);
+    [stay, mileageRule] = await Promise.all([getOpenShopStay(parsed.data.unitId), getUnitMileageRule(parsed.data.unitId)]);
   } catch {
     return fail("No se pudo guardar el servicio. Inténtalo de nuevo.");
   }
+  if (!mileageRule) return fail("La unidad ya no existe.");
   const values = parsed.data;
+  const kmProblem = mileageIssue(values.mileage, {
+    required: mileageRule.type !== "caja",
+    last: mileageRule.last,
+    date: values.date,
+  });
+  if (mileageRule.type !== "caja" && kmProblem) return fail(kmProblem);
   const linked = fallsInStay(stay, values.date);
   const issues = shopIssues(values, { stay, linked, needsReason: true, allowForgot: true });
   if (issues.length) return fail(issues[0]!.message);

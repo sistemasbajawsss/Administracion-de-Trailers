@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useGoBack } from "@/components/shared/go-back";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UnitPicker } from "@/features/servicios/components/unit-picker";
 import type { UnitOption } from "@/features/servicios/types";
+import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
 
 import { registerShopEntry } from "../actions";
 import { shopEntrySchema, type ShopEntryInput } from "../schemas";
@@ -34,14 +35,27 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
 
   const form = useForm<ShopEntryInput>({
     resolver: zodResolver(shopEntrySchema),
-    defaultValues: { unitId: initialUnitId, date: today, fault: "" },
+    defaultValues: { unitId: initialUnitId, date: today, mileage: "", fault: "" },
   });
+
+  const unitId = useWatch({ control: form.control, name: "unitId" });
+  const selectedUnit = units.find((u) => u.id === unitId);
+  const isBox = selectedUnit?.type === "caja";
+  const lastMileage = selectedUnit?.mileage ?? null;
 
   async function onSubmit(values: ShopEntryInput) {
     if (values.date > today) {
       form.setError("date", { message: "La fecha de entrada no puede ser futura" });
       return;
     }
+    // Kilometraje (5F): obligatorio salvo en cajas (el servidor y la BD lo revisan otra vez).
+    const kmProblem = isBox ? null : mileageIssue(values.mileage, { required: true, last: lastMileage, date: values.date });
+    if (kmProblem) {
+      form.setError("mileage", { message: kmProblem });
+      form.setFocus("mileage");
+      return;
+    }
+    if (isBox) values = { ...values, mileage: "" };
     const number = units.find((u) => u.id === values.unitId)?.economicNumber ?? "La unidad";
     try {
       const result = await registerShopEntry(values);
@@ -82,24 +96,52 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
           )}
         />
 
-        <Controller
-          name="date"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid} className="sm:max-w-64">
-              <FieldLabel htmlFor="date">Fecha de entrada</FieldLabel>
-              <Input
-                {...field}
-                id="date"
-                type="date"
-                max={today}
-                aria-invalid={fieldState.invalid}
-                className="h-11 min-w-0 bg-white text-base"
-              />
-              <FieldError errors={[fieldState.error]} />
-            </Field>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Controller
+            name="date"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid} className="min-w-0">
+                <FieldLabel htmlFor="date">Fecha de entrada</FieldLabel>
+                <Input
+                  {...field}
+                  id="date"
+                  type="date"
+                  max={today}
+                  aria-invalid={fieldState.invalid}
+                  className="h-11 min-w-0 bg-white text-base"
+                />
+                <FieldError errors={[fieldState.error]} />
+              </Field>
+            )}
+          />
+
+          {!isBox && (
+            <Controller
+              name="mileage"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="min-w-0">
+                  <FieldLabel htmlFor="mileage">Kilometraje</FieldLabel>
+                  <Input
+                    {...field}
+                    id="mileage"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Ej. 250000"
+                    aria-invalid={fieldState.invalid}
+                    aria-required
+                    className="h-11 min-w-0 bg-white text-base tabular-nums"
+                  />
+                  {lastMileage && (
+                    <FieldDescription>Último registrado: {describeMileage(lastMileage)}</FieldDescription>
+                  )}
+                  <FieldError errors={[fieldState.error]} />
+                </Field>
+              )}
+            />
           )}
-        />
+        </div>
 
         <Controller
           name="fault"

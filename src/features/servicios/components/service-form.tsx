@@ -46,6 +46,7 @@ import {
   toRateUnits,
   usdToMxnCents,
 } from "@/lib/utils/format";
+import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
 
 import { createService, suggestExchangeRate, updateService } from "../actions";
 import {
@@ -174,6 +175,7 @@ function ServiceFormBody({
             status: "baja" as const,
             detail: "Dada de baja o vendida",
             shopStay: null,
+            mileage: null,
           },
         ]
       : units;
@@ -182,6 +184,11 @@ function ServiceFormBody({
   const expenses = useWatch({ control: form.control, name: "expenses" });
   const selectedUnit = unitOptions.find((u) => u.id === unitId);
   const isBox = selectedUnit?.type === "caja";
+  // Kilometraje (5F, D14): obligatorio al dar de alta (menos cajas). Al editar sigue
+  // opcional para no trabar servicios de antes; la BD revisa que cuadre en ambos casos.
+  const mileageRequired = !isEdit && !isBox;
+  // La última lectura solo orienta en el alta (al editar, puede ser este mismo servicio).
+  const lastMileage = isEdit ? null : (selectedUnit?.mileage ?? null);
 
   // Taller (5E): estancia abierta de la unidad elegida y qué pasa con este servicio.
   const serviceDate = useWatch({ control: form.control, name: "date" });
@@ -274,6 +281,16 @@ function ServiceFormBody({
       }
     });
     if (missingConcept) return;
+
+    // Kilometraje (5F): obligatorio en alta y que no sea menor al último (el servidor y la BD lo revisan otra vez).
+    const kmProblem = isBox
+      ? null
+      : mileageIssue(values.mileage, { required: mileageRequired, last: lastMileage, date: values.date });
+    if (kmProblem) {
+      form.setError("mileage", { message: kmProblem });
+      form.setFocus("mileage");
+      return void toast.error(kmProblem);
+    }
 
     // Taller (5E, D13): motivo o datos de la entrada olvidada (el servidor vuelve a revisarlo).
     const shopProblems = shopIssues(values, {
@@ -406,7 +423,9 @@ function ServiceFormBody({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="mileage">Kilometraje (opcional)</FieldLabel>
+                    <FieldLabel htmlFor="mileage">
+                      {mileageRequired || service?.mileage != null ? "Kilometraje" : "Kilometraje (opcional)"}
+                    </FieldLabel>
                     <Input
                       {...field}
                       id="mileage"
@@ -414,8 +433,12 @@ function ServiceFormBody({
                       autoComplete="off"
                       placeholder="Ej. 250000"
                       aria-invalid={fieldState.invalid}
+                      aria-required={mileageRequired}
                       className={`${inputClass} tabular-nums`}
                     />
+                    {lastMileage && (
+                      <FieldDescription>Último registrado: {describeMileage(lastMileage)}</FieldDescription>
+                    )}
                     <FieldError errors={[fieldState.error]} />
                   </Field>
                 )}

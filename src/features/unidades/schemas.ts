@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { isRealDate } from "@/lib/utils/format";
+import { parseKm } from "@/lib/utils/mileage";
 
 import {
   UNIT_OPERATIONS,
@@ -112,3 +113,19 @@ export type SellUnitInput = z.infer<typeof sellUnitSchema>;
 export const undoSaleSchema = z.object({
   reason: z.string().trim().min(1, "Escribe el motivo").max(1000, "Motivo: máximo 1000 caracteres"),
 });
+/** Corregir el kilometraje de una unidad (solo admin, 5F). La BD vuelve a revisar rol, fecha y caja. */
+export const correctMileageSchema = z.object({
+  mileage: z
+    .string()
+    .trim()
+    .min(1, "Escribe el kilometraje correcto")
+    .refine((value) => parseKm(value) !== null, "Kilometraje: solo números"),
+  date: z.string().refine(isRealDate, "Elige desde qué fecha"),
+  reason: z
+    .string()
+    .trim()
+    .min(5, "Explica el motivo (mínimo 5 letras)")
+    .max(500, "Motivo: máximo 500 caracteres"),
+});
+
+export type CorrectMileageInput = z.infer<typeof correctMileageSchema>;

@@ -1,4 +1,5 @@
 import type { UnitOperation, UnitStatus, UnitType } from "@/features/unidades/types";
+import type { LastMileage } from "@/lib/utils/mileage";
 
 /** Unidad elegible en el formulario de servicio (las de baja o vendidas no aparecen). */
 export type UnitOption = {
@@ -11,6 +12,8 @@ export type UnitOption = {
   detail: string;
   /** Estancia abierta en taller (5E), si la unidad está en taller. */
   shopStay: ShopStay | null;
+  /** Última lectura del odómetro (5F); null si no tiene o es caja. */
+  mileage: LastMileage | null;
 };
 
 /** Estancia abierta en taller de una unidad: a ella se liga un servicio con fecha igual o posterior a la entrada. */

@@ -4,6 +4,7 @@ import { UNIT_TYPE_LABELS, type UnitType } from "@/features/unidades/types";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 import { formatDate, formatKm, formatMoney, formatRate, formatUsd, toCents } from "@/lib/utils/format";
+import { toLastMileage, type LastMileage } from "@/lib/utils/mileage";
 
 import type { ServiceFilters } from "./schemas";
 import type {
@@ -156,6 +157,35 @@ async function listOpenShopStays(): Promise<Map<string, ShopStay>> {
   return new Map(data.map((e) => [e.unidad_id, { entryId: e.id, entryDate: e.fecha_entrada, fault: e.falla }]));
 }
 
+/** Última lectura del odómetro de cada unidad (5F). Una sola llamada; son pocas unidades. */
+async function listUnitMileages(): Promise<Map<string, LastMileage>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("kilometraje_unidades");
+  if (error) throw new Error("No se pudo cargar el kilometraje de las unidades");
+  const map = new Map<string, LastMileage>();
+  for (const row of data) {
+    const last = toLastMileage(row);
+    if (last) map.set(row.unidad_id, last);
+  }
+  return map;
+}
+
+/**
+ * Lo que el servidor necesita para validar el kilometraje (5F): el tipo de unidad
+ * (las cajas no llevan) y su última lectura.
+ */
+export async function getUnitMileageRule(unitId: string): Promise<{ type: UnitType; last: LastMileage | null } | null> {
+  const supabase = await createClient();
+  const [unit, mileage] = await Promise.all([
+    supabase.from("unidades").select("tipo").eq("id", unitId).maybeSingle(),
+    supabase.rpc("kilometraje_unidades", { p_unidad_id: unitId }),
+  ]);
+  if (unit.error || mileage.error) throw new Error("No se pudo revisar el kilometraje de la unidad");
+  if (!unit.data) return null;
+  const row = mileage.data[0];
+  return { type: unit.data.tipo, last: row ? toLastMileage(row) : null };
+}
+
 /** Estancia abierta de una unidad, o null. El servidor la usa para validar el formulario. */
 export async function getOpenShopStay(unitId: string): Promise<ShopStay | null> {
   const supabase = await createClient();
@@ -249,7 +279,7 @@ export async function getExpenseSummary(query: ExpenseQuery): Promise<ExpenseSum
 /** Unidades para elegir en el formulario: todas menos las de baja o vendidas, en orden natural. */
 export async function listUnitOptions(): Promise<UnitOption[]> {
   const supabase = await createClient();
-  const [{ data, error }, stays] = await Promise.all([
+  const [{ data, error }, stays, mileages] = await Promise.all([
     supabase
       .from("unidades")
       .select("id, numero_economico, tipo, operacion, estatus, longitud_pies, marca, modelo")
@@ -257,6 +287,7 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
       .order("tipo")
       .order("numero_orden"),
     listOpenShopStays(),
+    listUnitMileages(),
   ]);
 
   if (error) throw new Error("No se pudieron cargar las unidades");
@@ -274,6 +305,7 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
       status: u.estatus,
       detail: parts.join(" · "),
       shopStay: stays.get(u.id) ?? null,
+      mileage: u.tipo === "caja" ? null : (mileages.get(u.id) ?? null),
     };
   });
 }

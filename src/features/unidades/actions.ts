@@ -8,8 +8,10 @@ import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
+import { parseKm } from "@/lib/utils/mileage";
 
 import {
+  correctMileageSchema,
   deleteUnitSchema,
   normalizeEconomicNumber,
   sellUnitSchema,
@@ -121,8 +123,8 @@ export async function deleteUnit(id: string, input: unknown): Promise<ActionResu
   return ok();
 }
 
-/** Mensajes de las funciones de venta: ya vienen en español y dicen qué corregir. */
-function saleErrorMessage(error: { code?: string; message?: string }, fallback: string) {
+/** Mensajes de las funciones de venta y de kilometraje: ya vienen en español y dicen qué corregir. */
+function adminRpcErrorMessage(error: { code?: string; message?: string }, fallback: string) {
   if (error.code === "42501") return "Solo un administrador puede hacer esto.";
   if (["23505", "23514", "P0002"].includes(error.code ?? "") && error.message) return error.message;
   return fallback;
@@ -150,7 +152,7 @@ export async function sellUnit(id: string, input: unknown): Promise<ActionResult
     p_fecha: parsed.data.date,
     p_nota: parsed.data.note || undefined,
   });
-  if (error) return fail(saleErrorMessage(error, "No se pudo marcar como vendida. Inténtalo de nuevo."));
+  if (error) return fail(adminRpcErrorMessage(error, "No se pudo marcar como vendida. Inténtalo de nuevo."));
 
   revalidateSale();
   return ok();
@@ -166,7 +168,7 @@ export async function undoUnitSale(id: string, input: unknown): Promise<ActionRe
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("deshacer_venta", { p_unidad_id: id, p_motivo: parsed.data.reason });
-  if (error) return fail(saleErrorMessage(error, "No se pudo deshacer la venta. Inténtalo de nuevo."));
+  if (error) return fail(adminRpcErrorMessage(error, "No se pudo deshacer la venta. Inténtalo de nuevo."));
 
   revalidateSale();
   return ok();
@@ -189,4 +191,30 @@ export async function loadMoreShopStays(unitId: unknown, offset: unknown): Promi
   } catch {
     return fail("No se pudieron cargar más estancias. Inténtalo de nuevo.");
   }
+}
+/**
+ * Corrige el kilometraje de la unidad (solo admin, con motivo, 5F): odómetro
+ * cambiado o error anterior. Desde esa fecha la cuenta sigue con el valor nuevo.
+ */
+export async function correctUnitMileage(id: string, input: unknown): Promise<ActionResult> {
+  if (!isUuid(id)) return fail("Unidad no válida.");
+  const parsed = correctMileageSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa los datos de la corrección.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("corregir_kilometraje", {
+    p_unidad_id: id,
+    p_kilometraje: parseKm(parsed.data.mileage)!,
+    p_fecha: parsed.data.date,
+    p_motivo: parsed.data.reason,
+  });
+  if (error) return fail(adminRpcErrorMessage(error, "No se pudo corregir el kilometraje. Inténtalo de nuevo."));
+
+  // El kilometraje actual se ve en la ficha y orienta los formularios de servicio y de taller.
+  revalidatePath(`/unidades/${id}`);
+  revalidatePath("/servicios/nuevo");
+  revalidatePath("/taller/entrada");
+  return ok();
 }
