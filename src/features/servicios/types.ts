@@ -100,6 +100,8 @@ export type ServiceDetail = ServiceListItem & {
   createdBy: string;
   createdAt: string;
   expenses: ExpenseLine[];
+  /** Mantenimientos programados que cumplió (5F); incluye los que después se quitaron. */
+  maintenance: { id: string; name: string }[];
   /** stay: fechas de su estancia (null si no tiene, o si el capturista ya no la ve porque cerró). */
   shop: ServiceShopLink & { stay: { entryDate: string; exitDate: string | null; fault: string } | null };
 };

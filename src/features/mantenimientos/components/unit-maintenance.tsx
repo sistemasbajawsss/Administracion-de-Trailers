@@ -1,7 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Copy, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { ClipboardPlus, Copy, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -16,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatDate, formatKm } from "@/lib/utils/format";
+import { formatKm } from "@/lib/utils/format";
 
 import { copyMaintenance, createMaintenance, removeMaintenance, updateMaintenance } from "../actions";
 import { maintenanceSchema, type MaintenanceInput } from "../schemas";
@@ -37,31 +38,13 @@ import {
   describeInterval,
   describeLeft,
   describeNext,
-  MAINTENANCE_STATUS_LABELS,
+  registerMaintenanceHref as registerHref,
   type Maintenance,
   type MaintenanceSource,
-  type MaintenanceStatus,
 } from "../types";
 
-const STATUS_STYLES: Record<MaintenanceStatus, string> = {
-  vencido: "border-red-500/40 bg-red-50 text-red-800",
-  por_vencer: "border-amber-500/40 bg-amber-50 text-amber-800",
-  al_corriente: "border-emerald-600/30 bg-emerald-50 text-emerald-800",
-  sin_kilometraje: "border-border bg-muted text-muted-foreground",
-};
-
-export function MaintenanceStatusBadge({ status }: { status: MaintenanceStatus }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex h-6 shrink-0 items-center rounded-full border px-2.5 text-xs font-medium whitespace-nowrap",
-        STATUS_STYLES[status],
-      )}
-    >
-      {MAINTENANCE_STATUS_LABELS[status]}
-    </span>
-  );
-}
+import { MaintenanceLastTime } from "./maintenance-last-time";
+import { MaintenanceStatusBadge } from "./maintenance-status-badge";
 
 type UnitMaintenanceProps = {
   unitId: string;
@@ -72,6 +55,8 @@ type UnitMaintenanceProps = {
   items: Maintenance[];
   sources: MaintenanceSource[];
   canEdit: boolean;
+  /** "Registrar" en cada mantenimiento: abre el servicio con todo puesto (admin, unidad no retirada). */
+  canRegister: boolean;
   today: string;
 };
 
@@ -81,7 +66,7 @@ type UnitMaintenanceProps = {
  * otra unidad; el gerente solo ve.
  */
 export function UnitMaintenance(props: UnitMaintenanceProps) {
-  const { economicNumber, items, sources, canEdit } = props;
+  const { economicNumber, items, sources, canEdit, canRegister } = props;
   const [editing, setEditing] = useState<Maintenance | "new" | null>(null);
   const [removing, setRemoving] = useState<Maintenance | null>(null);
   const [copying, setCopying] = useState(false);
@@ -131,20 +116,27 @@ export function UnitMaintenance(props: UnitMaintenanceProps) {
                 {describeNext(m) ? ". " : ""}
                 <span className={m.status === "vencido" ? "font-medium text-red-800" : undefined}>{describeLeft(m)}.</span>
               </p>
-              <p className="text-sm text-muted-foreground">
-                Última vez: {formatDate(m.lastDate)}
-                {m.lastKm !== null && <span className="whitespace-nowrap">, a los {formatKm(m.lastKm)}</span>}
-              </p>
-              {canEdit && (
-                <div className="-mx-2 mt-1 flex flex-wrap gap-1">
-                  <Button variant="ghost" className="min-h-11" onClick={() => setEditing(m)}>
-                    <Pencil aria-hidden="true" />
-                    Editar
-                  </Button>
-                  <Button variant="ghost" className="min-h-11 text-red-800 hover:text-red-900" onClick={() => setRemoving(m)}>
-                    <Trash2 aria-hidden="true" />
-                    Quitar
-                  </Button>
+              <MaintenanceLastTime item={m} linkService />
+              {(canRegister || canEdit) && (
+                <div className="mt-1 flex flex-wrap items-center gap-1">
+                  {canRegister && (
+                    <Link href={registerHref(m)} className={cn(buttonVariants({ variant: "outline" }), "mr-1 min-h-11")}>
+                      <ClipboardPlus aria-hidden="true" />
+                      Registrar
+                    </Link>
+                  )}
+                  {canEdit && (
+                    <>
+                      <Button variant="ghost" className="min-h-11" onClick={() => setEditing(m)}>
+                        <Pencil aria-hidden="true" />
+                        Editar
+                      </Button>
+                      <Button variant="ghost" className="min-h-11 text-red-800 hover:text-red-900" onClick={() => setRemoving(m)}>
+                        <Trash2 aria-hidden="true" />
+                        Quitar
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </li>

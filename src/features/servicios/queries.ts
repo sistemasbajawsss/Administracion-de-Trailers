@@ -66,7 +66,7 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
   const [service, expenses, shop] = await Promise.all([
     supabase
       .from("servicios_resumen")
-      .select(`${LIST_COLUMNS}, kilometraje, proveedor_id, created_by, created_at`)
+      .select(`${LIST_COLUMNS}, kilometraje, proveedor_id, created_by, created_at, mantenimientos`)
       .eq("id", id)
       .returns<
         (ServiceRow & {
@@ -74,6 +74,7 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
           proveedor_id: string | null;
           created_by: string;
           created_at: string;
+          mantenimientos: string[];
         })[]
       >()
       .maybeSingle(),
@@ -105,12 +106,20 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
   if (!service.data) return null;
 
   const row = service.data;
+  // Nombres de los mantenimientos que cumplió (también los que después se quitaron).
+  const maintenance = row.mantenimientos.length
+    ? await supabase.from("mantenimientos_unidad").select("id, nombre").in("id", row.mantenimientos)
+    : { data: [] as { id: string; nombre: string }[], error: null };
+  if (maintenance.error) throw new Error("No se pudo cargar el servicio");
   return {
     ...toListItem(row),
     mileage: row.kilometraje,
     supplierId: row.proveedor_id,
     createdBy: row.created_by,
     createdAt: row.created_at,
+    maintenance: (maintenance.data ?? [])
+      .map((m) => ({ id: m.id, name: m.nombre }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es")),
     expenses: expenses.data.map((e) => ({
       id: e.id,
       categoryId: e.categoria_id,
@@ -409,13 +418,25 @@ type HistoryRow = {
 };
 
 type Row = Record<string, Json | undefined>;
-type Names = { units: Map<string, string>; suppliers: Map<string, string>; categories: Map<string, string> };
+type Names = {
+  units: Map<string, string>;
+  suppliers: Map<string, string>;
+  categories: Map<string, string>;
+  maintenance: Map<string, string>;
+};
+
+/** Ids de mantenimientos guardados en la fila (servicios.mantenimientos, 5F). */
+const idList = (value: Json | undefined): string[] => (Array.isArray(value) ? value.map(String) : []);
 
 const asRow = (value: Json): Row =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Row) : {};
 const str = (value: Json | undefined) => (value === null || value === undefined ? "" : String(value));
 
 function describeServiceField(field: string, value: Json | undefined, names: Names): string {
+  if (field === "mantenimientos") {
+    const ids = idList(value);
+    return ids.length ? ids.map((id) => names.maintenance.get(id) ?? "Mantenimiento").join(", ") : "Ninguno";
+  }
   const text = str(value);
   if (!text) return "—";
   switch (field) {
@@ -438,6 +459,7 @@ const SERVICE_FIELDS: [string, string][] = [
   ["unidad_id", "Unidad"],
   ["fecha", "Fecha"],
   ["tipo", "Tipo de servicio"],
+  ["mantenimientos", "Cuenta como mantenimiento"],
   ["kilometraje", "Kilometraje"],
   ["proveedor_id", "Proveedor"],
   ["descripcion", "Descripción"],
@@ -523,16 +545,22 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
   if (error) throw new Error("No se pudo cargar el historial");
   const rows = data as HistoryRow[];
 
-  const ids = { units: new Set<string>(), suppliers: new Set<string>(), categories: new Set<string>() };
+  const ids = {
+    units: new Set<string>(),
+    suppliers: new Set<string>(),
+    categories: new Set<string>(),
+    maintenance: new Set<string>(),
+  };
   for (const row of rows) {
     for (const value of [asRow(row.datos_anteriores), asRow(row.datos_nuevos)]) {
       if (value.unidad_id) ids.units.add(str(value.unidad_id));
       if (value.proveedor_id) ids.suppliers.add(str(value.proveedor_id));
       if (value.categoria_id) ids.categories.add(str(value.categoria_id));
+      for (const id of idList(value.mantenimientos)) ids.maintenance.add(id);
     }
   }
 
-  const [units, suppliers, categories] = await Promise.all([
+  const [units, suppliers, categories, maintenance] = await Promise.all([
     ids.units.size
       ? supabase.from("unidades").select("id, numero_economico").in("id", [...ids.units])
       : Promise.resolve({ data: [] as { id: string; numero_economico: string }[] }),
@@ -542,12 +570,16 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
     ids.categories.size
       ? supabase.from("categorias").select("id, nombre").in("id", [...ids.categories])
       : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
+    ids.maintenance.size
+      ? supabase.from("mantenimientos_unidad").select("id, nombre").in("id", [...ids.maintenance])
+      : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
   ]);
 
   const names: Names = {
     units: new Map((units.data ?? []).map((u) => [u.id, u.numero_economico])),
     suppliers: new Map((suppliers.data ?? []).map((s) => [s.id, s.nombre])),
     categories: new Map((categories.data ?? []).map((c) => [c.id, c.nombre])),
+    maintenance: new Map((maintenance.data ?? []).map((m) => [m.id, m.nombre])),
   };
 
   const entries: HistoryEntry[] = [];
@@ -649,4 +681,33 @@ export async function listServicesWithoutShopEntry(
     services: data.map((row) => ({ ...toBrief(row), noEntryReason: row.motivo_sin_entrada })),
     total: count ?? 0,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Mantenimientos (5F): historial por tipo de servicio
+// ---------------------------------------------------------------------------
+
+export const SERVICES_BY_TYPE_BATCH_SIZE = 25;
+
+/**
+ * Servicios de un tipo (pestaña Preventivos de Mantenimientos), del más reciente
+ * al más viejo, por tandas. RLS decide el alcance: el capturista solo ve los suyos.
+ */
+export async function listServicesOfType(
+  type: ServiceType,
+  offset = 0,
+): Promise<{ services: ServiceBrief[]; total: number }> {
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("servicios_resumen")
+    .select(BRIEF_COLUMNS, { count: "exact" })
+    .eq("tipo", type)
+    .order("fecha", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(offset, offset + SERVICES_BY_TYPE_BATCH_SIZE - 1)
+    .returns<BriefRow[]>();
+
+  if (error) throw new Error("No se pudieron cargar los servicios");
+  return { services: data.map(toBrief), total: count ?? 0 };
 }

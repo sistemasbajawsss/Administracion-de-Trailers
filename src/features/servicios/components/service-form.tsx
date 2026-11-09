@@ -37,6 +37,7 @@ import {
   type ReceiptDraft,
 } from "@/features/comprobantes/components/receipt-picker";
 import { uploadReceipts } from "@/features/comprobantes/components/upload-receipts";
+import type { Maintenance } from "@/features/mantenimientos/types";
 import {
   formatCents,
   formatDate,
@@ -56,8 +57,9 @@ import {
   type Currency,
   type ServiceEditInput,
 } from "../schemas";
-import type { CategoryOption, ServiceDetail, SupplierOption, UnitOption } from "../types";
+import type { CategoryOption, ServiceDetail, ServiceType, SupplierOption, UnitOption } from "../types";
 
+import { ServiceMaintenancePicker, type MaintenanceChoice } from "./service-maintenance-picker";
 import { ServiceShopPanel, shopState } from "./service-shop-panel";
 import { ServiceTypePicker } from "./service-type-picker";
 import { UnitPicker } from "./unit-picker";
@@ -72,12 +74,17 @@ const emptyExpense: ServiceEditInput["expenses"][number] = {
   exchangeRate: "",
 };
 
-function toFormValues(service: ServiceDetail | undefined, today: string, initialUnitId: string): ServiceEditInput {
+function toFormValues(
+  service: ServiceDetail | undefined,
+  today: string,
+  initial: { unitId: string; serviceType: ServiceType | ""; maintenanceIds: string[] },
+): ServiceEditInput {
   return {
-    unitId: service?.unit.id ?? initialUnitId,
+    unitId: service?.unit.id ?? initial.unitId,
     date: service?.date ?? today,
     mileage: service?.mileage != null ? String(service.mileage) : "",
-    serviceType: service?.serviceType ?? "",
+    serviceType: service ? (service.serviceType ?? "") : initial.serviceType,
+    maintenanceIds: service ? service.maintenance.map((m) => m.id) : initial.maintenanceIds,
     supplierId: service?.supplierId ?? "",
     description: service?.description ?? "",
     // En dólares, el formulario edita la cantidad en dólares; los pesos los calcula la BD.
@@ -119,6 +126,11 @@ type ServiceFormProps = {
   suppliers: SupplierOption[];
   today: string;
   initialUnitId?: string;
+  /** Desde "Registrar" de un mantenimiento (5F): correctivo con ese mantenimiento marcado. */
+  initialServiceType?: ServiceType | "";
+  initialMaintenanceIds?: string[];
+  /** Lo programado de cada unidad, para "¿Cuenta como un mantenimiento programado?". */
+  maintenanceByUnit?: Record<string, Maintenance[]>;
 };
 
 /** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
@@ -139,6 +151,9 @@ function ServiceFormBody({
   suppliers: initialSuppliers,
   today,
   initialUnitId = "",
+  initialServiceType = "",
+  initialMaintenanceIds = [],
+  maintenanceByUnit = {},
   onSaved,
 }: ServiceFormProps & { onSaved: () => void }) {
   const router = useRouter();
@@ -153,7 +168,11 @@ function ServiceFormBody({
   const form = useForm<ServiceEditInput>({
     // En alta no hay motivo: se valida con el schema sin "reason".
     resolver: zodResolver((isEdit ? serviceEditSchema : serviceSchema) as typeof serviceEditSchema),
-    defaultValues: toFormValues(service, today, initialUnitId),
+    defaultValues: toFormValues(service, today, {
+      unitId: initialUnitId,
+      serviceType: initialServiceType,
+      maintenanceIds: initialMaintenanceIds,
+    }),
   });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "expenses" });
   // Renglones vigentes: una respuesta que llega tarde (tipo de cambio) busca su
@@ -191,6 +210,19 @@ function ServiceFormBody({
   const mileageRequired = !isEdit && !isBox;
   // La última lectura solo orienta en el alta (al editar, puede ser este mismo servicio).
   const lastMileage = isEdit ? null : (selectedUnit?.mileage ?? null);
+
+  // Mantenimientos (5F, Etapa 4): solo un correctivo cuenta como mantenimiento programado.
+  // Al editar, lo que ya tenía marcado se ofrece aunque después se haya quitado.
+  const serviceType = useWatch({ control: form.control, name: "serviceType" });
+  const scheduled = maintenanceByUnit[unitId] ?? [];
+  const maintenanceChoices: MaintenanceChoice[] = [
+    ...scheduled.map((m) => ({ id: m.id, name: m.name, current: m })),
+    ...(service && unitId === service.unit.id
+      ? service.maintenance
+          .filter((m) => !scheduled.some((s) => s.id === m.id))
+          .map((m) => ({ id: m.id, name: m.name, current: null }))
+      : []),
+  ];
 
   // Taller (5E): estancia abierta de la unidad elegida y qué pasa con este servicio.
   const serviceDate = useWatch({ control: form.control, name: "date" });
@@ -337,7 +369,12 @@ function ServiceFormBody({
     const pendingReceipts = pendingReceiptMessage(receipts);
     if (pendingReceipts) return void toast.error(pendingReceipts);
 
-    const clean = { ...values, mileage: isBox ? "" : values.mileage };
+    const clean = {
+      ...values,
+      mileage: isBox ? "" : values.mileage,
+      // Solo los de la unidad elegida (lo que se marcó con otra unidad no cuenta).
+      maintenanceIds: values.maintenanceIds.filter((id) => maintenanceChoices.some((c) => c.id === id)),
+    };
     const number = selectedUnit?.economicNumber ?? "la unidad";
 
     try {
@@ -410,6 +447,8 @@ function ServiceFormBody({
                     for (const [name, value] of Object.entries(shopDefaults(isEdit))) {
                       form.setValue(name as keyof ReturnType<typeof shopDefaults>, value as never, { shouldDirty: true });
                     }
+                    // Los mantenimientos son de cada unidad: lo marcado no pasa a la otra.
+                    form.setValue("maintenanceIds", [], { shouldDirty: true });
                   }
                   field.onChange(unit.id);
                 }}
@@ -444,6 +483,32 @@ function ServiceFormBody({
             </FieldSet>
           )}
         />
+
+        {serviceType === "correctivo" && unitId && (
+          <Controller
+            name="maintenanceIds"
+            control={form.control}
+            render={({ field }) => (
+              <FieldSet>
+                <FieldLegend className="font-heading text-xl">¿Cuenta como un mantenimiento programado?</FieldLegend>
+                {maintenanceChoices.length ? (
+                  <>
+                    <FieldDescription>
+                      Marca lo que se hizo en este servicio: vuelve a contar desde su fecha y su kilometraje. Si no
+                      marcas nada, el contador no cambia.
+                    </FieldDescription>
+                    <ServiceMaintenancePicker choices={maintenanceChoices} value={field.value} onChange={field.onChange} />
+                  </>
+                ) : (
+                  <FieldDescription>
+                    {selectedUnit?.economicNumber ?? "Esta unidad"} no tiene mantenimientos programados. Se agregan en la
+                    ficha de la unidad.
+                  </FieldDescription>
+                )}
+              </FieldSet>
+            )}
+          />
+        )}
 
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Datos del servicio</FieldLegend>

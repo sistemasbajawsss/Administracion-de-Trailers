@@ -1,7 +1,9 @@
+import type { UnitType } from "@/features/unidades/types";
 import { formatDate, formatKm } from "@/lib/utils/format";
 
 /** Estado de un mantenimiento programado (mantenimientos_pendientes en la BD). */
-export type MaintenanceStatus = "vencido" | "por_vencer" | "al_corriente" | "sin_kilometraje";
+export const MAINTENANCE_STATUSES = ["vencido", "por_vencer", "al_corriente", "sin_kilometraje"] as const;
+export type MaintenanceStatus = (typeof MAINTENANCE_STATUSES)[number];
 
 export const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, string> = {
   vencido: "Vencido",
@@ -25,9 +27,14 @@ export type Maintenance = {
   name: string;
   everyKm: number | null;
   everyMonths: number | null;
-  /** La última vez que se hizo: desde ahí cuenta. */
+  /**
+   * La última vez que se hizo: el correctivo más reciente que lo cumplió (Etapa 4)
+   * o, si no hay, la fecha y km capturados en el mantenimiento. Desde ahí cuenta.
+   */
   lastDate: string;
   lastKm: number | null;
+  /** El correctivo que lo cumplió la última vez (null si cuenta desde lo capturado). */
+  lastServiceId: string | null;
   currentKm: number | null;
   nextKm: number | null;
   nextDate: string | null;
@@ -35,6 +42,16 @@ export type Maintenance = {
   daysLeft: number | null;
   status: MaintenanceStatus;
 };
+
+/** Un mantenimiento en la página Mantenimientos (todas las unidades). */
+export type FleetMaintenance = Maintenance & {
+  economicNumber: string;
+  unitType: UnitType;
+};
+
+/** Pestañas de la página Mantenimientos (con los nombres del usuario). */
+export const MAINTENANCE_VIEWS = ["correctivos", "preventivos"] as const;
+export type MaintenanceView = (typeof MAINTENANCE_VIEWS)[number];
 
 /** Unidad de la que se pueden copiar mantenimientos. */
 export type MaintenanceSource = { unitId: string; economicNumber: string; count: number };
@@ -71,3 +88,10 @@ export function describeLeft(m: Pick<Maintenance, "kmLeft" | "daysLeft" | "statu
   const text = parts.join(" y ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+/**
+ * "Registrar": el formulario de servicio con la unidad, el tipo (correctivo) y
+ * este mantenimiento ya marcados. Una sola captura (D14).
+ */
+export const registerMaintenanceHref = (m: Pick<Maintenance, "unitId" | "id">) =>
+  `/servicios/nuevo?unidad=${m.unitId}&tipo=correctivo&mantenimiento=${m.id}`;

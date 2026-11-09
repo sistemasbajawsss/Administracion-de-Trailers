@@ -3,6 +3,8 @@ import { z } from "zod";
 import { isRealDate } from "@/lib/utils/format";
 import { parseKm } from "@/lib/utils/mileage";
 
+import { MAINTENANCE_STATUSES, MAINTENANCE_VIEWS } from "./types";
+
 /** Texto vacío, o un número entero (con o sin comas) dentro del rango. */
 const optionalWhole = (min: number, max: number, message: string) =>
   z
@@ -39,3 +41,11 @@ export const maintenanceSchema = z
 export type MaintenanceInput = z.infer<typeof maintenanceSchema>;
 
 export const copyMaintenanceSchema = z.object({ sourceUnitId: z.uuid("Elige la unidad") });
+
+/** Pestaña y estado elegidos en la página Mantenimientos (?vista=, ?estado=). Lo que no se entiende, se ignora. */
+export const maintenanceFiltersSchema = z.object({
+  vista: z.enum(MAINTENANCE_VIEWS).catch("correctivos"),
+  estado: z.enum(MAINTENANCE_STATUSES).optional().catch(undefined),
+});
+
+export type MaintenanceFilters = z.infer<typeof maintenanceFiltersSchema>;

@@ -74,6 +74,8 @@ export const serviceSchema = z.object({
     .refine((value) => value === "" || /^\d{1,7}$/.test(value.replace(/,/g, "")), "Kilometraje: solo números"),
   /** Tipo de servicio (5F). Vacío solo al editar uno de antes; en alta lo exigen el formulario y el servidor. */
   serviceType: z.union([z.literal(""), z.enum(SERVICE_TYPES)]),
+  /** Mantenimientos programados que cumple (5F, Etapa 4). Solo cuentan si es correctivo. */
+  maintenanceIds: z.array(z.uuid()).max(20, "Máximo 20 mantenimientos"),
   supplierId: z.union([z.literal(""), z.uuid()]),
   description: z.string().trim().max(1000, "Descripción: máximo 1000 caracteres"),
   expenses: z.array(expenseLineSchema).min(1, "Agrega al menos un gasto").max(50, "Máximo 50 gastos por servicio"),

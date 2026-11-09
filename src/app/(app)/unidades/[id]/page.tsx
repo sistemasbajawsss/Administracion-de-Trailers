@@ -150,6 +150,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
         sources={maintenanceSources}
         // Una unidad de baja o vendida ya no se programa; lo que tenía se sigue viendo.
         canEdit={isAdmin && !isRetired(unit.status)}
+        canRegister={isAdmin && !isRetired(unit.status)}
         today={todayInTijuana()}
       />
 

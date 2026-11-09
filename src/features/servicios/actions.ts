@@ -13,7 +13,7 @@ import { removeReceiptFiles } from "@/lib/supabase/storage";
 import { normalizeAmount, normalizeRate } from "@/lib/utils/format";
 import { mileageIssue } from "@/lib/utils/mileage";
 
-import { getOpenShopStay, getServiceShopLink, getUnitMileageRule, listExpenses } from "./queries";
+import { getOpenShopStay, getServiceShopLink, getUnitMileageRule, listExpenses, listServicesOfType } from "./queries";
 import {
   exchangeRateDateSchema,
   fallsInStay,
@@ -26,7 +26,7 @@ import {
   serviceSchema,
   type ServiceInput,
 } from "./schemas";
-import type { ExpenseListItem, ShopStay } from "./types";
+import { SERVICE_TYPES, type ExpenseListItem, type ServiceBrief, type ShopStay } from "./types";
 
 /** Los tipos generados marcan los argumentos de las funciones como no nulos, pero aceptan null. */
 const nullable = <T,>(value: T | null) => value as T;
@@ -42,6 +42,9 @@ function toArgs(service: ServiceInput) {
     p_descripcion: nullable(emptyToNull(service.description)),
     // Vacío (servicio de antes sin clasificar): la BD conserva el que tenía.
     p_tipo: service.serviceType || undefined,
+    // Solo un correctivo cumple mantenimientos; sin tipo (uno de antes), la BD conserva lo que tenía.
+    p_mantenimientos:
+      service.serviceType === "correctivo" ? service.maintenanceIds : service.serviceType ? [] : undefined,
     // En dólares no se manda el monto en pesos: lo calcula la BD con el tipo de cambio.
     p_gastos: service.expenses.map((expense) => ({
       id: emptyToNull(expense.id),
@@ -262,5 +265,24 @@ export async function loadMoreExpenses(input: unknown): Promise<ActionResult<Exp
     return ok(await listExpenses({ ...parsed.data.filters, unitId: parsed.data.unitId }, parsed.data.offset));
   } catch {
     return fail("No se pudieron cargar más gastos. Inténtalo de nuevo.");
+  }
+}
+
+const moreServicesOfTypeSchema = z.object({
+  type: z.enum(SERVICE_TYPES),
+  offset: z.number().int().min(0).max(100_000),
+});
+
+/** Siguiente tanda del historial por tipo (pestaña Preventivos de Mantenimientos). RLS decide el alcance. */
+export async function loadMoreServicesOfType(input: unknown): Promise<ActionResult<ServiceBrief[]>> {
+  const parsed = moreServicesOfTypeSchema.safeParse(input);
+  if (!parsed.success) return fail("No se pudieron cargar más servicios.");
+
+  await requireRole(["admin", "capturista", "gerente"]);
+
+  try {
+    return ok((await listServicesOfType(parsed.data.type, parsed.data.offset)).services);
+  } catch {
+    return fail("No se pudieron cargar más servicios. Inténtalo de nuevo.");
   }
 }

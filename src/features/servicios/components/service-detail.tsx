@@ -91,6 +91,13 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
           </div>
         )}
         <ShopRow shop={service.shop} />
+        {service.maintenance.length > 0 && (
+          // 5F: el correctivo reinició el contador de estos mantenimientos.
+          <div className="sm:col-span-3">
+            <dt className="text-sm text-muted-foreground">Cuenta como mantenimiento</dt>
+            <dd className="text-base">{service.maintenance.map((m) => m.name).join(", ")}</dd>
+          </div>
+        )}
       </dl>
 
       <ul className="divide-y px-5 sm:px-6">
