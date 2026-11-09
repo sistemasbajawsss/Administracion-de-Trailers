@@ -535,6 +535,7 @@ export type Database = {
           fecha: string
           id: string
           kilometraje: number | null
+          mantenimientos: string[]
           motivo_sin_entrada: string | null
           proveedor_id: string | null
           sin_entrada_taller: boolean | null
@@ -551,6 +552,7 @@ export type Database = {
           fecha: string
           id?: string
           kilometraje?: number | null
+          mantenimientos?: string[]
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
@@ -567,6 +569,7 @@ export type Database = {
           fecha?: string
           id?: string
           kilometraje?: number | null
+          mantenimientos?: string[]
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
@@ -817,6 +820,7 @@ export type Database = {
           fecha: string | null
           id: string | null
           kilometraje: number | null
+          mantenimientos: string[] | null
           motivo_sin_entrada: string | null
           num_comprobantes: number | null
           num_gastos: number | null
@@ -884,6 +888,7 @@ export type Database = {
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_mantenimientos?: string[]
           p_motivo: string
           p_motivo_sin_entrada?: string
           p_proveedor_id: string
@@ -1079,6 +1084,9 @@ export type Database = {
           nombre: string
           proxima_fecha: string
           proximo_km: number
+          ultima_fecha: string
+          ultimo_km: number
+          ultimo_servicio_id: string
           unidad_id: string
         }[]
       }
@@ -1115,6 +1123,7 @@ export type Database = {
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_mantenimientos?: string[]
           p_motivo_sin_entrada?: string
           p_proveedor_id: string
           p_salida_taller?: boolean
