@@ -64,7 +64,7 @@ export function ShopBoard({
                 <p className="font-heading text-4xl leading-none font-bold tracking-wide text-brand-ink tabular-nums">
                   {entry.economicNumber}
                 </p>
-                <p className="mt-1.5 truncate text-sm text-muted-foreground">
+                <p className="mt-1.5 text-sm text-muted-foreground">
                   {UNIT_TYPE_LABELS[entry.unitType]} · {groupLabel(entry)}
                 </p>
               </div>
@@ -85,7 +85,7 @@ export function ShopBoard({
               <p className="whitespace-pre-line">{entry.fault}</p>
             </div>
 
-            <p className="mx-4 mt-3 mb-4 min-w-0 truncate text-sm text-muted-foreground sm:mx-5 sm:mb-5" title={entry.reportedBy ?? undefined}>
+            <p className="mx-4 mt-3 mb-4 min-w-0 text-sm text-muted-foreground sm:mx-5 sm:mb-5">
               Entró el {formatDate(entry.entryDate)}
               {entry.reportedBy ? ` · Reportó ${entry.reportedBy}` : ""}
             </p>
@@ -104,6 +104,7 @@ export function ShopBoard({
                   economicNumber={entry.economicNumber}
                   entryDate={entry.entryDate}
                   today={today}
+                  serviceCount={entry.serviceCount}
                 />
               </div>
             )}

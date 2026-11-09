@@ -102,6 +102,21 @@
 
 ## Historial de secciones
 
+### Corrección posterior — Salida de taller sin servicios con motivo (2026-11-06, pedida por el usuario)
+- "Dar salida" de una estancia sin ningún servicio registrado exige motivo (la nota). Con servicios, o cuando la salida la da un servicio con la casilla, la nota sigue opcional. En la BD (`20261107005412_salida_sin_servicio_con_motivo.sql`, `dar_salida_taller()` con la misma firma) y en el diálogo de Taller (el campo pasa a "Motivo" y explica por qué). La venta de una unidad en taller no cambia (cierra la entrada con "Unidad vendida").
+- Pruebas: `salida-servicio.sql` 9/9 (sin servicios y sin motivo rechazada, con motivo sale); regresión igual a la línea base.
+- Nota: el capturista cuenta solo sus propios servicios en la estancia (RLS), así que puede pedírsele motivo aunque otro ya haya registrado uno; nunca al revés.
+
+### Corrección posterior — Tarjetas desplegables y scroll de la página (2026-11-06, pedida por el usuario)
+- Estancias en taller de la ficha: tarjetas desplegables que salen cerradas y se abren al tocarlas; se cargan de 10 en 10 con el scroll de la página (`unidades/actions.ts › loadMoreShopStays`). Gastos (Servicios y ficha) sin cuadro con scroll propio: la siguiente tanda se pide con el scroll de la página. Inicio: "Servicios sin factura" y "Sin entrada a taller" muestran los 10 más recientes sin scroll propio. Reglas nuevas en CLAUDE.md › UI (sin "…", sin cuadros con scroll propio, sin emojis).
+
+### Corrección posterior — Celular y estancias en taller (2026-11-06, pedida por el usuario al probar la 5E en el iPhone)
+- Jalar hacia abajo para actualizar en la app instalada (`components/layout/pull-to-refresh.tsx`, en `(app)/layout.tsx`): desde el tope de la pantalla, sin diálogos abiertos ni dentro de una lista con scroll propio; usa `router.refresh()` (no se pierde lo escrito en formularios). Además, en app y navegador, la pantalla se actualiza sola al volver después de 30 s en otra app.
+- Ficha de la unidad: cada estancia en taller es una tarjeta que se abre (`<details>`; la más reciente abierta): fechas, días, falla y total; abierta, sus servicios con enlace y "Salió de taller con este servicio". BD (`20261106233851_salida_con_servicio.sql`): `entradas_taller.servicio_salida_id`, `dar_salida_taller()` con `p_servicio_id` opcional (versión de 3 argumentos reemplazada), `registrar_servicio()` / `actualizar_servicio()` le pasan su servicio, vista `entradas_taller_resumen` (total y número de servicios por estancia, `security_invoker`); la salida real de P-05 quedó ligada a su servicio.
+- Filtros Desde / Hasta encimados en el iPhone (Servicios, ficha, Reportes): `appearance: none` en campos de fecha en pantallas táctiles (`globals.css`) y columnas `minmax(0,1fr)`.
+- **Incidente (~10 min):** la llave foránea de `servicio_salida_id` creó una segunda relación `servicios` ↔ `entradas_taller` y la API dejó de saber cuál usar al anidarlas: el detalle del servicio y la ficha de la unidad daban error, también en la app publicada. Se quitó la llave (`20261106234820_salida_sin_llave_foranea.sql`); el dato se conserva. Las pruebas en SQL no lo detectan: anotado en `supabase/tests/README.md`.
+- Verificado: `tsc`, lint y build (copia aparte); `salida-servicio.sql` 7/7, `taller` 32/32, `servicios-taller` 22/22, `ventas` 36/36 (las dos primeras ya no dependen de los datos del momento: P-05 salió de taller con un servicio real); detalle del servicio y ficha cargan otra vez. Falta que el usuario pruebe en el iPhone la ficha nueva, el jalar para actualizar y los filtros.
+
 ### Sección 5E — Entradas a taller y unidades vendidas (en curso, rama `seccion-5e-taller`)
 - **Etapa 0 — Línea base (2026-11-06, hecha).** Sin cambios en la app ni en la BD.
   - Baterías (en transacción sin commit): capturista 42/43 (el caso restante es el conocido: los `[PRUEBA]` comparten PDF), validaciones 13/13, gerente 14/14, Lote 1 de la 5D 24/24, dólares 17/17. Igual que al cerrar la 5D. A la batería de validaciones se le quitaron las definiciones viejas de `preparar_servicio` / `preparar_gasto` que traía dentro, para probar las de producción.

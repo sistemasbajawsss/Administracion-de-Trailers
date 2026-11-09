@@ -127,29 +127,81 @@ export async function listUnitsInShop(): Promise<UnitInShop[]> {
   }));
 }
 
-/** Estancias en taller de una unidad (ficha; admin y gerente), la más reciente primero. */
-export async function listUnitShopStays(unitId: string, limit = 20): Promise<{ stays: UnitShopStay[]; total: number }> {
-  const supabase = await createClient();
-  const { data, count, error } = await supabase
-    .from("entradas_taller")
-    .select("id, fecha_entrada, fecha_salida, falla, nota_salida, reporta_nombre, servicios(count)", { count: "exact" })
-    .eq("unidad_id", unitId)
-    .order("fecha_entrada", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+/** Estancias por tanda en la ficha (scroll infinito con el scroll de la página). */
+export const SHOP_STAYS_BATCH_SIZE = 10;
 
-  if (error) throw new Error("No se pudieron cargar las estancias en taller");
+/**
+ * Estancias en taller de una unidad (ficha; admin y gerente), la más reciente
+ * primero, por tandas, con su total (sumado en la BD) y sus servicios.
+ */
+export async function listUnitShopStays(
+  unitId: string,
+  offset = 0,
+  limit = SHOP_STAYS_BATCH_SIZE,
+): Promise<{ stays: UnitShopStay[]; total: number }> {
+  const supabase = await createClient();
+  const stays = await supabase
+      .from("entradas_taller_resumen")
+      .select("id, fecha_entrada, fecha_salida, falla, nota_salida, reporta_nombre, servicio_salida_id, num_servicios, total::text", {
+        count: "exact",
+      })
+      .eq("unidad_id", unitId)
+      .order("fecha_entrada", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(offset, offset + limit - 1)
+      .returns<
+        {
+          id: string;
+          fecha_entrada: string;
+          fecha_salida: string | null;
+          falla: string;
+          nota_salida: string | null;
+          reporta_nombre: string | null;
+          servicio_salida_id: string | null;
+          num_servicios: number;
+          total: string;
+        }[]
+      >();
+  if (stays.error) throw new Error("No se pudieron cargar las estancias en taller");
+
+  // Los servicios solo de las estancias de esta tanda.
+  const ids = stays.data.map((row) => row.id);
+  const services = ids.length
+    ? await supabase
+        .from("servicios_resumen")
+        .select("id, fecha, total::text, descripcion, entrada_taller_id, proveedor:proveedores(nombre)")
+        .in("entrada_taller_id", ids)
+        .order("fecha")
+        .order("created_at")
+        .returns<
+          {
+            id: string;
+            fecha: string;
+            total: string;
+            descripcion: string | null;
+            entrada_taller_id: string;
+            proveedor: { nombre: string } | null;
+          }[]
+        >()
+    : { data: [], error: null };
+  if (services.error) throw new Error("No se pudieron cargar los servicios de las estancias");
   return {
-    stays: data.map((row) => ({
+    stays: stays.data.map((row) => ({
       id: row.id,
       entryDate: row.fecha_entrada,
       exitDate: row.fecha_salida,
       fault: row.falla,
       exitNote: row.nota_salida,
       reportedBy: row.reporta_nombre,
-      serviceCount: row.servicios[0]?.count ?? 0,
+      serviceCount: row.num_servicios,
+      total: row.total,
+      exitServiceId: row.servicio_salida_id,
+      services: services.data
+        .filter((s) => s.entrada_taller_id === row.id)
+        .map((s) => ({ id: s.id, date: s.fecha, total: s.total, description: s.descripcion, supplier: s.proveedor?.nombre ?? null })),
     })),
-    total: count ?? 0,
+    total: stays.count ?? 0,
   };
 }
 

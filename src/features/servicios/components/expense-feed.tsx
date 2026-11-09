@@ -14,9 +14,10 @@ import type { ExpenseListItem } from "../types";
 type Filters = Pick<ServiceFilters, "q" | "buscar" | "desde" | "hasta">;
 
 /**
- * Gastos en un cuadro con su propio scroll: la página no crece y, al acercarse
- * al fondo del cuadro, se pide la siguiente tanda. Se reinicia cuando cambian
- * los filtros (quien lo usa le pone key con los filtros).
+ * Gastos con el scroll normal de la página (sin cuadro con scroll propio: en el
+ * celular atrapaba el dedo y no se podía regresar hasta arriba). Al acercarse al
+ * final de la lista se pide la siguiente tanda. Se reinicia cuando cambian los
+ * filtros (quien lo usa le pone key con los filtros).
  */
 export function ExpenseFeed({
   initialItems,
@@ -37,7 +38,6 @@ export function ExpenseFeed({
   const [done, setDone] = useState(initialItems.length >= totalCount || initialItems.length < batchSize);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const loadMore = useCallback(async () => {
@@ -64,17 +64,16 @@ export function ExpenseFeed({
   }, [loading, done, filters, unitId, items.length, batchSize]);
 
   useEffect(() => {
-    const box = boxRef.current;
     const sentinel = sentinelRef.current;
     // Con error no se vigila: cada fallo recreaba el observador, que avisaba de
     // inmediato y volvía a pedir en bucle (sin señal). Se reintenta con el botón.
-    if (!box || !sentinel || done || error) return;
+    if (!sentinel || done || error) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) void loadMore();
       },
-      // Pide la siguiente tanda un poco antes de llegar al fondo del cuadro.
-      { root: box, rootMargin: "0px 0px 240px 0px" },
+      // Pide la siguiente tanda un poco antes de llegar al final (scroll de la página).
+      { rootMargin: "0px 0px 400px 0px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -85,15 +84,11 @@ export function ExpenseFeed({
     : "md:grid-cols-[6.5rem_minmax(0,1fr)_8.5rem_10rem]";
 
   return (
-    <div
-      ref={boxRef}
-      tabIndex={0}
-      aria-label="Gastos. Desliza dentro del cuadro para ver más."
-      className="max-h-[min(40rem,70dvh)] overflow-y-auto overscroll-contain rounded-xl border bg-white outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
+    <div aria-label="Gastos" className="rounded-xl border bg-white">
+      {/* Encabezado fijo al bajar: debajo de la barra superior (md) o arriba de la ventana (lg). */}
       <div
         aria-hidden="true"
-        className={`sticky top-0 z-10 hidden items-center gap-4 border-b bg-muted/95 px-5 py-2.5 text-sm font-medium text-muted-foreground backdrop-blur md:grid ${columns}`}
+        className={`sticky top-16 z-10 hidden items-center gap-4 rounded-t-xl border-b bg-muted/95 px-5 py-2.5 text-sm font-medium text-muted-foreground backdrop-blur md:grid lg:top-0 ${columns}`}
       >
         <span>Fecha</span>
         {showUnit && <span>Unidad</span>}
@@ -123,11 +118,11 @@ export function ExpenseFeed({
               {/* El enlace cubre todo el renglón; el botón de factura queda encima. */}
               <Link
                 href={`/servicios/${item.serviceId}`}
-                className="block truncate font-medium outline-none after:absolute after:inset-0 focus-visible:underline"
+                className="block font-medium outline-none after:absolute after:inset-0 focus-visible:underline"
               >
                 {item.category}
               </Link>
-              {item.concept && <span className="block truncate text-sm text-muted-foreground">{item.concept}</span>}
+              {item.concept && <span className="block text-sm text-muted-foreground">{item.concept}</span>}
             </span>
             <span className="col-start-2 row-start-1 text-right font-semibold tabular-nums md:col-start-auto md:row-start-auto">
               {formatMoney(item.amount)}

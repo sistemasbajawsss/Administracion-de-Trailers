@@ -4,7 +4,8 @@ import { listRecentServices, listServicesWithoutReceipts, listServicesWithoutSho
 
 import { ServiceBriefList } from "./service-brief-list";
 
-const PENDING_LIMIT = 50;
+/** Renglones en las tarjetas de Inicio (sin cuadro con scroll propio: en el celular atrapaba el dedo). */
+const PENDING_LIMIT = 10;
 
 /**
  * Servicios a los que les falta la factura. Admin y gerente ven todos (con quién
@@ -19,7 +20,7 @@ export async function PendingReceiptsPanel({ showAuthor, title }: { showAuthor: 
         <HomePanelEmpty>Todos los servicios tienen su factura.</HomePanelEmpty>
       ) : (
         <>
-          <div className="max-h-[24rem] overflow-y-auto overscroll-contain">
+          <div>
             <ServiceBriefList services={services} showAuthor={showAuthor} />
           </div>
           {total > PENDING_LIMIT && (
@@ -59,7 +60,7 @@ export async function NoShopEntryPanel({ today }: { today: string }) {
         <HomePanelEmpty>Todos los servicios recientes pasaron por Taller.</HomePanelEmpty>
       ) : (
         <>
-          <div className="max-h-[24rem] overflow-y-auto overscroll-contain">
+          <div>
             <ServiceBriefList services={services} showAuthor showNoEntryReason />
           </div>
           {total > PENDING_LIMIT && (

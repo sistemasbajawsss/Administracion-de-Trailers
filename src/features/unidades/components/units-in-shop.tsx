@@ -43,9 +43,8 @@ export async function UnitsInShopPanel({ today }: { today: string }) {
                         {UNIT_TYPE_LABELS[unit.type]}
                         {unit.operation && ` · ${UNIT_OPERATION_LABELS[unit.operation]}`}
                       </span>
-                      <span className="block truncate text-muted-foreground" title={unit.fault}>
-                        {unit.fault}
-                      </span>
+                      {/* Completa, sin "…": baja de renglón si no cabe. */}
+                      <span className="block whitespace-pre-line text-muted-foreground">{unit.fault}</span>
                     </span>
                     <span
                       className={`shrink-0 text-right text-sm font-semibold whitespace-nowrap tabular-nums ${days >= 7 ? "text-amber-800" : ""}`}

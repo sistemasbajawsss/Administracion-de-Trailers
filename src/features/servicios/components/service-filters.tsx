@@ -50,7 +50,7 @@ export function ServiceFilters({ unitSearch = true }: { unitSearch?: boolean }) 
   const [category, setCategory] = useDebouncedParam("buscar", update);
 
   const hasFilters = ["q", "buscar", "desde", "hasta"].some((key) => searchParams.get(key));
-  const dateClass = "h-11 bg-white text-base";
+  const dateClass = "h-11 w-full min-w-0 bg-white text-base";
   const iconClass = "pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground";
 
   return (
@@ -88,7 +88,8 @@ export function ServiceFilters({ unitSearch = true }: { unitSearch?: boolean }) 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:flex">
+      {/* minmax(0,1fr): cada columna mide la mitad aunque la fecha quiera más (CLAUDE.md › UI). */}
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 sm:flex">
         <label className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground">
           Desde
           <Input

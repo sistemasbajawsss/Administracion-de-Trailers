@@ -118,6 +118,11 @@ export type UnitShopStay = {
   exitNote: string | null;
   reportedBy: string | null;
   serviceCount: number;
+  /** Lo gastado en sus servicios, texto exacto de la BD. */
+  total: string;
+  /** Servicio que le dio la salida (casilla "sale de taller"); null si salió con "Dar salida" o por venta. */
+  exitServiceId: string | null;
+  services: { id: string; date: string; total: string; description: string | null; supplier: string | null }[];
 };
 
 /** Venta vigente de una unidad (Sección 5E). */

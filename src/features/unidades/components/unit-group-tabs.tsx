@@ -30,7 +30,7 @@ export async function UnitGroupTabs({ current }: { current: UnitGroup }) {
                     : "border-transparent text-muted-foreground hover:text-brand-ink",
                 )}
               >
-                <span className="truncate">{UNIT_GROUP_LABELS[group]}</span>
+                <span>{UNIT_GROUP_LABELS[group]}</span>
                 <span
                   className={cn(
                     "shrink-0 rounded-full px-2 py-0.5 text-xs tabular-nums",

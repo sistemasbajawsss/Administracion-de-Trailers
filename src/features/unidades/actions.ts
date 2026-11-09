@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { isUuid } from "@/lib/utils/ids";
 import { requireRole } from "@/lib/auth/get-current-user";
+import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
 
@@ -16,6 +17,8 @@ import {
   unitSchema,
   type UnitInput,
 } from "./schemas";
+import { listUnitShopStays } from "./queries";
+import type { UnitShopStay } from "./types";
 
 const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
@@ -167,4 +170,23 @@ export async function undoUnitSale(id: string, input: unknown): Promise<ActionRe
 
   revalidateSale();
   return ok();
+}
+
+/**
+ * Siguiente tanda de estancias en taller de la ficha (scroll infinito). Es una
+ * lectura: llama a queries.ts con la sesión del usuario (RLS aplica), ver
+ * docs/ARQUITECTURA.md. Solo admin y gerente ven la ficha.
+ */
+export async function loadMoreShopStays(unitId: unknown, offset: unknown): Promise<ActionResult<UnitShopStay[]>> {
+  if (!isUuid(unitId) || typeof offset !== "number" || !Number.isInteger(offset) || offset < 0 || offset > 100_000) {
+    return fail("No se pudieron cargar más estancias.");
+  }
+
+  await requireRole(VIEW_ALL_ROLES);
+
+  try {
+    return ok((await listUnitShopStays(unitId, offset)).stays);
+  } catch {
+    return fail("No se pudieron cargar más estancias. Inténtalo de nuevo.");
+  }
 }

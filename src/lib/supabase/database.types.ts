@@ -210,6 +210,7 @@ export type Database = {
           reporta_nombre: string | null
           salida_by: string | null
           salida_nombre: string | null
+          servicio_salida_id: string | null
           unidad_id: string
           updated_at: string
         }
@@ -224,6 +225,7 @@ export type Database = {
           reporta_nombre?: string | null
           salida_by?: string | null
           salida_nombre?: string | null
+          servicio_salida_id?: string | null
           unidad_id: string
           updated_at?: string
         }
@@ -238,6 +240,7 @@ export type Database = {
           reporta_nombre?: string | null
           salida_by?: string | null
           salida_nombre?: string | null
+          servicio_salida_id?: string | null
           unidad_id?: string
           updated_at?: string
         }
@@ -478,6 +481,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "servicios_entrada_taller_id_fkey"
+            columns: ["entrada_taller_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_taller_resumen"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "servicios_proveedor_id_fkey"
             columns: ["proveedor_id"]
             isOneToOne: false
@@ -616,6 +626,31 @@ export type Database = {
       }
     }
     Views: {
+      entradas_taller_resumen: {
+        Row: {
+          created_at: string | null
+          falla: string | null
+          fecha_entrada: string | null
+          fecha_salida: string | null
+          id: string | null
+          nota_salida: string | null
+          num_servicios: number | null
+          reporta_nombre: string | null
+          salida_nombre: string | null
+          servicio_salida_id: string | null
+          total: number | null
+          unidad_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_taller_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos_detalle: {
         Row: {
           categoria: string | null
@@ -698,6 +733,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "servicios_entrada_taller_id_fkey"
+            columns: ["entrada_taller_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_taller_resumen"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "servicios_proveedor_id_fkey"
             columns: ["proveedor_id"]
             isOneToOne: false
@@ -759,7 +801,12 @@ export type Database = {
       }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
       dar_salida_taller: {
-        Args: { p_entrada_id: string; p_fecha: string; p_nota?: string }
+        Args: {
+          p_entrada_id: string
+          p_fecha: string
+          p_nota?: string
+          p_servicio_id?: string
+        }
         Returns: undefined
       }
       deshacer_venta: {

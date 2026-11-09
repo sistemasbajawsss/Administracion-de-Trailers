@@ -88,7 +88,7 @@ export function ReceiptViewer({
       >
         <DialogHeader className="pr-8">
           <DialogTitle className="font-heading text-xl">Factura · {title}</DialogTitle>
-          <DialogDescription className="truncate">
+          <DialogDescription>
             {current
               ? `${total > 1 ? `${index + 1} de ${total} · ` : ""}${current.fileName} · ${formatFileSize(current.size)}`
               : error ?? "Cargando comprobantes…"}
