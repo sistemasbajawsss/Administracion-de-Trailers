@@ -6,6 +6,8 @@ import { formatDate, formatMoney } from "@/lib/utils/format";
 
 import type { ServiceBrief } from "../types";
 
+import { ServiceTypeBadge } from "./service-type-badge";
+
 /**
  * Lista corta de servicios para Inicio: fecha, unidad, quién lo capturó y total.
  * Cada renglón abre el servicio (ahí se sube la factura).
@@ -35,7 +37,10 @@ export function ServiceBriefList({
               {service.economicNumber}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm tabular-nums">{formatDate(service.date)}</span>
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm tabular-nums">
+                {formatDate(service.date)}
+                {service.serviceType && <ServiceTypeBadge type={service.serviceType} className="h-5 px-2" />}
+              </span>
               <span className="block text-sm text-muted-foreground">
                 {UNIT_TYPE_LABELS[service.unitType]}
                 {showAuthor && service.author && ` · ${service.author}`}

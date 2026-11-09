@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/supabase/database.types";
+import type { LastMileage } from "@/lib/utils/mileage";
 
 type Enums = Database["public"]["Enums"];
 
@@ -130,4 +131,29 @@ export type UnitSale = {
   date: string;
   note: string | null;
   soldBy: string | null;
+};
+
+/** Corrección del kilometraje hecha por el admin (5F): reinicia la cuenta desde su fecha. */
+export type MileageCorrection = {
+  id: string;
+  date: string;
+  km: number;
+  /** Lo que marcaba antes (null si no tenía lecturas). */
+  previousKm: number | null;
+  reason: string;
+  author: string | null;
+  createdAt: string;
+};
+
+/** Kilometraje en la ficha: última lectura y correcciones (estas solo las ven admin y gerente). */
+export type UnitMileage = {
+  last: LastMileage | null;
+  corrections: MileageCorrection[];
+};
+
+/** De dónde salió la última lectura, para la ficha: "Al 04/11/2026, en un servicio". */
+export const MILEAGE_SOURCE_LABELS: Record<LastMileage["source"], string> = {
+  servicio: "en un servicio",
+  "entrada a taller": "en una entrada a taller",
+  "corrección": "por corrección del administrador",
 };

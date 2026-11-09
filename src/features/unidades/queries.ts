@@ -1,9 +1,18 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { toLastMileage } from "@/lib/utils/mileage";
 
 import type { UnitFilters } from "./schemas";
-import type { UnitDetail, UnitGroup, UnitInShop, UnitListItem, UnitSale, UnitShopStay } from "./types";
+import type {
+  UnitDetail,
+  UnitGroup,
+  UnitInShop,
+  UnitListItem,
+  UnitMileage,
+  UnitSale,
+  UnitShopStay,
+} from "./types";
 
 export const UNITS_PAGE_SIZE = 25;
 
@@ -217,4 +226,39 @@ export async function getUnitSale(unitId: string): Promise<UnitSale | null> {
 
   if (error) throw new Error("No se pudo cargar la venta de la unidad");
   return data ? { date: data.fecha_venta, note: data.nota, soldBy: data.vendida_nombre } : null;
+}
+/** Correcciones que se muestran en la ficha (las más recientes). */
+const MILEAGE_CORRECTIONS_LIMIT = 20;
+
+/**
+ * Kilometraje actual de la unidad (5F) y sus correcciones. RLS: el capturista no
+ * ve correcciones (la ficha es de admin y gerente).
+ */
+export async function getUnitMileage(unitId: string): Promise<UnitMileage> {
+  const supabase = await createClient();
+  const [current, corrections] = await Promise.all([
+    supabase.rpc("kilometraje_unidades", { p_unidad_id: unitId }),
+    supabase
+      .from("correcciones_kilometraje")
+      .select("id, fecha, kilometraje, kilometraje_anterior, motivo, autor_nombre, created_at")
+      .eq("unidad_id", unitId)
+      .order("fecha", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(MILEAGE_CORRECTIONS_LIMIT),
+  ]);
+  if (current.error || corrections.error) throw new Error("No se pudo cargar el kilometraje de la unidad");
+
+  const row = current.data[0];
+  return {
+    last: row ? toLastMileage(row) : null,
+    corrections: corrections.data.map((c) => ({
+      id: c.id,
+      date: c.fecha,
+      km: c.kilometraje,
+      previousKm: c.kilometraje_anterior,
+      reason: c.motivo,
+      author: c.autor_nombre,
+      createdAt: c.created_at,
+    })),
+  };
 }

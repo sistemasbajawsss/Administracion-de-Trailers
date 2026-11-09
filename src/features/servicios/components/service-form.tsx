@@ -37,6 +37,7 @@ import {
   type ReceiptDraft,
 } from "@/features/comprobantes/components/receipt-picker";
 import { uploadReceipts } from "@/features/comprobantes/components/upload-receipts";
+import type { Maintenance } from "@/features/mantenimientos/types";
 import {
   formatCents,
   formatDate,
@@ -46,6 +47,7 @@ import {
   toRateUnits,
   usdToMxnCents,
 } from "@/lib/utils/format";
+import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
 
 import { createService, suggestExchangeRate, updateService } from "../actions";
 import {
@@ -55,9 +57,11 @@ import {
   type Currency,
   type ServiceEditInput,
 } from "../schemas";
-import type { CategoryOption, ServiceDetail, SupplierOption, UnitOption } from "../types";
+import type { CategoryOption, ServiceDetail, ServiceType, SupplierOption, UnitOption } from "../types";
 
+import { ServiceMaintenancePicker, type MaintenanceChoice } from "./service-maintenance-picker";
 import { ServiceShopPanel, shopState } from "./service-shop-panel";
+import { ServiceTypePicker } from "./service-type-picker";
 import { UnitPicker } from "./unit-picker";
 
 const NO_SUPPLIER = "sin-proveedor";
@@ -70,11 +74,17 @@ const emptyExpense: ServiceEditInput["expenses"][number] = {
   exchangeRate: "",
 };
 
-function toFormValues(service: ServiceDetail | undefined, today: string, initialUnitId: string): ServiceEditInput {
+function toFormValues(
+  service: ServiceDetail | undefined,
+  today: string,
+  initial: { unitId: string; serviceType: ServiceType | ""; maintenanceIds: string[] },
+): ServiceEditInput {
   return {
-    unitId: service?.unit.id ?? initialUnitId,
+    unitId: service?.unit.id ?? initial.unitId,
     date: service?.date ?? today,
     mileage: service?.mileage != null ? String(service.mileage) : "",
+    serviceType: service ? (service.serviceType ?? "") : initial.serviceType,
+    maintenanceIds: service ? service.maintenance.map((m) => m.id) : initial.maintenanceIds,
     supplierId: service?.supplierId ?? "",
     description: service?.description ?? "",
     // En dólares, el formulario edita la cantidad en dólares; los pesos los calcula la BD.
@@ -116,6 +126,11 @@ type ServiceFormProps = {
   suppliers: SupplierOption[];
   today: string;
   initialUnitId?: string;
+  /** Desde "Registrar" de un mantenimiento (5F): correctivo con ese mantenimiento marcado. */
+  initialServiceType?: ServiceType | "";
+  initialMaintenanceIds?: string[];
+  /** Lo programado de cada unidad, para "¿Cuenta como un mantenimiento programado?". */
+  maintenanceByUnit?: Record<string, Maintenance[]>;
 };
 
 /** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
@@ -136,6 +151,9 @@ function ServiceFormBody({
   suppliers: initialSuppliers,
   today,
   initialUnitId = "",
+  initialServiceType = "",
+  initialMaintenanceIds = [],
+  maintenanceByUnit = {},
   onSaved,
 }: ServiceFormProps & { onSaved: () => void }) {
   const router = useRouter();
@@ -150,7 +168,11 @@ function ServiceFormBody({
   const form = useForm<ServiceEditInput>({
     // En alta no hay motivo: se valida con el schema sin "reason".
     resolver: zodResolver((isEdit ? serviceEditSchema : serviceSchema) as typeof serviceEditSchema),
-    defaultValues: toFormValues(service, today, initialUnitId),
+    defaultValues: toFormValues(service, today, {
+      unitId: initialUnitId,
+      serviceType: initialServiceType,
+      maintenanceIds: initialMaintenanceIds,
+    }),
   });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "expenses" });
   // Renglones vigentes: una respuesta que llega tarde (tipo de cambio) busca su
@@ -174,6 +196,7 @@ function ServiceFormBody({
             status: "baja" as const,
             detail: "Dada de baja o vendida",
             shopStay: null,
+            mileage: null,
           },
         ]
       : units;
@@ -182,6 +205,24 @@ function ServiceFormBody({
   const expenses = useWatch({ control: form.control, name: "expenses" });
   const selectedUnit = unitOptions.find((u) => u.id === unitId);
   const isBox = selectedUnit?.type === "caja";
+  // Kilometraje (5F, D14): obligatorio al dar de alta (menos cajas). Al editar sigue
+  // opcional para no trabar servicios de antes; la BD revisa que cuadre en ambos casos.
+  const mileageRequired = !isEdit && !isBox;
+  // La última lectura solo orienta en el alta (al editar, puede ser este mismo servicio).
+  const lastMileage = isEdit ? null : (selectedUnit?.mileage ?? null);
+
+  // Mantenimientos (5F, Etapa 4): solo un correctivo cuenta como mantenimiento programado.
+  // Al editar, lo que ya tenía marcado se ofrece aunque después se haya quitado.
+  const serviceType = useWatch({ control: form.control, name: "serviceType" });
+  const scheduled = maintenanceByUnit[unitId] ?? [];
+  const maintenanceChoices: MaintenanceChoice[] = [
+    ...scheduled.map((m) => ({ id: m.id, name: m.name, current: m })),
+    ...(service && unitId === service.unit.id
+      ? service.maintenance
+          .filter((m) => !scheduled.some((s) => s.id === m.id))
+          .map((m) => ({ id: m.id, name: m.name, current: null }))
+      : []),
+  ];
 
   // Taller (5E): estancia abierta de la unidad elegida y qué pasa con este servicio.
   const serviceDate = useWatch({ control: form.control, name: "date" });
@@ -264,6 +305,32 @@ function ServiceFormBody({
     ...Object.fromEntries(suppliers.map((s) => [s.id, s.name])),
   };
 
+  /**
+   * Kilometraje (5F): obligatorio en alta y que no sea menor al último (el servidor y
+   * la BD lo revisan otra vez). Depende de la unidad, por eso no va en el schema; se
+   * marca también cuando faltan otros campos, para que salgan todos los errores juntos.
+   */
+  function markMileageProblem(values: Pick<ServiceEditInput, "mileage" | "date">) {
+    const problem = isBox
+      ? null
+      : mileageIssue(values.mileage, { required: mileageRequired, last: lastMileage, date: values.date });
+    if (problem) form.setError("mileage", { message: problem });
+    return problem;
+  }
+
+  /** Tipo de servicio (5F): obligatorio en alta; al editar uno de antes puede quedar sin tipo. */
+  function markTypeProblem(values: Pick<ServiceEditInput, "serviceType">) {
+    const problem = !isEdit && !values.serviceType ? "Elige el tipo de servicio" : null;
+    if (problem) form.setError("serviceType", { message: problem });
+    return problem;
+  }
+
+  /** Lo que depende de la unidad o de si es alta: se marca junto con los errores del schema. */
+  function markExtraProblems(values: ServiceEditInput) {
+    markTypeProblem(values);
+    markMileageProblem(values);
+  }
+
   async function onSubmit(values: ServiceEditInput) {
     // "Otros (especificar)" exige concepto (la BD también lo valida).
     let missingConcept = false;
@@ -274,6 +341,18 @@ function ServiceFormBody({
       }
     });
     if (missingConcept) return;
+
+    const typeProblem = markTypeProblem(values);
+    if (typeProblem) {
+      form.setFocus("serviceType");
+      return void toast.error(typeProblem);
+    }
+
+    const kmProblem = markMileageProblem(values);
+    if (kmProblem) {
+      form.setFocus("mileage");
+      return void toast.error(kmProblem);
+    }
 
     // Taller (5E, D13): motivo o datos de la entrada olvidada (el servidor vuelve a revisarlo).
     const shopProblems = shopIssues(values, {
@@ -290,7 +369,12 @@ function ServiceFormBody({
     const pendingReceipts = pendingReceiptMessage(receipts);
     if (pendingReceipts) return void toast.error(pendingReceipts);
 
-    const clean = { ...values, mileage: isBox ? "" : values.mileage };
+    const clean = {
+      ...values,
+      mileage: isBox ? "" : values.mileage,
+      // Solo los de la unidad elegida (lo que se marcó con otra unidad no cuenta).
+      maintenanceIds: values.maintenanceIds.filter((id) => maintenanceChoices.some((c) => c.id === id)),
+    };
     const number = selectedUnit?.economicNumber ?? "la unidad";
 
     try {
@@ -343,7 +427,11 @@ function ServiceFormBody({
   const confirmLeave = useUnsavedChanges((form.formState.isDirty || receipts.length > 0) && !saved && !isSubmitting);
 
   return (
-    <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl">
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(onSubmit, () => markExtraProblems(form.getValues()))}
+      className="max-w-3xl"
+    >
       <FieldGroup className="gap-10">
         <Controller
           name="unitId"
@@ -359,6 +447,8 @@ function ServiceFormBody({
                     for (const [name, value] of Object.entries(shopDefaults(isEdit))) {
                       form.setValue(name as keyof ReturnType<typeof shopDefaults>, value as never, { shouldDirty: true });
                     }
+                    // Los mantenimientos son de cada unidad: lo marcado no pasa a la otra.
+                    form.setValue("maintenanceIds", [], { shouldDirty: true });
                   }
                   field.onChange(unit.id);
                 }}
@@ -372,6 +462,52 @@ function ServiceFormBody({
         {unitId && (
           // key: al cambiar de unidad, el panel empieza de cero (motivo elegido, etc.).
           <ServiceShopPanel key={unitId} form={form} stay={stay} state={shop} today={today} />
+        )}
+
+        <Controller
+          name="serviceType"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <FieldSet data-invalid={fieldState.invalid}>
+              <FieldLegend className="font-heading text-xl">Tipo de servicio</FieldLegend>
+              <ServiceTypePicker
+                value={field.value}
+                onChange={field.onChange}
+                inputRef={field.ref}
+                invalid={fieldState.invalid}
+              />
+              {isEdit && !service?.serviceType && !field.value && (
+                <FieldDescription>Este servicio es de antes y no tiene tipo. Puedes elegirlo o dejarlo así.</FieldDescription>
+              )}
+              <FieldError errors={[fieldState.error]} />
+            </FieldSet>
+          )}
+        />
+
+        {serviceType === "correctivo" && unitId && (
+          <Controller
+            name="maintenanceIds"
+            control={form.control}
+            render={({ field }) => (
+              <FieldSet>
+                <FieldLegend className="font-heading text-xl">¿Cuenta como un mantenimiento programado?</FieldLegend>
+                {maintenanceChoices.length ? (
+                  <>
+                    <FieldDescription>
+                      Marca lo que se hizo en este servicio: vuelve a contar desde su fecha y su kilometraje. Si no
+                      marcas nada, el contador no cambia.
+                    </FieldDescription>
+                    <ServiceMaintenancePicker choices={maintenanceChoices} value={field.value} onChange={field.onChange} />
+                  </>
+                ) : (
+                  <FieldDescription>
+                    {selectedUnit?.economicNumber ?? "Esta unidad"} no tiene mantenimientos programados. Se agregan en la
+                    ficha de la unidad.
+                  </FieldDescription>
+                )}
+              </FieldSet>
+            )}
+          />
         )}
 
         <FieldSet>
@@ -406,7 +542,9 @@ function ServiceFormBody({
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="mileage">Kilometraje (opcional)</FieldLabel>
+                    <FieldLabel htmlFor="mileage">
+                      {mileageRequired || service?.mileage != null ? "Kilometraje" : "Kilometraje (opcional)"}
+                    </FieldLabel>
                     <Input
                       {...field}
                       id="mileage"
@@ -414,8 +552,12 @@ function ServiceFormBody({
                       autoComplete="off"
                       placeholder="Ej. 250000"
                       aria-invalid={fieldState.invalid}
+                      aria-required={mileageRequired}
                       className={`${inputClass} tabular-nums`}
                     />
+                    {lastMileage && (
+                      <FieldDescription>Último registrado: {describeMileage(lastMileage)}</FieldDescription>
+                    )}
                     <FieldError errors={[fieldState.error]} />
                   </Field>
                 )}

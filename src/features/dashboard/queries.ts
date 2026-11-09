@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { ServiceType } from "@/features/servicios/types";
 import type { UnitType } from "@/features/unidades/types";
 import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -64,6 +65,11 @@ export async function getReport(
     })),
     byGroup: rows(r.por_grupo).map((g) => ({ group: text(g.grupo) as Group, total: text(g.total) })),
     byType: rows(r.por_tipo).map((t) => ({ type: text(t.tipo) as UnitType, total: text(t.total) })),
+    byServiceType: rows(r.por_tipo_servicio).map((t) => ({
+      type: orNull(t.tipo) as ServiceType | null,
+      total: text(t.total),
+      services: num(t.servicios),
+    })),
     bySupplier: rows(r.por_proveedor).map((p) => ({
       id: orNull(p.id),
       name: text(p.nombre),
@@ -100,5 +106,6 @@ export async function listExportRows(
     currency: row.moneda,
     usdAmount: row.monto_usd,
     exchangeRate: row.tipo_cambio,
+    serviceType: row.tipo_servicio,
   }));
 }

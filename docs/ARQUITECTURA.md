@@ -22,6 +22,7 @@ src/
 │   │   ├── unidades/            # Trailers, cajas, camiones rabones y camionetas (D3)
 │   │   ├── taller/              # Unidades en taller, entrada y salida (5E)
 │   │   ├── servicios/
+│   │   ├── mantenimientos/      # Correctivos (lo pendiente) y Preventivos (historial) (5F)
 │   │   ├── dashboard/           # Solo admin
 │   │   └── admin/               # Solo admin: catálogos, usuarios
 │   ├── manifest.ts              # App instalable (/manifest.webmanifest)
@@ -34,6 +35,7 @@ src/
 │   ├── servicios/               # servicios y sus gastos
 │   ├── comprobantes/
 │   ├── taller/                  # entradas a taller: entrada, salida, lista (5E)
+│   ├── mantenimientos/          # mantenimientos programados por unidad y lo pendiente (5F)
 │   ├── usuarios/                # alta, rol, desactivar, contraseña (solo admin)
 │   └── dashboard/
 │       ├── components/          # Componentes propios del feature
@@ -83,7 +85,10 @@ La dirección permitida es: `app → features → components/shared → lib`.
     proveedor dentro del formulario de servicio), `comprobantes/components/receipt-picker` y
     `comprobantes/components/upload-receipts` (elegir y subir comprobantes en el servicio nuevo),
     `comprobantes/components/view-receipts-button` ("Ver factura" en la lista de gastos),
-    `servicios/components/unit-picker` (elegir unidad; también en la entrada a taller).
+    `servicios/components/unit-picker` (elegir unidad; también en la entrada a taller),
+    `servicios/components/service-brief-feed` (historial de preventivos en Mantenimientos),
+    `mantenimientos/components/maintenance-status-badge` (estado del mantenimiento en el
+    formulario de servicio).
   - Nunca `queries.ts` ni `actions.ts` de otro feature: eso lo compone la página en `app/`.
 - `lib/` no importa de `features/` ni de `app/`.
 - `components/ui/` no conoce nada del negocio.

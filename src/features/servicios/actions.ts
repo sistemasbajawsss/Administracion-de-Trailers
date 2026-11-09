@@ -11,8 +11,9 @@ import { getFixRate, type FixRate } from "@/lib/banxico";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
 import { normalizeAmount, normalizeRate } from "@/lib/utils/format";
+import { mileageIssue } from "@/lib/utils/mileage";
 
-import { getOpenShopStay, getServiceShopLink, listExpenses } from "./queries";
+import { getOpenShopStay, getServiceShopLink, getUnitMileageRule, listExpenses, listServicesOfType } from "./queries";
 import {
   exchangeRateDateSchema,
   fallsInStay,
@@ -25,7 +26,7 @@ import {
   serviceSchema,
   type ServiceInput,
 } from "./schemas";
-import type { ExpenseListItem, ShopStay } from "./types";
+import { SERVICE_TYPES, type ExpenseListItem, type ServiceBrief, type ShopStay } from "./types";
 
 /** Los tipos generados marcan los argumentos de las funciones como no nulos, pero aceptan null. */
 const nullable = <T,>(value: T | null) => value as T;
@@ -39,6 +40,11 @@ function toArgs(service: ServiceInput) {
     p_kilometraje: nullable(service.mileage ? Number(service.mileage.replace(/,/g, "")) : null),
     p_proveedor_id: nullable(emptyToNull(service.supplierId)),
     p_descripcion: nullable(emptyToNull(service.description)),
+    // Vacío (servicio de antes sin clasificar): la BD conserva el que tenía.
+    p_tipo: service.serviceType || undefined,
+    // Solo un correctivo cumple mantenimientos; sin tipo (uno de antes), la BD conserva lo que tenía.
+    p_mantenimientos:
+      service.serviceType === "correctivo" ? service.maintenanceIds : service.serviceType ? [] : undefined,
     // En dólares no se manda el monto en pesos: lo calcula la BD con el tipo de cambio.
     p_gastos: service.expenses.map((expense) => ({
       id: emptyToNull(expense.id),
@@ -85,6 +91,7 @@ function revalidateServices(unitIds: string[]) {
   revalidatePath("/taller");
   revalidatePath("/unidades", "layout");
   revalidatePath("/");
+  revalidatePath("/mantenimientos");
   for (const unitId of unitIds) revalidatePath(`/unidades/${unitId}`);
 }
 
@@ -94,14 +101,23 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
 
   await requireRole(CAPTURE_ROLES);
 
-  // Taller (5E, D13): misma regla que el formulario, con lo que hay hoy en la BD.
+  // Taller (5E, D13) y kilometraje (5F, D14): mismas reglas que el formulario, con lo que hay hoy en la BD.
   let stay: ShopStay | null;
+  let mileageRule: Awaited<ReturnType<typeof getUnitMileageRule>>;
   try {
-    stay = await getOpenShopStay(parsed.data.unitId);
+    [stay, mileageRule] = await Promise.all([getOpenShopStay(parsed.data.unitId), getUnitMileageRule(parsed.data.unitId)]);
   } catch {
     return fail("No se pudo guardar el servicio. Inténtalo de nuevo.");
   }
+  if (!mileageRule) return fail("La unidad ya no existe.");
   const values = parsed.data;
+  const kmProblem = mileageIssue(values.mileage, {
+    required: mileageRule.type !== "caja",
+    last: mileageRule.last,
+    date: values.date,
+  });
+  if (mileageRule.type !== "caja" && kmProblem) return fail(kmProblem);
+  if (!values.serviceType) return fail("Elige el tipo de servicio.");
   const linked = fallsInStay(stay, values.date);
   const issues = shopIssues(values, { stay, linked, needsReason: true, allowForgot: true });
   if (issues.length) return fail(issues[0]!.message);
@@ -250,5 +266,24 @@ export async function loadMoreExpenses(input: unknown): Promise<ActionResult<Exp
     return ok(await listExpenses({ ...parsed.data.filters, unitId: parsed.data.unitId }, parsed.data.offset));
   } catch {
     return fail("No se pudieron cargar más gastos. Inténtalo de nuevo.");
+  }
+}
+
+const moreServicesOfTypeSchema = z.object({
+  type: z.enum(SERVICE_TYPES),
+  offset: z.number().int().min(0).max(100_000),
+});
+
+/** Siguiente tanda del historial por tipo (pestaña Preventivos de Mantenimientos). RLS decide el alcance. */
+export async function loadMoreServicesOfType(input: unknown): Promise<ActionResult<ServiceBrief[]>> {
+  const parsed = moreServicesOfTypeSchema.safeParse(input);
+  if (!parsed.success) return fail("No se pudieron cargar más servicios.");
+
+  await requireRole(["admin", "capturista", "gerente"]);
+
+  try {
+    return ok((await listServicesOfType(parsed.data.type, parsed.data.offset)).services);
+  } catch {
+    return fail("No se pudieron cargar más servicios. Inténtalo de nuevo.");
   }
 }

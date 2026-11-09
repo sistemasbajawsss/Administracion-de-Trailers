@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { serviceTypeLabel } from "@/features/servicios/types";
 import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { formatDate, formatDateTime, formatMoney, toCents } from "@/lib/utils/format";
 
@@ -78,9 +79,9 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
 
       {/*
         Una cuadrícula de 6 columnas para todo; cada tarjeta dice cuánto ocupa:
-        - Pantalla ancha: mes 4 + grupos 2 / categorías 3 + unidades 3 / proveedores 6.
-        - Hoja vertical: mes 6 / grupos 3 + proveedores 3 / categorías 3 + unidades 3.
-        - Hoja horizontal: mes 4 + grupos 2 (hoja 1) / categorías, unidades y proveedores 2 + 2 + 2 (hoja 2).
+        - Pantalla ancha: mes 4 + grupos 2 / categorías 3 + unidades 3 / tipo de servicio 2 + proveedores 4.
+        - Hoja vertical: mes 6 / grupos 3 + proveedores 3 / categorías 3 + unidades 3 / tipo de servicio 3.
+        - Hoja horizontal: mes 4 + grupos 2 (hoja 1) / categorías, unidades y proveedores 2 + 2 + 2, tipo de servicio 2 (hoja 2).
       */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-6 print:grid-cols-6 print:gap-3">
         <Panel
@@ -169,9 +170,25 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
         </Panel>
 
         <Panel
+          title="Por tipo de servicio"
+          description="Preventivo, correctivo o servicio."
+          className="lg:col-span-2 print:order-6 print:col-span-3 print:landscape:col-span-2"
+        >
+          <RankedBars
+            grandTotal={report.total}
+            items={report.byServiceType.map((t) => ({
+              key: t.type ?? "sin-tipo",
+              label: serviceTypeLabel(t.type),
+              detail: t.type ? plural(t.services, "servicio", "servicios") : `${plural(t.services, "servicio", "servicios")} de antes`,
+              total: t.total,
+            }))}
+          />
+        </Panel>
+
+        <Panel
           title="Proveedores y talleres"
           description="Dónde se hacen los servicios."
-          className="lg:col-span-6 print:order-3 print:portrait:col-span-3 print:landscape:order-5 print:landscape:col-span-2"
+          className="lg:col-span-4 print:order-3 print:portrait:col-span-3 print:landscape:order-5 print:landscape:col-span-2"
         >
           <RankedBars
             grandTotal={report.total}

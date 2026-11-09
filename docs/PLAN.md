@@ -306,6 +306,68 @@ Cada etapa se sube y se prueba sola. No se pasa a la siguiente hasta que el usua
 
 Costo: ninguno extra (los ensayos van en transacciones). El proyecto aparte `administracion-trailers-dev` se usará cuando haya datos reales.
 
+### 5F — Mantenimientos (acordada 2026-11-06, pendiente de que el usuario diga "empieza")
+Decisiones del usuario (D14, 2026-11-06), con sus nombres para los tipos:
+- **Tipo de servicio**, obligatorio en servicios nuevos (los anteriores quedan sin tipo):
+  - **Preventivo:** se hace antes de que algo falle (ej. balatas gastadas).
+  - **Correctivo:** lo constante, cada cierto kilometraje o tiempo (ej. cambio de aceite). Es el que se programa y avisa.
+  - **Servicio:** todo lo demás (reparaciones).
+  - Se ve como etiqueta en el detalle y en las listas.
+- **El tipo va en el servicio; la categoría del gasto dice qué se compró.** El aceite que se pone al reparar un motor es un gasto de aceite dentro de un *servicio*: no reinicia el cambio de aceite programado. Solo un correctivo que se marca como cumplimiento de un mantenimiento reinicia su contador. En Reportes todo sigue siendo gasto (los totales no cambian) y se agrega el gasto por tipo.
+- **Mantenimientos por unidad**, en la ficha de la unidad (admin agrega, edita y quita): nombre; intervalo por kilometraje, por tiempo (meses: 6, 12…) o "lo que pase primero"; desde cuándo cuenta (último km y fecha). Las cajas solo por tiempo. Atajo "Copiar de otra unidad". Cada unidad tiene los suyos (no son iguales por tipo).
+- **Kilometraje:**
+  - Cada unidad tiene un kilometraje actual: el primero lo captura el admin; después se actualiza con cada servicio y entrada a taller.
+  - Obligatorio en servicios nuevos (menos cajas) y en la entrada a taller.
+  - **Si es menor al último registrado, no se guarda** ("El kilometraje no cuadra: el último de T-17 es 250,000 km").
+  - Solo el admin corrige el kilometraje actual (odómetro cambiado, error anterior), con motivo; queda registrado.
+- **Una sola captura:** todo se registra en "Registrar servicio". La página **Mantenimientos** solo organiza, con dos pestañas:
+  - Correctivos: qué le toca a cada unidad y cuánto falta, en verde / ámbar / rojo.
+  - Preventivos: historial.
+  - Su botón "Registrar" abre el formulario de servicio con la unidad, el tipo y el mantenimiento ya puestos.
+
+**Alcance**
+- BD:
+  - Enum `tipo_servicio` (`preventivo`, `correctivo`, `servicio`) y `servicios.tipo` (null en los de antes).
+  - `unidades.kilometraje_actual`, tomado al inicio del mayor kilometraje registrado en sus servicios.
+  - Tabla de correcciones de kilometraje (quién, cuándo, de cuánto a cuánto, motivo).
+  - Tabla `mantenimientos_unidad`: unidad, nombre, `cada_km`, `cada_meses` (al menos uno), km y fecha de partida, activo.
+  - Tabla `servicios_mantenimientos`: qué mantenimientos cumplió un correctivo, con su km y fecha.
+  - Función que calcula lo pendiente por unidad: próximo km / fecha y estado.
+  - Validaciones en la BD: kilometraje no menor al actual; un mantenimiento solo lo cumple un correctivo de su misma unidad.
+- RLS:
+  - Los tres roles ven los mantenimientos y lo pendiente.
+  - Solo el admin configura mantenimientos y corrige el kilometraje.
+  - Admin y capturista registran servicios, como hoy.
+- App:
+  - Kilometraje obligatorio en el formulario de servicio y en la entrada a taller.
+  - Tipo de servicio en el formulario, con "¿Cuenta como el cambio de … programado?" en los correctivos.
+  - Sección Mantenimientos y corrección de kilometraje en la ficha de la unidad.
+  - Página `/mantenimientos` y su enlace en el menú.
+  - Gráfica de gasto por tipo en Reportes.
+  - Aviso de vencidos / por vencer en Inicio.
+- Por vencer (valor inicial, ajustable): faltan 1,000 km o menos, o 15 días o menos.
+
+**Etapas** (mismas reglas de trabajo que la 5E: la BD compatible con la app publicada, ensayo en `begin … rollback`, regresión de `supabase/tests`, tiempos medidos, revisión en navegador y celular)
+- **Etapa 0 — Línea base.**
+- **Etapa 1 — Kilometraje:**
+  - Kilometraje actual por unidad (inicial desde los servicios) y obligatorio en servicio y entrada a taller (menos cajas).
+  - No menor al último; corrección del admin con motivo y registro.
+- **Etapa 2 — Tipo de servicio:** columna, formulario, etiqueta en detalle y listas, gasto por tipo en Reportes.
+- **Etapa 3 — Mantenimientos por unidad:** en la ficha (agregar, editar, quitar, copiar de otra unidad); cálculo de lo pendiente.
+- **Etapa 4 — Página Mantenimientos y cumplimiento:**
+  - Pestañas Correctivos (pendientes, por estado) y Preventivos (historial).
+  - Registrar un correctivo desde ahí con el mantenimiento marcado; su contador se reinicia.
+- **Etapa 5 — Avisos en Inicio, prueba de carga y cierre.**
+
+**Pendiente del usuario:** los intervalos de cada unidad (los puede capturar él mismo en la ficha cuando estén listos).
+
+**Terminado cuando**
+- Un servicio nuevo no se guarda sin tipo, sin kilometraje (salvo cajas) o con un kilometraje menor al actual, ni por API directa.
+- Solo un correctivo marcado como cumplimiento reinicia el contador de ese mantenimiento; un "servicio" con los mismos gastos no lo reinicia.
+- Lo pendiente cuadra con los intervalos: por km, por tiempo y "lo que pase primero"; las cajas, solo por tiempo.
+- Los totales de Reportes son iguales antes y después; el gasto por tipo suma el total del periodo.
+- Las baterías anteriores siguen pasando; Mantenimientos e Inicio responden en menos de ~1 s con volumen.
+
 ### Fase 2 — Almacén (a futuro, cuando el almacén físico esté ordenado)
 Decisiones del usuario (2026-11-06):
 - Un solo almacén, con ubicaciones (pasillo / anaquel).

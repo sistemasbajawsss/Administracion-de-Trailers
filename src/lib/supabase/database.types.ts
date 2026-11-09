@@ -198,6 +198,50 @@ export type Database = {
           },
         ]
       }
+      correcciones_kilometraje: {
+        Row: {
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          kilometraje: number
+          kilometraje_anterior: number | null
+          motivo: string
+          unidad_id: string
+        }
+        Insert: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          id?: string
+          kilometraje: number
+          kilometraje_anterior?: number | null
+          motivo: string
+          unidad_id: string
+        }
+        Update: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          kilometraje?: number
+          kilometraje_anterior?: number | null
+          motivo?: string
+          unidad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correcciones_kilometraje_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entradas_taller: {
         Row: {
           created_at: string
@@ -206,6 +250,7 @@ export type Database = {
           fecha_entrada: string
           fecha_salida: string | null
           id: string
+          kilometraje: number | null
           nota_salida: string | null
           reporta_nombre: string | null
           salida_by: string | null
@@ -221,6 +266,7 @@ export type Database = {
           fecha_entrada: string
           fecha_salida?: string | null
           id?: string
+          kilometraje?: number | null
           nota_salida?: string | null
           reporta_nombre?: string | null
           salida_by?: string | null
@@ -236,6 +282,7 @@ export type Database = {
           fecha_entrada?: string
           fecha_salida?: string | null
           id?: string
+          kilometraje?: number | null
           nota_salida?: string | null
           reporta_nombre?: string | null
           salida_by?: string | null
@@ -363,6 +410,59 @@ export type Database = {
         }
         Relationships: []
       }
+      mantenimientos_unidad: {
+        Row: {
+          activo: boolean
+          cada_km: number | null
+          cada_meses: number | null
+          created_at: string
+          created_by: string | null
+          desde_fecha: string
+          desde_km: number | null
+          id: string
+          nombre: string
+          unidad_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activo?: boolean
+          cada_km?: number | null
+          cada_meses?: number | null
+          created_at?: string
+          created_by?: string | null
+          desde_fecha: string
+          desde_km?: number | null
+          id?: string
+          nombre: string
+          unidad_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activo?: boolean
+          cada_km?: number | null
+          cada_meses?: number | null
+          created_at?: string
+          created_by?: string | null
+          desde_fecha?: string
+          desde_km?: number | null
+          id?: string
+          nombre?: string
+          unidad_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mantenimientos_unidad_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles: {
         Row: {
           activo: boolean
@@ -435,9 +535,11 @@ export type Database = {
           fecha: string
           id: string
           kilometraje: number | null
+          mantenimientos: string[]
           motivo_sin_entrada: string | null
           proveedor_id: string | null
           sin_entrada_taller: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id: string
           updated_at: string
           updated_by: string | null
@@ -450,9 +552,11 @@ export type Database = {
           fecha: string
           id?: string
           kilometraje?: number | null
+          mantenimientos?: string[]
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
+          tipo?: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id: string
           updated_at?: string
           updated_by?: string | null
@@ -465,9 +569,11 @@ export type Database = {
           fecha?: string
           id?: string
           kilometraje?: number | null
+          mantenimientos?: string[]
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
+          tipo?: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -714,11 +820,13 @@ export type Database = {
           fecha: string | null
           id: string | null
           kilometraje: number | null
+          mantenimientos: string[] | null
           motivo_sin_entrada: string | null
           num_comprobantes: number | null
           num_gastos: number | null
           proveedor_id: string | null
           sin_entrada_taller: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_servicio"] | null
           total: number | null
           unidad_id: string | null
           updated_at: string | null
@@ -780,11 +888,13 @@ export type Database = {
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_mantenimientos?: string[]
           p_motivo: string
           p_motivo_sin_entrada?: string
           p_proveedor_id: string
           p_salida_taller?: boolean
           p_servicio_id: string
+          p_tipo?: Database["public"]["Enums"]["tipo_servicio"]
           p_unidad_id: string
         }
         Returns: undefined
@@ -800,6 +910,19 @@ export type Database = {
         }[]
       }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
+      copiar_mantenimientos: {
+        Args: { p_destino: string; p_origen: string }
+        Returns: number
+      }
+      corregir_kilometraje: {
+        Args: {
+          p_fecha: string
+          p_kilometraje: number
+          p_motivo: string
+          p_unidad_id: string
+        }
+        Returns: string
+      }
       dar_salida_taller: {
         Args: {
           p_entrada_id: string
@@ -846,6 +969,7 @@ export type Database = {
           proveedor: string
           tipo: Database["public"]["Enums"]["tipo_unidad"]
           tipo_cambio: string
+          tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
         }[]
       }
       filtro_gastos: {
@@ -883,6 +1007,16 @@ export type Database = {
           servicio_id: string
           tipo: Database["public"]["Enums"]["tipo_unidad"]
           tipo_cambio: number
+          tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
+          unidad_id: string
+        }[]
+      }
+      kilometraje_unidades: {
+        Args: { p_unidad_id?: string }
+        Returns: {
+          fecha: string
+          fuente: string
+          kilometraje: number
           unidad_id: string
         }[]
       }
@@ -935,6 +1069,27 @@ export type Database = {
           ultimo_acceso: string
         }[]
       }
+      mantenimientos_pendientes: {
+        Args: { p_unidad_id?: string }
+        Returns: {
+          cada_km: number
+          cada_meses: number
+          desde_fecha: string
+          desde_km: number
+          estado: string
+          faltan_dias: number
+          faltan_km: number
+          id: string
+          km_actual: number
+          nombre: string
+          proxima_fecha: string
+          proximo_km: number
+          ultima_fecha: string
+          ultimo_km: number
+          ultimo_servicio_id: string
+          unidad_id: string
+        }[]
+      }
       marcar_unidad_vendida: {
         Args: { p_fecha: string; p_nota?: string; p_unidad_id: string }
         Returns: undefined
@@ -952,7 +1107,12 @@ export type Database = {
         Returns: string
       }
       registrar_entrada_taller: {
-        Args: { p_falla: string; p_fecha: string; p_unidad_id: string }
+        Args: {
+          p_falla: string
+          p_fecha: string
+          p_kilometraje?: number
+          p_unidad_id: string
+        }
         Returns: string
       }
       registrar_servicio: {
@@ -963,9 +1123,11 @@ export type Database = {
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_mantenimientos?: string[]
           p_motivo_sin_entrada?: string
           p_proveedor_id: string
           p_salida_taller?: boolean
+          p_tipo?: Database["public"]["Enums"]["tipo_servicio"]
           p_unidad_id: string
         }
         Returns: string
@@ -1003,6 +1165,16 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
+      validar_kilometraje: {
+        Args: {
+          p_entrada_id?: string
+          p_fecha: string
+          p_kilometraje: number
+          p_servicio_id?: string
+          p_unidad_id: string
+        }
+        Returns: undefined
+      }
       validar_reporte: {
         Args: { p_desde: string; p_grupo: string; p_hasta: string }
         Returns: undefined
@@ -1014,6 +1186,7 @@ export type Database = {
       moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista" | "gerente"
+      tipo_servicio: "preventivo" | "correctivo" | "servicio"
       tipo_unidad: "trailer" | "caja" | "camion_rabon" | "pipa" | "camioneta"
     }
     CompositeTypes: {
@@ -1150,6 +1323,7 @@ export const Constants = {
       moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista", "gerente"],
+      tipo_servicio: ["preventivo", "correctivo", "servicio"],
       tipo_unidad: ["trailer", "caja", "camion_rabon", "pipa", "camioneta"],
     },
   },

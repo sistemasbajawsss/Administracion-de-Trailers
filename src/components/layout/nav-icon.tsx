@@ -1,4 +1,5 @@
 import {
+  CalendarClock,
   ChartColumn,
   ClipboardPlus,
   Hammer,
@@ -17,6 +18,7 @@ const ICONS: Record<NavIconName, LucideIcon> = {
   taller: Hammer,
   unidades: Truck,
   servicios: Wrench,
+  mantenimientos: CalendarClock,
   registrar: ClipboardPlus,
   reportes: ChartColumn,
   catalogos: Tags,

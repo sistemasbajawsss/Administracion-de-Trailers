@@ -6,7 +6,9 @@ import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
+import { mileageIssue, parseKm } from "@/lib/utils/mileage";
 
+import { getUnitMileageRule } from "./queries";
 import { shopEntrySchema, shopReleaseSchema } from "./schemas";
 
 /** Los mensajes de las funciones de taller ya vienen en español y dicen qué corregir. */
@@ -21,6 +23,7 @@ function revalidateShop() {
   revalidatePath("/taller");
   revalidatePath("/unidades", "layout");
   revalidatePath("/");
+  revalidatePath("/mantenimientos");
 }
 
 export async function registerShopEntry(input: unknown): Promise<ActionResult<{ id: string }>> {
@@ -29,11 +32,26 @@ export async function registerShopEntry(input: unknown): Promise<ActionResult<{ 
 
   await requireRole(CAPTURE_ROLES);
 
+  // Kilometraje (5F, D14): obligatorio salvo en cajas; misma regla que el formulario.
+  let rule: Awaited<ReturnType<typeof getUnitMileageRule>>;
+  try {
+    rule = await getUnitMileageRule(parsed.data.unitId);
+  } catch {
+    return fail("No se pudo registrar la entrada. Inténtalo de nuevo.");
+  }
+  if (!rule) return fail("La unidad no existe.");
+  const isBox = rule.type === "caja";
+  if (!isBox) {
+    const kmProblem = mileageIssue(parsed.data.mileage, { required: true, last: rule.last, date: parsed.data.date });
+    if (kmProblem) return fail(kmProblem);
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("registrar_entrada_taller", {
     p_unidad_id: parsed.data.unitId,
     p_fecha: parsed.data.date,
     p_falla: parsed.data.fault,
+    p_kilometraje: isBox ? undefined : (parseKm(parsed.data.mileage) ?? undefined),
   });
   if (error) return fail(errorMessage(error, "No se pudo registrar la entrada. Inténtalo de nuevo."));
 

@@ -10,6 +10,7 @@ import {
   PendingReceiptsPanel,
   RecentServicesPanel,
 } from "@/features/servicios/components/home-panels";
+import { MaintenanceDuePanel } from "@/features/mantenimientos/components/maintenance-due-panel";
 import { UnitsInShopPanel } from "@/features/unidades/components/units-in-shop";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { todayInTijuana } from "@/lib/utils/format";
@@ -37,6 +38,9 @@ async function Welcome() {
           <Suspense fallback={<HomePanelSkeleton />}>
             <RecentServicesPanel />
           </Suspense>
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <MaintenanceDuePanel openUnits={false} />
+          </Suspense>
         </div>
       </>
     );
@@ -63,6 +67,9 @@ async function Welcome() {
           <PendingReceiptsPanel title="Servicios sin factura" showAuthor />
         </Suspense>
         <div className="flex min-w-0 flex-col gap-6">
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <MaintenanceDuePanel openUnits />
+          </Suspense>
           <Suspense fallback={<HomePanelSkeleton />}>
             <UnitsInShopPanel today={todayInTijuana()} />
           </Suspense>

@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 
+import { serviceTypeLabel } from "@/features/servicios/types";
 import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { formatCents, formatDate, formatDateTime, formatMoney, formatUsd, toCents } from "@/lib/utils/format";
 
@@ -309,6 +310,15 @@ export async function buildReportPdf({ report, period, filters }: ReportPdfData)
       label: u.economicNumber,
       detail: `${UNIT_TYPE_LABELS[u.type]} · ${GROUP_LABELS[u.group] ?? ""}`,
       total: u.total,
+    })),
+  );
+
+  sectionTitle("Por tipo de servicio", "Preventivo, correctivo o servicio.");
+  ranked(
+    report.byServiceType.map((t) => ({
+      label: serviceTypeLabel(t.type),
+      detail: `${plural(t.services, "servicio", "servicios")}${t.type ? "" : " de antes"}`,
+      total: t.total,
     })),
   );
 
