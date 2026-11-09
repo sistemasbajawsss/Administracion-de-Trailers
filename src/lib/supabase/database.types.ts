@@ -410,6 +410,59 @@ export type Database = {
         }
         Relationships: []
       }
+      mantenimientos_unidad: {
+        Row: {
+          activo: boolean
+          cada_km: number | null
+          cada_meses: number | null
+          created_at: string
+          created_by: string | null
+          desde_fecha: string
+          desde_km: number | null
+          id: string
+          nombre: string
+          unidad_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activo?: boolean
+          cada_km?: number | null
+          cada_meses?: number | null
+          created_at?: string
+          created_by?: string | null
+          desde_fecha: string
+          desde_km?: number | null
+          id?: string
+          nombre: string
+          unidad_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activo?: boolean
+          cada_km?: number | null
+          cada_meses?: number | null
+          created_at?: string
+          created_by?: string | null
+          desde_fecha?: string
+          desde_km?: number | null
+          id?: string
+          nombre?: string
+          unidad_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mantenimientos_unidad_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles: {
         Row: {
           activo: boolean
@@ -852,6 +905,10 @@ export type Database = {
         }[]
       }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
+      copiar_mantenimientos: {
+        Args: { p_destino: string; p_origen: string }
+        Returns: number
+      }
       corregir_kilometraje: {
         Args: {
           p_fecha: string
@@ -1005,6 +1062,24 @@ export type Database = {
           nombre: string
           rol: Database["public"]["Enums"]["rol_usuario"]
           ultimo_acceso: string
+        }[]
+      }
+      mantenimientos_pendientes: {
+        Args: { p_unidad_id?: string }
+        Returns: {
+          cada_km: number
+          cada_meses: number
+          desde_fecha: string
+          desde_km: number
+          estado: string
+          faltan_dias: number
+          faltan_km: number
+          id: string
+          km_actual: number
+          nombre: string
+          proxima_fecha: string
+          proximo_km: number
+          unidad_id: string
         }[]
       }
       marcar_unidad_vendida: {
