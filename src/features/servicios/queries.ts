@@ -18,15 +18,17 @@ import type {
   ServiceDetail,
   ServiceListItem,
   ServiceShopLink,
+  ServiceType,
   ShopStay,
   UnitOption,
   UnitTotals,
   UsdAmount,
 } from "./types";
+import { SERVICE_TYPE_LABELS } from "./types";
 
 // Los montos se piden como texto (::text) para no convertirlos a float.
 const LIST_COLUMNS =
-  "id, fecha, total::text, num_gastos, editado, descripcion, unidad:unidades!inner(id, numero_economico, tipo), proveedor:proveedores(nombre)";
+  "id, fecha, total::text, num_gastos, editado, descripcion, tipo, unidad:unidades!inner(id, numero_economico, tipo), proveedor:proveedores(nombre)";
 
 type ServiceRow = {
   id: string;
@@ -35,6 +37,7 @@ type ServiceRow = {
   num_gastos: number;
   editado: boolean;
   descripcion: string | null;
+  tipo: ServiceType | null;
   unidad: { id: string; numero_economico: string; tipo: UnitType };
   proveedor: { nombre: string } | null;
 };
@@ -49,6 +52,7 @@ function toListItem(row: ServiceRow): ServiceListItem {
     description: row.descripcion,
     unit: { id: row.unidad.id, economicNumber: row.unidad.numero_economico, type: row.unidad.tipo },
     supplierName: row.proveedor?.nombre ?? null,
+    serviceType: row.tipo,
   };
 }
 
@@ -423,6 +427,8 @@ function describeServiceField(field: string, value: Json | undefined, names: Nam
       return formatDate(text);
     case "kilometraje":
       return formatKm(Number(text));
+    case "tipo":
+      return SERVICE_TYPE_LABELS[text as ServiceType] ?? text;
     default:
       return text;
   }
@@ -431,6 +437,7 @@ function describeServiceField(field: string, value: Json | undefined, names: Nam
 const SERVICE_FIELDS: [string, string][] = [
   ["unidad_id", "Unidad"],
   ["fecha", "Fecha"],
+  ["tipo", "Tipo de servicio"],
   ["kilometraje", "Kilometraje"],
   ["proveedor_id", "Proveedor"],
   ["descripcion", "Descripción"],
@@ -562,7 +569,7 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
 // ---------------------------------------------------------------------------
 
 const BRIEF_COLUMNS =
-  "id, fecha, total::text, num_comprobantes, autor_nombre, unidad:unidades!inner(numero_economico, tipo)";
+  "id, fecha, total::text, num_comprobantes, autor_nombre, tipo, unidad:unidades!inner(numero_economico, tipo)";
 
 type BriefRow = {
   id: string;
@@ -570,6 +577,7 @@ type BriefRow = {
   total: string;
   num_comprobantes: number;
   autor_nombre: string | null;
+  tipo: ServiceType | null;
   unidad: { numero_economico: string; tipo: UnitType };
 };
 
@@ -581,6 +589,7 @@ const toBrief = (row: BriefRow): ServiceBrief => ({
   unitType: row.unidad.tipo,
   author: row.autor_nombre,
   receiptCount: row.num_comprobantes,
+  serviceType: row.tipo,
 });
 
 /**

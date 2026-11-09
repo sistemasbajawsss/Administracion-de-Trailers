@@ -59,6 +59,7 @@ import {
 import type { CategoryOption, ServiceDetail, SupplierOption, UnitOption } from "../types";
 
 import { ServiceShopPanel, shopState } from "./service-shop-panel";
+import { ServiceTypePicker } from "./service-type-picker";
 import { UnitPicker } from "./unit-picker";
 
 const NO_SUPPLIER = "sin-proveedor";
@@ -76,6 +77,7 @@ function toFormValues(service: ServiceDetail | undefined, today: string, initial
     unitId: service?.unit.id ?? initialUnitId,
     date: service?.date ?? today,
     mileage: service?.mileage != null ? String(service.mileage) : "",
+    serviceType: service?.serviceType ?? "",
     supplierId: service?.supplierId ?? "",
     description: service?.description ?? "",
     // En dólares, el formulario edita la cantidad en dólares; los pesos los calcula la BD.
@@ -284,6 +286,19 @@ function ServiceFormBody({
     return problem;
   }
 
+  /** Tipo de servicio (5F): obligatorio en alta; al editar uno de antes puede quedar sin tipo. */
+  function markTypeProblem(values: Pick<ServiceEditInput, "serviceType">) {
+    const problem = !isEdit && !values.serviceType ? "Elige el tipo de servicio" : null;
+    if (problem) form.setError("serviceType", { message: problem });
+    return problem;
+  }
+
+  /** Lo que depende de la unidad o de si es alta: se marca junto con los errores del schema. */
+  function markExtraProblems(values: ServiceEditInput) {
+    markTypeProblem(values);
+    markMileageProblem(values);
+  }
+
   async function onSubmit(values: ServiceEditInput) {
     // "Otros (especificar)" exige concepto (la BD también lo valida).
     let missingConcept = false;
@@ -294,6 +309,12 @@ function ServiceFormBody({
       }
     });
     if (missingConcept) return;
+
+    const typeProblem = markTypeProblem(values);
+    if (typeProblem) {
+      form.setFocus("serviceType");
+      return void toast.error(typeProblem);
+    }
 
     const kmProblem = markMileageProblem(values);
     if (kmProblem) {
@@ -371,7 +392,7 @@ function ServiceFormBody({
   return (
     <form
       noValidate
-      onSubmit={form.handleSubmit(onSubmit, () => markMileageProblem(form.getValues()))}
+      onSubmit={form.handleSubmit(onSubmit, () => markExtraProblems(form.getValues()))}
       className="max-w-3xl"
     >
       <FieldGroup className="gap-10">
@@ -403,6 +424,26 @@ function ServiceFormBody({
           // key: al cambiar de unidad, el panel empieza de cero (motivo elegido, etc.).
           <ServiceShopPanel key={unitId} form={form} stay={stay} state={shop} today={today} />
         )}
+
+        <Controller
+          name="serviceType"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <FieldSet data-invalid={fieldState.invalid}>
+              <FieldLegend className="font-heading text-xl">Tipo de servicio</FieldLegend>
+              <ServiceTypePicker
+                value={field.value}
+                onChange={field.onChange}
+                inputRef={field.ref}
+                invalid={fieldState.invalid}
+              />
+              {isEdit && !service?.serviceType && !field.value && (
+                <FieldDescription>Este servicio es de antes y no tiene tipo. Puedes elegirlo o dejarlo así.</FieldDescription>
+              )}
+              <FieldError errors={[fieldState.error]} />
+            </FieldSet>
+          )}
+        />
 
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Datos del servicio</FieldLegend>

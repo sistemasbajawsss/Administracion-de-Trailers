@@ -1,5 +1,27 @@
 import type { UnitOperation, UnitStatus, UnitType } from "@/features/unidades/types";
+import type { Database } from "@/lib/supabase/database.types";
 import type { LastMileage } from "@/lib/utils/mileage";
+
+/** Tipo de servicio (5F, D14), con los nombres del usuario. Los servicios de antes no tienen. */
+export type ServiceType = Database["public"]["Enums"]["tipo_servicio"];
+
+export const SERVICE_TYPES = ["preventivo", "correctivo", "servicio"] as const satisfies readonly ServiceType[];
+
+export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
+  preventivo: "Preventivo",
+  correctivo: "Correctivo",
+  servicio: "Servicio",
+};
+
+/** Lo que significa cada tipo, como lo definió el usuario. */
+export const SERVICE_TYPE_HINTS: Record<ServiceType, string> = {
+  preventivo: "Antes de que algo falle, como balatas gastadas.",
+  correctivo: "Lo que toca cada cierto kilometraje o tiempo, como el cambio de aceite.",
+  servicio: "Cualquier otra reparación.",
+};
+
+/** Servicios de antes de la 5F. */
+export const NO_SERVICE_TYPE_LABEL = "Sin tipo";
 
 /** Unidad elegible en el formulario de servicio (las de baja o vendidas no aparecen). */
 export type UnitOption = {
@@ -35,6 +57,8 @@ export type ServiceListItem = {
   description: string | null;
   unit: { id: string; economicNumber: string; type: UnitType };
   supplierName: string | null;
+  /** null en servicios de antes de la 5F. */
+  serviceType: ServiceType | null;
 };
 
 /** Renglón de la lista de gastos (un gasto, con la fecha de su servicio). */
@@ -131,6 +155,10 @@ export type ServiceBrief = {
   unitType: UnitType;
   author: string | null;
   receiptCount: number;
+  serviceType: ServiceType | null;
   /** Solo en el aviso de servicios sin entrada a taller (5E). */
   noEntryReason?: string | null;
 };
+
+/** "Correctivo", o "Sin tipo" en los servicios de antes de la 5F (Reportes, Excel). */
+export const serviceTypeLabel = (type: ServiceType | null) => (type ? SERVICE_TYPE_LABELS[type] : NO_SERVICE_TYPE_LABEL);

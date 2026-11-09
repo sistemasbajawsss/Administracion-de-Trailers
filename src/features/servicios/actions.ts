@@ -40,6 +40,8 @@ function toArgs(service: ServiceInput) {
     p_kilometraje: nullable(service.mileage ? Number(service.mileage.replace(/,/g, "")) : null),
     p_proveedor_id: nullable(emptyToNull(service.supplierId)),
     p_descripcion: nullable(emptyToNull(service.description)),
+    // Vacío (servicio de antes sin clasificar): la BD conserva el que tenía.
+    p_tipo: service.serviceType || undefined,
     // En dólares no se manda el monto en pesos: lo calcula la BD con el tipo de cambio.
     p_gastos: service.expenses.map((expense) => ({
       id: emptyToNull(expense.id),
@@ -111,6 +113,7 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
     date: values.date,
   });
   if (mileageRule.type !== "caja" && kmProblem) return fail(kmProblem);
+  if (!values.serviceType) return fail("Elige el tipo de servicio.");
   const linked = fallsInStay(stay, values.date);
   const issues = shopIssues(values, { stay, linked, needsReason: true, allowForgot: true });
   if (issues.length) return fail(issues[0]!.message);

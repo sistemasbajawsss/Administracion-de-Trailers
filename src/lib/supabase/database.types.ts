@@ -485,6 +485,7 @@ export type Database = {
           motivo_sin_entrada: string | null
           proveedor_id: string | null
           sin_entrada_taller: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id: string
           updated_at: string
           updated_by: string | null
@@ -500,6 +501,7 @@ export type Database = {
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
+          tipo?: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id: string
           updated_at?: string
           updated_by?: string | null
@@ -515,6 +517,7 @@ export type Database = {
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
+          tipo?: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -766,6 +769,7 @@ export type Database = {
           num_gastos: number | null
           proveedor_id: string | null
           sin_entrada_taller: boolean | null
+          tipo: Database["public"]["Enums"]["tipo_servicio"] | null
           total: number | null
           unidad_id: string | null
           updated_at: string | null
@@ -832,6 +836,7 @@ export type Database = {
           p_proveedor_id: string
           p_salida_taller?: boolean
           p_servicio_id: string
+          p_tipo?: Database["public"]["Enums"]["tipo_servicio"]
           p_unidad_id: string
         }
         Returns: undefined
@@ -902,6 +907,7 @@ export type Database = {
           proveedor: string
           tipo: Database["public"]["Enums"]["tipo_unidad"]
           tipo_cambio: string
+          tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
         }[]
       }
       filtro_gastos: {
@@ -939,6 +945,7 @@ export type Database = {
           servicio_id: string
           tipo: Database["public"]["Enums"]["tipo_unidad"]
           tipo_cambio: number
+          tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
           unidad_id: string
         }[]
       }
@@ -1036,6 +1043,7 @@ export type Database = {
           p_motivo_sin_entrada?: string
           p_proveedor_id: string
           p_salida_taller?: boolean
+          p_tipo?: Database["public"]["Enums"]["tipo_servicio"]
           p_unidad_id: string
         }
         Returns: string
@@ -1094,6 +1102,7 @@ export type Database = {
       moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista" | "gerente"
+      tipo_servicio: "preventivo" | "correctivo" | "servicio"
       tipo_unidad: "trailer" | "caja" | "camion_rabon" | "pipa" | "camioneta"
     }
     CompositeTypes: {
@@ -1230,6 +1239,7 @@ export const Constants = {
       moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista", "gerente"],
+      tipo_servicio: ["preventivo", "correctivo", "servicio"],
       tipo_unidad: ["trailer", "caja", "camion_rabon", "pipa", "camioneta"],
     },
   },

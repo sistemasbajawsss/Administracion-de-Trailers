@@ -4,6 +4,7 @@ import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import type { ServiceDetail } from "../types";
 
 import { EditedBadge } from "./edited-badge";
+import { ServiceTypeBadge } from "./service-type-badge";
 
 /**
  * Taller (5E): a qué estancia pertenece o por qué no tuvo entrada. Los servicios
@@ -56,6 +57,11 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
           <p className="mt-2 text-muted-foreground">
             {UNIT_TYPE_LABELS[service.unit.type]} · {formatDate(service.date)}
           </p>
+          {service.serviceType && (
+            <p className="mt-2">
+              <ServiceTypeBadge type={service.serviceType} />
+            </p>
+          )}
         </div>
         <div className="text-right">
           <p className="font-heading text-4xl leading-none font-bold tabular-nums">{formatMoney(service.total)}</p>

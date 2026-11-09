@@ -1,3 +1,4 @@
+import type { ServiceType } from "@/features/servicios/types";
 import type { UnitType } from "@/features/unidades/types";
 
 import type { Group } from "./schemas";
@@ -19,6 +20,8 @@ export type Report = {
   byUnit: { id: string; economicNumber: string; type: UnitType; group: Group; total: string; services: number }[];
   byGroup: { group: Group; total: string }[];
   byType: { type: UnitType; total: string }[];
+  /** Por tipo de servicio (5F); type null = servicios de antes, sin tipo. */
+  byServiceType: { type: ServiceType | null; total: string; services: number }[];
   bySupplier: { id: string | null; name: string; total: string; services: number }[];
 };
 
@@ -37,4 +40,5 @@ export type ExportRow = {
   /** Solo en gastos en dólares. */
   usdAmount: string | null;
   exchangeRate: string | null;
+  serviceType: ServiceType | null;
 };
