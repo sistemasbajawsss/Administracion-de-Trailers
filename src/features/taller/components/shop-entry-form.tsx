@@ -43,15 +43,22 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
   const isBox = selectedUnit?.type === "caja";
   const lastMileage = selectedUnit?.mileage ?? null;
 
+  /**
+   * Kilometraje (5F): obligatorio salvo en cajas (el servidor y la BD lo revisan otra
+   * vez). Se marca también cuando faltan otros campos, para que salgan todos juntos.
+   */
+  function markMileageProblem(values: Pick<ShopEntryInput, "mileage" | "date">) {
+    const problem = isBox ? null : mileageIssue(values.mileage, { required: true, last: lastMileage, date: values.date });
+    if (problem) form.setError("mileage", { message: problem });
+    return problem;
+  }
+
   async function onSubmit(values: ShopEntryInput) {
     if (values.date > today) {
       form.setError("date", { message: "La fecha de entrada no puede ser futura" });
       return;
     }
-    // Kilometraje (5F): obligatorio salvo en cajas (el servidor y la BD lo revisan otra vez).
-    const kmProblem = isBox ? null : mileageIssue(values.mileage, { required: true, last: lastMileage, date: values.date });
-    if (kmProblem) {
-      form.setError("mileage", { message: kmProblem });
+    if (markMileageProblem(values)) {
       form.setFocus("mileage");
       return;
     }
@@ -76,7 +83,11 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
   const confirmLeave = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting);
 
   return (
-    <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl">
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(onSubmit, () => markMileageProblem(form.getValues()))}
+      className="max-w-3xl"
+    >
       <FieldGroup className="gap-8">
         <Controller
           name="unitId"

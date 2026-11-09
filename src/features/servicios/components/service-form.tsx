@@ -271,6 +271,19 @@ function ServiceFormBody({
     ...Object.fromEntries(suppliers.map((s) => [s.id, s.name])),
   };
 
+  /**
+   * Kilometraje (5F): obligatorio en alta y que no sea menor al último (el servidor y
+   * la BD lo revisan otra vez). Depende de la unidad, por eso no va en el schema; se
+   * marca también cuando faltan otros campos, para que salgan todos los errores juntos.
+   */
+  function markMileageProblem(values: Pick<ServiceEditInput, "mileage" | "date">) {
+    const problem = isBox
+      ? null
+      : mileageIssue(values.mileage, { required: mileageRequired, last: lastMileage, date: values.date });
+    if (problem) form.setError("mileage", { message: problem });
+    return problem;
+  }
+
   async function onSubmit(values: ServiceEditInput) {
     // "Otros (especificar)" exige concepto (la BD también lo valida).
     let missingConcept = false;
@@ -282,12 +295,8 @@ function ServiceFormBody({
     });
     if (missingConcept) return;
 
-    // Kilometraje (5F): obligatorio en alta y que no sea menor al último (el servidor y la BD lo revisan otra vez).
-    const kmProblem = isBox
-      ? null
-      : mileageIssue(values.mileage, { required: mileageRequired, last: lastMileage, date: values.date });
+    const kmProblem = markMileageProblem(values);
     if (kmProblem) {
-      form.setError("mileage", { message: kmProblem });
       form.setFocus("mileage");
       return void toast.error(kmProblem);
     }
@@ -360,7 +369,11 @@ function ServiceFormBody({
   const confirmLeave = useUnsavedChanges((form.formState.isDirty || receipts.length > 0) && !saved && !isSubmitting);
 
   return (
-    <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl">
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(onSubmit, () => markMileageProblem(form.getValues()))}
+      className="max-w-3xl"
+    >
       <FieldGroup className="gap-10">
         <Controller
           name="unitId"
