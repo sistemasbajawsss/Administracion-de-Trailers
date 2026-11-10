@@ -64,6 +64,8 @@ export async function ExpenseList({
         filters={query}
         unitId={unitId}
         showUnit={!unitId}
+        // En la ficha de la unidad: cuadro con su propio scroll (ver ExpenseFeed).
+        scrollBox={Boolean(unitId)}
       />
     </>
   );

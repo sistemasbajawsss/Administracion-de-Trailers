@@ -1,4 +1,4 @@
-import type { UnitType } from "@/features/unidades/types";
+import type { UnitOperation } from "@/features/unidades/types";
 import { formatDate, formatKm } from "@/lib/utils/format";
 
 /** Estado de un mantenimiento programado (mantenimientos_pendientes en la BD). */
@@ -46,15 +46,29 @@ export type Maintenance = {
 /** Un mantenimiento en la página Mantenimientos (todas las unidades). */
 export type FleetMaintenance = Maintenance & {
   economicNumber: string;
-  unitType: UnitType;
+  unitTypeName: string;
 };
 
 /** Pestañas de la página Mantenimientos (con los nombres del usuario). */
 export const MAINTENANCE_VIEWS = ["correctivos", "preventivos"] as const;
 export type MaintenanceView = (typeof MAINTENANCE_VIEWS)[number];
 
-/** Unidad de la que se pueden copiar mantenimientos. */
-export type MaintenanceSource = { unitId: string; economicNumber: string; count: number };
+/** Otra unidad a la que se puede aplicar un mantenimiento nuevo (las de baja o vendidas no salen). */
+export type MaintenanceTarget = {
+  id: string;
+  economicNumber: string;
+  typeName: string;
+  operation: UnitOperation | null;
+  /** Su tipo lleva kilometraje (las cajas, dollys y góndolas no). */
+  hasOdometer: boolean;
+  /** Sin kilometraje (o tipo sin odómetro): solo le pasa la parte por meses. */
+  hasKm: boolean;
+};
+
+/** Lo que pasó en cada unidad al agregar un mantenimiento (agregar_mantenimiento en la BD). */
+export const APPLY_RESULTS = ["agregado", "solo_meses", "ya_tiene", "sin_kilometraje", "caja_solo_km", "retirada"] as const;
+export type ApplyResult = (typeof APPLY_RESULTS)[number];
+export type ApplyOutcome = { unitId: string; economicNumber: string; result: ApplyResult };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const months = (n: number) => plural(n, "mes", "meses");
@@ -95,3 +109,20 @@ export function describeLeft(m: Pick<Maintenance, "kmLeft" | "daysLeft" | "statu
  */
 export const registerMaintenanceHref = (m: Pick<Maintenance, "unitId" | "id">) =>
   `/servicios/nuevo?unidad=${m.unitId}&tipo=correctivo&mantenimiento=${m.id}`;
+
+/**
+ * Qué parte del intervalo le queda (negativo = ya se pasó). Con km y meses manda
+ * lo que esté más cerca. Sirve para poner primero lo más urgente dentro de un
+ * mismo estado: un vencido hace 6 meses antes que uno vencido ayer.
+ */
+export function remainingShare(m: Pick<Maintenance, "kmLeft" | "daysLeft" | "everyKm" | "everyMonths">) {
+  const byKm = m.kmLeft !== null && m.everyKm ? m.kmLeft / m.everyKm : Infinity;
+  const byDays = m.daysLeft !== null && m.everyMonths ? m.daysLeft / (m.everyMonths * 30.4) : Infinity;
+  return Math.min(byKm, byDays);
+}
+
+/** Lo más urgente primero: por estado y, dentro de cada estado, lo que menos intervalo le queda. */
+export const byUrgency = (a: Maintenance, b: Maintenance) =>
+  MAINTENANCE_STATUS_ORDER[a.status] - MAINTENANCE_STATUS_ORDER[b.status] ||
+  remainingShare(a) - remainingShare(b) ||
+  a.name.localeCompare(b.name, "es");

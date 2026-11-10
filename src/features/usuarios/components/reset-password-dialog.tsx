@@ -17,10 +17,13 @@ import { CredentialsCard, PasswordField } from "./password-field";
 /** Pone una contraseña nueva y la muestra una vez para pasársela a la persona. */
 export function ResetPasswordDialog({
   user,
+  isSelf = false,
   open,
   onOpenChange,
 }: {
   user: UserListItem;
+  /** Es la propia cuenta: también se cierra su sesión (en todos los dispositivos). */
+  isSelf?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -52,7 +55,11 @@ export function ResetPasswordDialog({
             {done ? "Contraseña nueva" : `Restablecer contraseña de ${user.name}`}
           </DialogTitle>
           <DialogDescription>
-            {done ? "La anterior ya no sirve." : "La contraseña anterior deja de funcionar en cuanto guardes."}
+            {done
+              ? "La anterior ya no sirve."
+              : isSelf
+                ? "Es tu propia cuenta: en cuanto guardes se cierra tu sesión en todos tus dispositivos y tendrás que entrar con la nueva."
+                : "La contraseña anterior deja de funcionar en cuanto guardes."}
           </DialogDescription>
         </DialogHeader>
 

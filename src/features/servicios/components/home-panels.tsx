@@ -11,11 +11,20 @@ const PENDING_LIMIT = 10;
  * Servicios a los que les falta la factura. Admin y gerente ven todos (con quién
  * los capturó); el capturista, los suyos (RLS).
  */
-export async function PendingReceiptsPanel({ showAuthor, title }: { showAuthor: boolean; title: string }) {
+export async function PendingReceiptsPanel({
+  showAuthor,
+  title,
+  canUpload = true,
+}: {
+  showAuthor: boolean;
+  title: string;
+  /** El gerente solo consulta: no se le invita a subir facturas. */
+  canUpload?: boolean;
+}) {
   const { services, total } = await listServicesWithoutReceipts(PENDING_LIMIT);
 
   return (
-    <HomePanel title={title} count={total} description={total > 0 ? "Toca uno para subirle su factura." : undefined}>
+    <HomePanel title={title} count={total} description={total > 0 ? (canUpload ? "Toca uno para subirle su factura." : "Toca uno para ver su detalle.") : undefined}>
       {total === 0 ? (
         <HomePanelEmpty>Todos los servicios tienen su factura.</HomePanelEmpty>
       ) : (
@@ -25,7 +34,7 @@ export async function PendingReceiptsPanel({ showAuthor, title }: { showAuthor: 
           </div>
           {total > PENDING_LIMIT && (
             <p className="mt-2 text-sm text-muted-foreground">
-              Se muestran los {PENDING_LIMIT} más recientes de {total}.
+              Se muestran los {PENDING_LIMIT} capturados más recientemente de {total}.
             </p>
           )}
         </>

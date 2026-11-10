@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { UNIT_TYPES } from "@/features/unidades/types";
+import { UNIT_TYPE_KEY } from "@/features/unidades/types";
 import { isRealDate } from "@/lib/utils/format";
 
 export const PERIODS = ["este-mes", "mes-pasado", "3m", "6m", "12m", "este-anio", "rango"] as const;
@@ -30,7 +30,7 @@ export const reportFiltersSchema = z.object({
   desde: z.string().refine(isRealDate).optional().catch(undefined),
   hasta: z.string().refine(isRealDate).optional().catch(undefined),
   grupo: z.enum(GROUPS).optional().catch(undefined),
-  tipo: z.enum(UNIT_TYPES).optional().catch(undefined),
+  tipo: z.string().regex(UNIT_TYPE_KEY).optional().catch(undefined),
 });
 
 export type ReportFilters = z.infer<typeof reportFiltersSchema>;

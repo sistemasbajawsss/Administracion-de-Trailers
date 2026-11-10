@@ -6,6 +6,7 @@ export type ShopEntry = {
   unitId: string;
   economicNumber: string;
   unitType: UnitType;
+  unitTypeName: string;
   unitOperation: UnitOperation | null;
   /** "aaaa-mm-dd". */
   entryDate: string;

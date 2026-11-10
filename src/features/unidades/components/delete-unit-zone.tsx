@@ -22,7 +22,10 @@ export function DeleteUnitZone({
   expenseCount,
   totalLabel,
   afterDeleteHref,
+  canDeactivate,
 }: {
+  /** Se puede dar de baja en Editar unidad (no si está vendida o en taller: ahí el estatus está fijo). */
+  canDeactivate: boolean;
   unitId: string;
   economicNumber: string;
   serviceCount: number;
@@ -59,7 +62,7 @@ export function DeleteUnitZone({
           </h2>
           <p className="mt-1 text-muted-foreground">
             Borra {economicNumber} con todos sus servicios, gastos y línea de cambios. No se puede deshacer.
-            Si solo quieres que deje de aparecer, dala de baja en Editar unidad.
+            {canDeactivate && " Si solo quieres que deje de aparecer, dala de baja en Editar unidad."}
           </p>
         </div>
         <Button

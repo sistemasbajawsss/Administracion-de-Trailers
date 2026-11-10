@@ -31,15 +31,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { createUnit, updateUnit } from "../actions";
-import { normalizeEconomicNumber, unitSchema, type UnitInput } from "../schemas";
+import { makeUnitSchema, normalizeEconomicNumber, type UnitInput } from "../schemas";
 import {
   BOX_LENGTHS,
   UNIT_OPERATION_LABELS,
   UNIT_STATUS_LABELS,
-  UNIT_TYPE_LABELS,
-  UNIT_TYPE_PREFIX,
-  UNIT_TYPES,
   type UnitDetail,
+  type UnitTypeCatalog,
 } from "../types";
 
 type DriverOption = { id: string; name: string };
@@ -47,10 +45,11 @@ type DriverOption = { id: string; name: string };
 const NO_DRIVER = "sin-chofer";
 const NO_LENGTH = "sin-longitud";
 
-function toFormValues(unit?: UnitDetail): UnitInput {
+function toFormValues(types: UnitTypeCatalog, unit?: UnitDetail): UnitInput {
+  const first = Object.values(types).find((t) => t.active);
   return {
     economicNumber: unit?.economicNumber ?? "",
-    type: unit?.type ?? "trailer",
+    type: unit?.type ?? first?.key ?? "",
     operation: unit?.operation ?? "",
     status: unit?.status ?? "activo",
     driverId: unit?.driverId ?? "",
@@ -65,12 +64,12 @@ function toFormValues(unit?: UnitDetail): UnitInput {
 }
 
 /** Grupo al que se regresa después de guardar. */
-function listHref(values: UnitInput) {
-  if (values.type === "camioneta") return "/unidades?grupo=camionetas";
+function listHref(values: UnitInput, types: UnitTypeCatalog) {
+  if (!types[values.type]?.hasOperation) return "/unidades?grupo=camionetas";
   return values.operation === "foraneo" ? "/unidades?grupo=foraneo" : "/unidades";
 }
 
-type UnitFormProps = { unit?: UnitDetail; drivers: DriverOption[] };
+type UnitFormProps = { unit?: UnitDetail; drivers: DriverOption[]; types: UnitTypeCatalog };
 
 /** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
 export function UnitForm(props: UnitFormProps) {
@@ -78,21 +77,24 @@ export function UnitForm(props: UnitFormProps) {
   return <UnitFormBody key={key} {...props} onSaved={markSaved} />;
 }
 
-function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () => void }) {
+function UnitFormBody({ unit, drivers, types, onSaved }: UnitFormProps & { onSaved: () => void }) {
   const goBack = useGoBack();
   const isEdit = Boolean(unit);
   // Guardado con éxito: el botón queda deshabilitado mientras se regresa (sin doble envío).
   const [saved, setSaved] = useState(false);
 
   const form = useForm<UnitInput>({
-    resolver: zodResolver(unitSchema),
-    defaultValues: toFormValues(unit),
+    resolver: zodResolver(makeUnitSchema(types)),
+    defaultValues: toFormValues(types, unit),
   });
 
   const type = useWatch({ control: form.control, name: "type" });
   const status = useWatch({ control: form.control, name: "status" });
-  const isPickup = type === "camioneta";
-  const isBox = type === "caja";
+  const typeInfo = types[type];
+  const isPickup = typeInfo ? !typeInfo.hasOperation : false;
+  const isBox = typeInfo?.hasLength ?? false;
+  // Los desactivados no se ofrecen, salvo el que ya tiene la unidad.
+  const typeOptions = Object.values(types).filter((t) => t.active || t.key === unit?.type);
 
   // El chofer actual puede estar desactivado: se sigue mostrando para no perderlo.
   const driverOptions =
@@ -100,7 +102,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
       ? [...drivers, { id: unit.driverId, name: `${unit.driverName ?? "Chofer"} (inactivo)` }]
       : drivers;
 
-  const typeItems = Object.fromEntries(UNIT_TYPES.map((t) => [t, UNIT_TYPE_LABELS[t]]));
+  const typeItems = Object.fromEntries(typeOptions.map((t) => [t.key, t.name]));
   const driverItems = {
     [NO_DRIVER]: "Sin chofer",
     ...Object.fromEntries(driverOptions.map((d) => [d.id, d.name])),
@@ -122,8 +124,8 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
   async function onSubmit(values: UnitInput) {
     const clean: UnitInput = {
       ...values,
-      operation: values.type === "camioneta" ? "" : values.operation,
-      lengthFt: values.type === "caja" ? values.lengthFt : "",
+      operation: types[values.type]?.hasOperation ? values.operation : "",
+      lengthFt: types[values.type]?.hasLength ? values.lengthFt : "",
     };
     const number = normalizeEconomicNumber(values.economicNumber);
 
@@ -137,7 +139,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
       onSaved();
       toast.success(isEdit ? `Cambios en ${number} guardados` : `Unidad ${number} creada`);
       // Regresa a la pantalla de donde se vino (lista o ficha), ya con los cambios.
-      goBack(listHref(clean), { refresh: true });
+      goBack(listHref(clean, types), { refresh: true });
     } catch {
       toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
     }
@@ -145,7 +147,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
 
   const isSubmitting = form.formState.isSubmitting;
   const inputClass = "h-11 bg-white text-base";
-  const confirmLeave = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting);
+  const { confirmLeave, leaveDialog } = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting, onSaved);
 
   return (
     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl">
@@ -167,7 +169,8 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
                       // Sugerir el prefijo si el número todavía está vacío o solo tiene otro prefijo.
                       const current = form.getValues("economicNumber").trim();
                       if (!current || /^[A-Za-z]+-?$/.test(current)) {
-                        form.setValue("economicNumber", `${UNIT_TYPE_PREFIX[value as UnitInput["type"]]}-`);
+                        const prefix = types[String(value)]?.prefix;
+                        if (prefix) form.setValue("economicNumber", `${prefix}-`);
                       }
                     }}
                   >
@@ -175,9 +178,9 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {UNIT_TYPES.map((t) => (
-                        <SelectItem key={t} value={t} className="min-h-10">
-                          {UNIT_TYPE_LABELS[t]}
+                      {typeOptions.map((t) => (
+                        <SelectItem key={t.key} value={t.key} className="min-h-10">
+                          {t.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -201,7 +204,11 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
                     aria-invalid={fieldState.invalid}
                     className={`${inputClass} font-heading text-lg font-bold tracking-wide uppercase`}
                   />
-                  <FieldDescription>Empieza con {UNIT_TYPE_PREFIX[type]}- (por ejemplo {UNIT_TYPE_PREFIX[type]}-17).</FieldDescription>
+                  {typeInfo && (
+                    <FieldDescription>
+                      Empieza con {typeInfo.prefix}- (por ejemplo {typeInfo.prefix}-17).
+                    </FieldDescription>
+                  )}
                   <FieldError errors={[fieldState.error]} />
                 </Field>
               )}
@@ -418,7 +425,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
             type="button"
             variant="outline"
             size="touch"
-            onClick={() => confirmLeave() && goBack(unit ? `/unidades/${unit.id}` : "/unidades")}
+            onClick={() => confirmLeave(() => goBack(unit ? `/unidades/${unit.id}` : "/unidades"))}
           >
             Cancelar
           </Button>
@@ -428,6 +435,7 @@ function UnitFormBody({ unit, drivers, onSaved }: UnitFormProps & { onSaved: () 
           </Button>
         </div>
       </FieldGroup>
+      {leaveDialog}
     </form>
   );
 }

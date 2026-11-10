@@ -2,16 +2,18 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
-import { serviceTypeLabel } from "@/features/servicios/types";
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { formatDate, formatDateTime, formatMoney, toCents } from "@/lib/utils/format";
 
 import { getReport } from "../queries";
-import { GROUP_LABELS, monthLongLabel, type ReportFilters, type ResolvedPeriod } from "../schemas";
+import { GROUP_LABELS, monthLabel, monthLongLabel, type ReportFilters, type ResolvedPeriod } from "../schemas";
+import { SERVICE_KIND_LABELS, SERVICE_KINDS, type ServiceKind } from "../types";
 
 import { GroupSplit } from "./group-split";
+import { KindMonthlyChartLoader } from "./kind-monthly-chart-loader";
 import { KpiRow } from "./kpi-row";
+import { MaintenanceSplit, ServiceKindLegend } from "./maintenance-split";
 import { MonthlyChartLoader } from "./monthly-chart-loader";
+import { PrintKindMonthlyBars } from "./print-kind-monthly-bars";
 import { PrintMonthlyBars } from "./print-monthly-bars";
 import { RankedBars } from "./ranked-bars";
 
@@ -31,11 +33,11 @@ function Panel({ title, description, children, className = "" }: {
 }
 
 /** Encabezado que solo sale en papel / PDF: qué es, de cuándo y con qué filtros. */
-function PrintHeader({ period, filters }: { period: ResolvedPeriod; filters: ReportFilters }) {
+function PrintHeader({ period, filters, typeNames }: { period: ResolvedPeriod; filters: ReportFilters; typeNames: Record<string, string> }) {
   const details = [
     `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`,
     filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos los grupos",
-    filters.tipo ? UNIT_TYPE_LABELS[filters.tipo] : "Todos los tipos",
+    filters.tipo ? (typeNames[filters.tipo] ?? filters.tipo) : "Todos los tipos",
   ];
   return (
     <header className="hidden items-end justify-between gap-6 border-b-2 border-brand-ink pb-3 print:flex">
@@ -71,10 +73,18 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
     total: m.total,
     services: m.services,
   }));
+  // Solo los tipos que tienen gasto en el periodo (los de antes, sin tipo, casi siempre).
+  const kindsShown = SERVICE_KINDS.filter((k) => report.byMonth.some((m) => (toCents(m.kinds[k]) ?? 0) > 0));
+  const kindMonths = report.byMonth.map((m) => ({
+    month: m.month,
+    total: m.total,
+    amounts: m.kinds,
+    ...(Object.fromEntries(SERVICE_KINDS.map((k) => [k, (toCents(m.kinds[k]) ?? 0) / 100])) as Record<ServiceKind, number>),
+  }));
 
   return (
     <div className="space-y-6 print:space-y-3">
-      <PrintHeader period={period} filters={filters} />
+      <PrintHeader period={period} filters={filters} typeNames={report.typeNames} />
       <KpiRow report={report} periodLabel={period.label} />
 
       {/*
@@ -129,8 +139,63 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
           <div className="mt-5 border-t pt-5 print:mt-3 print:pt-3">
             <RankedBars
               grandTotal={report.total}
-              items={report.byType.map((t) => ({ key: t.type, label: UNIT_TYPE_LABELS[t.type], total: t.total }))}
+              items={report.byType.map((t) => ({ key: t.type, label: report.typeNames[t.type] ?? t.type, total: t.total }))}
             />
+          </div>
+        </Panel>
+
+        <Panel
+          title="Mantenimiento y reparaciones"
+          description="Correctivo y preventivo contra lo que se descompuso."
+          className="lg:col-span-6 print:order-6 print:col-span-6 print:break-before-page"
+        >
+          <MaintenanceSplit report={report} />
+          <div className="mt-6 border-t pt-5 print:mt-3 print:pt-3">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+              <h3 className="font-heading text-lg font-semibold">Gasto por mes por tipo</h3>
+              <ServiceKindLegend kinds={kindsShown} />
+            </div>
+            <div className="print:hidden">
+              <KindMonthlyChartLoader data={kindMonths} kinds={kindsShown} />
+            </div>
+            <div className="hidden print:block">
+              <PrintKindMonthlyBars months={report.byMonth} kinds={kindsShown} />
+            </div>
+            <details className="mt-3 text-sm print:hidden">
+              <summary className="inline-flex min-h-11 cursor-pointer items-center font-medium text-muted-foreground hover:text-foreground">
+                Ver como tabla
+              </summary>
+              <div className="mt-2 grid grid-cols-1">
+                {/* En celular: letra chica y mes corto para que quepan las columnas sin salirse. */}
+                <table className="w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="py-1.5 pr-1 font-medium">Mes</th>
+                      {kindsShown.map((k) => (
+                        <th key={k} className="py-1.5 pl-1 text-right font-medium sm:pl-3">
+                          {SERVICE_KIND_LABELS[k]}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="tabular-nums">
+                    {report.byMonth.map((m) => (
+                      <tr key={m.month} className="border-b last:border-b-0">
+                        <td className="py-1.5 pr-1 whitespace-nowrap">
+                          <span className="capitalize sm:hidden">{monthLabel(m.month)}</span>
+                          <span className="hidden capitalize sm:inline">{monthLongLabel(m.month)}</span>
+                        </td>
+                        {kindsShown.map((k) => (
+                          <td key={k} className="py-1.5 pl-1 text-right whitespace-nowrap sm:pl-3">
+                            {formatMoney(m.kinds[k])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
         </Panel>
 
@@ -162,7 +227,7 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
             items={report.byUnit.map((u) => ({
               key: u.id,
               label: u.economicNumber,
-              detail: `${UNIT_TYPE_LABELS[u.type]} · ${GROUP_LABELS[u.group] ?? ""}`,
+              detail: `${report.typeNames[u.type] ?? u.type} · ${GROUP_LABELS[u.group] ?? ""}`,
               total: u.total,
               href: `/unidades/${u.id}`,
             }))}
@@ -170,25 +235,9 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
         </Panel>
 
         <Panel
-          title="Por tipo de servicio"
-          description="Preventivo, correctivo o servicio."
-          className="lg:col-span-2 print:order-6 print:col-span-3 print:landscape:col-span-2"
-        >
-          <RankedBars
-            grandTotal={report.total}
-            items={report.byServiceType.map((t) => ({
-              key: t.type ?? "sin-tipo",
-              label: serviceTypeLabel(t.type),
-              detail: t.type ? plural(t.services, "servicio", "servicios") : `${plural(t.services, "servicio", "servicios")} de antes`,
-              total: t.total,
-            }))}
-          />
-        </Panel>
-
-        <Panel
           title="Proveedores y talleres"
           description="Dónde se hacen los servicios."
-          className="lg:col-span-4 print:order-3 print:portrait:col-span-3 print:landscape:order-5 print:landscape:col-span-2"
+          className="lg:col-span-6 print:order-3 print:portrait:col-span-3 print:landscape:order-5 print:landscape:col-span-2"
         >
           <RankedBars
             grandTotal={report.total}

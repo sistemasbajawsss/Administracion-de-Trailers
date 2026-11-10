@@ -32,11 +32,21 @@ const ROLE_HINTS: Record<Role, string> = {
  */
 export function UserFormDialog({
   user,
+  isSelf = false,
+  isLastAdmin = false,
   open,
   onOpenChange,
 }: {
   /** Sin usuario: alta. Con usuario: edición. */
   user?: UserListItem;
+  /**
+   * Es el propio usuario: no puede cambiarse el rol (la BD no deja que un admin
+   * se quite su acceso; decisión del usuario 2026-11-10). Antes la pantalla lo
+   * dejaba intentar y al guardar marcaba error.
+   */
+  isSelf?: boolean;
+  /** Es el único admin activo: no se le puede quitar el rol (la BD lo exige). */
+  isLastAdmin?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -145,7 +155,12 @@ export function UserFormDialog({
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
                     <FieldLabel htmlFor="user-role">Rol</FieldLabel>
-                    <Select items={roleItems} value={field.value} onValueChange={(value) => value && field.onChange(value)}>
+                    <Select
+                      items={roleItems}
+                      value={field.value}
+                      disabled={isSelf || isLastAdmin}
+                      onValueChange={(value) => value && field.onChange(value)}
+                    >
                       <SelectTrigger id="user-role" className="h-12 w-full bg-white text-base">
                         <SelectValue />
                       </SelectTrigger>
@@ -157,7 +172,13 @@ export function UserFormDialog({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FieldDescription>{ROLE_HINTS[role]}</FieldDescription>
+                    <FieldDescription>
+                      {isSelf
+                        ? "Tu propio rol no se puede cambiar desde tu cuenta. Si hace falta, otro administrador puede cambiarlo."
+                        : isLastAdmin
+                          ? "Es el único administrador activo: debe quedar al menos uno."
+                          : ROLE_HINTS[role]}
+                    </FieldDescription>
                     <FieldError errors={[fieldState.error]} />
                   </Field>
                 )}

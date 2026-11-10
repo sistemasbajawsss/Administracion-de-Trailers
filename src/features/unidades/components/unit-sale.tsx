@@ -19,6 +19,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils/format";
+import { useToday } from "@/components/shared/use-today";
 
 import { sellUnit, undoUnitSale } from "../actions";
 import { sellUnitSchema, undoSaleSchema } from "../schemas";
@@ -138,13 +139,14 @@ export function SellUnitZone({
   unitId,
   economicNumber,
   inShop,
-  today,
+  today: serverToday,
 }: {
   unitId: string;
   economicNumber: string;
   inShop: boolean;
   today: string;
 }) {
+  const today = useToday(serverToday);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(today);

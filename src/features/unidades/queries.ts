@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 import { toLastMileage } from "@/lib/utils/mileage";
 
@@ -12,9 +14,37 @@ import type {
   UnitMileage,
   UnitSale,
   UnitShopStay,
+  UnitTypeCatalog,
 } from "./types";
 
 export const UNITS_PAGE_SIZE = 25;
+
+/**
+ * Catálogo de tipos de unidad (activos y desactivados), en el orden de las
+ * listas. Una consulta por petición aunque lo pidan varias partes de la página.
+ */
+export const getUnitTypes = cache(async (): Promise<UnitTypeCatalog> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tipos_unidad")
+    .select("clave, nombre, prefijo, lleva_kilometraje, lleva_largo, lleva_operacion, activo")
+    .order("orden");
+  if (error) throw new Error("No se pudieron cargar los tipos de unidad");
+  return Object.fromEntries(
+    data.map((t) => [
+      t.clave,
+      {
+        key: t.clave,
+        name: t.nombre,
+        prefix: t.prefijo,
+        hasOdometer: t.lleva_kilometraje,
+        hasLength: t.lleva_largo,
+        hasOperation: t.lleva_operacion,
+        active: t.activo,
+      },
+    ]),
+  );
+});
 
 const LIST_COLUMNS =
   "id, numero_economico, tipo, operacion, estatus, longitud_pies, marca, modelo, placas, notas, chofer:choferes(nombre)";
@@ -60,13 +90,13 @@ export async function listUnits(filters: UnitFilters) {
   let query = supabase
     .from("unidades")
     .select(LIST_COLUMNS, { count: "exact" })
-    .order("tipo")
+    .order("orden_tipo")
     .order("numero_orden")
     .range(from, from + UNITS_PAGE_SIZE - 1);
 
   query =
     filters.grupo === "camionetas"
-      ? query.eq("tipo", "camioneta")
+      ? query.is("operacion", null)
       : query.eq("operacion", filters.grupo);
 
   if (filters.q) query = query.ilike("numero_economico", `%${filters.q}%`);
@@ -88,7 +118,7 @@ export async function countUnitsByGroup(): Promise<Record<UnitGroup, number>> {
   const [local, foraneo, camionetas] = await Promise.all([
     supabase.from("unidades").select("id", head).eq("operacion", "local"),
     supabase.from("unidades").select("id", head).eq("operacion", "foraneo"),
-    supabase.from("unidades").select("id", head).eq("tipo", "camioneta"),
+    supabase.from("unidades").select("id", head).is("operacion", null),
   ]);
 
   return {
@@ -123,7 +153,9 @@ export async function listUnitsInShop(): Promise<UnitInShop[]> {
     .from("entradas_taller")
     .select("fecha_entrada, falla, unidad:unidades!inner(id, numero_economico, tipo, operacion)")
     .is("fecha_salida", null)
-    .order("fecha_entrada", { ascending: true });
+    // Mismo orden que la página Taller (con dos del mismo día, el que entró primero).
+    .order("fecha_entrada", { ascending: true })
+    .order("created_at", { ascending: true });
 
   if (error) throw new Error("No se pudieron cargar las unidades en taller");
   return data.map((row) => ({

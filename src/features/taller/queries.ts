@@ -1,25 +1,24 @@
 import "server-only";
 
-import type { UnitType } from "@/features/unidades/types";
 import { createClient } from "@/lib/supabase/server";
 import { toLastMileage, type LastMileage } from "@/lib/utils/mileage";
 
 import type { ShopEntry } from "./types";
 
 /**
- * Lo que el servidor necesita para validar el kilometraje de una entrada (5F): el
- * tipo de unidad (las cajas no llevan) y su última lectura.
+ * Lo que el servidor necesita para validar el kilometraje de una entrada (5F): si
+ * su tipo lleva kilometraje (las cajas, dollys y góndolas no) y su última lectura.
  */
-export async function getUnitMileageRule(unitId: string): Promise<{ type: UnitType; last: LastMileage | null } | null> {
+export async function getUnitMileageRule(unitId: string): Promise<{ hasOdometer: boolean; last: LastMileage | null } | null> {
   const supabase = await createClient();
   const [unit, mileage] = await Promise.all([
-    supabase.from("unidades").select("tipo").eq("id", unitId).maybeSingle(),
+    supabase.from("unidades").select("tipo_info:tipos_unidad(lleva_kilometraje)").eq("id", unitId).maybeSingle(),
     supabase.rpc("kilometraje_unidades", { p_unidad_id: unitId }),
   ]);
   if (unit.error || mileage.error) throw new Error("No se pudo revisar el kilometraje de la unidad");
   if (!unit.data) return null;
   const row = mileage.data[0];
-  return { type: unit.data.tipo, last: row ? toLastMileage(row) : null };
+  return { hasOdometer: unit.data.tipo_info?.lleva_kilometraje ?? true, last: row ? toLastMileage(row) : null };
 }
 
 /**
@@ -31,7 +30,7 @@ export async function listOpenShopEntries(): Promise<ShopEntry[]> {
   const { data, error } = await supabase
     .from("entradas_taller")
     // servicios(count): cuántos servicios lleva la estancia (RLS: el capturista cuenta los suyos).
-    .select("id, unidad_id, fecha_entrada, falla, reporta_nombre, unidad:unidades!inner(numero_economico, tipo, operacion), servicios(count)")
+    .select("id, unidad_id, fecha_entrada, falla, reporta_nombre, unidad:unidades!inner(numero_economico, tipo, operacion, tipo_info:tipos_unidad(nombre)), servicios(count)")
     .is("fecha_salida", null)
     .order("fecha_entrada", { ascending: true })
     .order("created_at", { ascending: true });
@@ -43,6 +42,7 @@ export async function listOpenShopEntries(): Promise<ShopEntry[]> {
     unitId: row.unidad_id,
     economicNumber: row.unidad.numero_economico,
     unitType: row.unidad.tipo,
+    unitTypeName: row.unidad.tipo_info?.nombre ?? row.unidad.tipo,
     unitOperation: row.unidad.operacion,
     entryDate: row.fecha_entrada,
     fault: row.falla,

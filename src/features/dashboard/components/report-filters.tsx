@@ -7,7 +7,6 @@ import { useTransition } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UNIT_TYPES, UNIT_TYPE_LABELS } from "@/features/unidades/types";
 
 import { GROUPS, GROUP_LABELS, PERIOD_LABELS, type Period } from "../schemas";
 
@@ -19,7 +18,15 @@ const ALL = "todos";
  * Filtros de Reportes en un renglón, en la URL: periodo (atajos o rango), grupo y
  * tipo de unidad. El Excel se baja con los mismos filtros.
  */
-export function ReportFilters({ from, to }: { from: string; to: string }) {
+export function ReportFilters({
+  from,
+  to,
+  unitTypes,
+}: {
+  from: string;
+  to: string;
+  unitTypes: { key: string; name: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -38,7 +45,10 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
 
   const exportParams = new URLSearchParams(searchParams.toString());
   const groupItems = { [ALL]: "Todos los grupos", ...GROUP_LABELS };
-  const typeItems = { [ALL]: "Todos los tipos", ...UNIT_TYPE_LABELS };
+  const typeItems: Record<string, string> = {
+    [ALL]: "Todos los tipos",
+    ...Object.fromEntries(unitTypes.map((t) => [t.key, t.name])),
+  };
   const chip = (active: boolean) =>
     `inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 ${
       active ? "border-brand-ink bg-brand-ink text-white" : "bg-white hover:bg-muted"
@@ -121,9 +131,9 @@ export function ReportFilters({ from, to }: { from: string; to: string }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[ALL, ...UNIT_TYPES].map((value) => (
+              {Object.entries(typeItems).map(([value, label]) => (
                 <SelectItem key={value} value={value} className="min-h-11">
-                  {typeItems[value as keyof typeof typeItems]}
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>

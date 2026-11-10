@@ -1,6 +1,6 @@
 import "server-only";
 
-import { UNIT_TYPE_LABELS, type UnitType } from "@/features/unidades/types";
+import type { UnitType } from "@/features/unidades/types";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 import { formatDate, formatKm, formatMoney, formatRate, formatUsd, toCents } from "@/lib/utils/format";
@@ -26,9 +26,12 @@ import type {
 } from "./types";
 import { SERVICE_TYPE_LABELS } from "./types";
 
+/** Nombre del tipo de unidad y si lleva kilometraje (catálogo tipos_unidad). */
+type TypeInfoRow = { nombre: string; lleva_kilometraje: boolean } | null;
+
 // Los montos se piden como texto (::text) para no convertirlos a float.
 const LIST_COLUMNS =
-  "id, fecha, total::text, num_gastos, editado, descripcion, tipo, unidad:unidades!inner(id, numero_economico, tipo), proveedor:proveedores(nombre)";
+  "id, fecha, total::text, num_gastos, editado, descripcion, tipo, unidad:unidades!inner(id, numero_economico, tipo, tipo_info:tipos_unidad(nombre, lleva_kilometraje)), proveedor:proveedores(nombre)";
 
 type ServiceRow = {
   id: string;
@@ -38,7 +41,7 @@ type ServiceRow = {
   editado: boolean;
   descripcion: string | null;
   tipo: ServiceType | null;
-  unidad: { id: string; numero_economico: string; tipo: UnitType };
+  unidad: { id: string; numero_economico: string; tipo: UnitType; tipo_info: TypeInfoRow };
   proveedor: { nombre: string } | null;
 };
 
@@ -50,7 +53,13 @@ function toListItem(row: ServiceRow): ServiceListItem {
     expenseCount: row.num_gastos,
     edited: row.editado,
     description: row.descripcion,
-    unit: { id: row.unidad.id, economicNumber: row.unidad.numero_economico, type: row.unidad.tipo },
+    unit: {
+      id: row.unidad.id,
+      economicNumber: row.unidad.numero_economico,
+      type: row.unidad.tipo,
+      typeName: row.unidad.tipo_info?.nombre ?? row.unidad.tipo,
+      hasOdometer: row.unidad.tipo_info?.lleva_kilometraje ?? true,
+    },
     supplierName: row.proveedor?.nombre ?? null,
     serviceType: row.tipo,
   };
@@ -184,19 +193,19 @@ async function listUnitMileages(): Promise<Map<string, LastMileage>> {
 }
 
 /**
- * Lo que el servidor necesita para validar el kilometraje (5F): el tipo de unidad
- * (las cajas no llevan) y su última lectura.
+ * Lo que el servidor necesita para validar el kilometraje (5F): si su tipo lleva
+ * kilometraje (las cajas, dollys y góndolas no) y su última lectura.
  */
-export async function getUnitMileageRule(unitId: string): Promise<{ type: UnitType; last: LastMileage | null } | null> {
+export async function getUnitMileageRule(unitId: string): Promise<{ hasOdometer: boolean; last: LastMileage | null } | null> {
   const supabase = await createClient();
   const [unit, mileage] = await Promise.all([
-    supabase.from("unidades").select("tipo").eq("id", unitId).maybeSingle(),
+    supabase.from("unidades").select("tipo_info:tipos_unidad(lleva_kilometraje)").eq("id", unitId).maybeSingle(),
     supabase.rpc("kilometraje_unidades", { p_unidad_id: unitId }),
   ]);
   if (unit.error || mileage.error) throw new Error("No se pudo revisar el kilometraje de la unidad");
   if (!unit.data) return null;
   const row = mileage.data[0];
-  return { type: unit.data.tipo, last: row ? toLastMileage(row) : null };
+  return { hasOdometer: unit.data.tipo_info?.lleva_kilometraje ?? true, last: row ? toLastMileage(row) : null };
 }
 
 /** Estancia abierta de una unidad, o null. El servidor la usa para validar el formulario. */
@@ -295,9 +304,9 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
   const [{ data, error }, stays, mileages] = await Promise.all([
     supabase
       .from("unidades")
-      .select("id, numero_economico, tipo, operacion, estatus, longitud_pies, marca, modelo")
+      .select("id, numero_economico, tipo, operacion, estatus, longitud_pies, marca, modelo, tipo_info:tipos_unidad(nombre, lleva_kilometraje)")
       .not("estatus", "in", "(baja,vendida)")
-      .order("tipo")
+      .order("orden_tipo")
       .order("numero_orden"),
     listOpenShopStays(),
     listUnitMileages(),
@@ -306,7 +315,8 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
   if (error) throw new Error("No se pudieron cargar las unidades");
 
   return data.map((u) => {
-    const parts: string[] = [UNIT_TYPE_LABELS[u.tipo]];
+    const hasOdometer = u.tipo_info?.lleva_kilometraje ?? true;
+    const parts: string[] = [u.tipo_info?.nombre ?? u.tipo];
     if (u.longitud_pies) parts.push(`${u.longitud_pies} pies`);
     const makeModel = [u.marca, u.modelo].filter(Boolean).join(" ");
     if (makeModel) parts.push(makeModel);
@@ -318,7 +328,8 @@ export async function listUnitOptions(): Promise<UnitOption[]> {
       status: u.estatus,
       detail: parts.join(" · "),
       shopStay: stays.get(u.id) ?? null,
-      mileage: u.tipo === "caja" ? null : (mileages.get(u.id) ?? null),
+      hasOdometer,
+      mileage: hasOdometer ? (mileages.get(u.id) ?? null) : null,
     };
   });
 }
@@ -601,7 +612,7 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
 // ---------------------------------------------------------------------------
 
 const BRIEF_COLUMNS =
-  "id, fecha, total::text, num_comprobantes, autor_nombre, tipo, unidad:unidades!inner(numero_economico, tipo)";
+  "id, fecha, total::text, num_comprobantes, autor_nombre, tipo, unidad:unidades!inner(numero_economico, tipo, tipo_info:tipos_unidad(nombre, lleva_kilometraje))";
 
 type BriefRow = {
   id: string;
@@ -610,7 +621,7 @@ type BriefRow = {
   num_comprobantes: number;
   autor_nombre: string | null;
   tipo: ServiceType | null;
-  unidad: { numero_economico: string; tipo: UnitType };
+  unidad: { numero_economico: string; tipo: UnitType; tipo_info: TypeInfoRow };
 };
 
 const toBrief = (row: BriefRow): ServiceBrief => ({
@@ -619,14 +630,16 @@ const toBrief = (row: BriefRow): ServiceBrief => ({
   total: row.total,
   economicNumber: row.unidad.numero_economico,
   unitType: row.unidad.tipo,
+  unitTypeName: row.unidad.tipo_info?.nombre ?? row.unidad.tipo,
   author: row.autor_nombre,
   receiptCount: row.num_comprobantes,
   serviceType: row.tipo,
 });
 
 /**
- * Servicios sin factura, del más reciente al más viejo, y cuántos son en total.
- * RLS decide el alcance: el capturista solo ve los suyos.
+ * Servicios sin factura, del último capturado al primero, y cuántos son en total.
+ * Por momento de captura (no por fecha del servicio): un ticket viejo capturado hoy
+ * sale arriba, que es cuando hay que subirle la factura. RLS: el capturista, los suyos.
  */
 export async function listServicesWithoutReceipts(limit = 50): Promise<{ services: ServiceBrief[]; total: number }> {
   const supabase = await createClient();
@@ -634,8 +647,8 @@ export async function listServicesWithoutReceipts(limit = 50): Promise<{ service
     .from("servicios_resumen")
     .select(BRIEF_COLUMNS, { count: "exact" })
     .eq("num_comprobantes", 0)
-    .order("fecha", { ascending: false })
     .order("created_at", { ascending: false })
+    .order("id")
     .limit(limit)
     .returns<BriefRow[]>();
 

@@ -5,12 +5,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { listActiveDrivers } from "@/features/catalogos/queries";
 import { UnitForm } from "@/features/unidades/components/unit-form";
+import { getUnitTypes } from "@/features/unidades/queries";
 
 export const metadata: Metadata = { title: "Nueva unidad" };
 
 async function NewUnitForm() {
-  const drivers = await listActiveDrivers();
-  return <UnitForm drivers={drivers} />;
+  const [drivers, types] = await Promise.all([listActiveDrivers(), getUnitTypes()]);
+  return <UnitForm drivers={drivers} types={types} />;
 }
 
 export default function NuevaUnidadPage() {

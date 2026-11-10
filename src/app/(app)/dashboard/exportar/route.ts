@@ -2,8 +2,8 @@ import writeXlsxFile, { type Cell, type CellObject, type SheetData } from "write
 
 import { getReport, listExportRows } from "@/features/dashboard/queries";
 import { GROUP_LABELS, monthLongLabel, reportFiltersSchema, resolvePeriod } from "@/features/dashboard/schemas";
-import { serviceTypeLabel } from "@/features/servicios/types";
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
+import { SERVICE_KIND_LABELS, SERVICE_KINDS } from "@/features/dashboard/types";
+import { serviceTypeLabel, type ServiceType } from "@/features/servicios/types";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { formatDate, formatDateTime, toCents, toRateUnits, todayInTijuana } from "@/lib/utils/format";
@@ -21,6 +21,9 @@ const date = (value: string): Cell => {
   const [y, m, d] = value.split("-").map(Number) as [number, number, number];
   return { value: new Date(Date.UTC(y, m - 1, d)), type: Date, format: "dd/mm/yyyy" };
 };
+/** Mantenimiento (correctivo y preventivo) o Reparación (servicio), como en Reportes. */
+const kindGroup = (type: ServiceType | null) =>
+  type === "correctivo" || type === "preventivo" ? "Mantenimiento" : type === "servicio" ? "Reparación" : "Sin tipo";
 const header = (...titles: string[]): Cell[] => titles.map((value) => ({ value, fontWeight: "bold" }));
 const share = (part: string, total: number): Cell => ({
   value: total ? (toCents(part) ?? 0) / total : 0,
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
     [{ value: "Reporte de gastos de la flotilla", fontWeight: "bold" }],
     ["Periodo", `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`],
     ["Grupo", filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos"],
-    ["Tipo de unidad", filters.tipo ? UNIT_TYPE_LABELS[filters.tipo] : "Todos"],
+    ["Tipo de unidad", filters.tipo ? (report.typeNames[filters.tipo] ?? filters.tipo) : "Todos"],
     ["Total invertido", money(report.total)],
     [`Periodo anterior (${formatDate(report.previousFrom)} al ${formatDate(report.previousTo)})`, money(report.previousTotal)],
     ["Servicios", report.services],
@@ -61,11 +64,11 @@ export async function GET(request: Request) {
   ];
 
   const expenses: SheetData = [
-    header("Fecha", "Unidad", "Tipo", "Grupo", "Categoría", "Concepto", "Proveedor", "Descripción", "Monto", "Moneda", "Dólares", "Tipo de cambio", "Tipo de servicio"),
+    header("Fecha", "Unidad", "Tipo", "Grupo", "Categoría", "Concepto", "Proveedor", "Descripción", "Monto", "Moneda", "Dólares", "Tipo de cambio", "Tipo de servicio", "Mantenimiento / Reparación"),
     ...rows.map((row): Cell[] => [
       date(row.date),
       row.economicNumber,
-      UNIT_TYPE_LABELS[row.type],
+      report.typeNames[row.type] ?? row.type,
       GROUP_LABELS[row.group] ?? "",
       row.category,
       row.concept ?? "",
@@ -76,6 +79,7 @@ export async function GET(request: Request) {
       row.usdAmount ? { ...money(row.usdAmount), format: USD } : null,
       row.exchangeRate ? { value: (toRateUnits(row.exchangeRate) ?? 0) / 10000, type: Number, format: RATE } : null,
       serviceTypeLabel(row.serviceType),
+      kindGroup(row.serviceType),
     ]),
     [null, null, null, null, null, null, null, { value: "Total", fontWeight: "bold" }, { ...money(report.total), fontWeight: "bold" }],
   ];
@@ -84,7 +88,7 @@ export async function GET(request: Request) {
     header("Unidad", "Tipo", "Grupo", "Servicios", "Total", "% del total"),
     ...report.byUnit.map((u): Cell[] => [
       u.economicNumber,
-      UNIT_TYPE_LABELS[u.type],
+      report.typeNames[u.type] ?? u.type,
       GROUP_LABELS[u.group] ?? "",
       u.services,
       money(u.total),
@@ -98,13 +102,19 @@ export async function GET(request: Request) {
   ];
 
   const byMonth: SheetData = [
-    header("Mes", "Servicios", "Total"),
-    ...report.byMonth.map((m): Cell[] => [monthLongLabel(m.month), m.services, money(m.total)]),
+    header("Mes", "Servicios", "Total", ...SERVICE_KINDS.map((k) => SERVICE_KIND_LABELS[k])),
+    ...report.byMonth.map((m): Cell[] => [
+      monthLongLabel(m.month),
+      m.services,
+      money(m.total),
+      ...SERVICE_KINDS.map((k) => money(m.kinds[k])),
+    ]),
   ];
 
   const byServiceType: SheetData = [
-    header("Tipo de servicio", "Servicios", "Total", "% del total"),
+    header("Mantenimiento / Reparación", "Tipo de servicio", "Servicios", "Total", "% del total"),
     ...report.byServiceType.map((t): Cell[] => [
+      kindGroup(t.type),
       t.type ? serviceTypeLabel(t.type) : `${serviceTypeLabel(null)} (servicios de antes)`,
       t.services,
       money(t.total),
@@ -122,12 +132,12 @@ export async function GET(request: Request) {
     {
       data: expenses,
       sheet: "Gastos",
-      columns: [{ width: 12 }, { width: 10 }, { width: 14 }, { width: 12 }, { width: 34 }, { width: 30 }, { width: 26 }, { width: 40 }, { width: 14 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 16 }],
+      columns: [{ width: 12 }, { width: 10 }, { width: 14 }, { width: 12 }, { width: 34 }, { width: 30 }, { width: 26 }, { width: 40 }, { width: 14 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 24 }],
     },
     { data: byUnit, sheet: "Por unidad", columns: [{ width: 10 }, { width: 14 }, { width: 12 }, { width: 11 }, { width: 16 }, { width: 12 }] },
     { data: byCategory, sheet: "Por categoría", columns: [{ width: 40 }, { width: 10 }, { width: 16 }, { width: 12 }] },
-    { data: byMonth, sheet: "Por mes", columns: [{ width: 22 }, { width: 11 }, { width: 16 }] },
-    { data: byServiceType, sheet: "Por tipo de servicio", columns: [{ width: 34 }, { width: 11 }, { width: 16 }, { width: 12 }] },
+    { data: byMonth, sheet: "Por mes", columns: [{ width: 22 }, { width: 11 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }] },
+    { data: byServiceType, sheet: "Por tipo de servicio", columns: [{ width: 26 }, { width: 34 }, { width: 11 }, { width: 16 }, { width: 12 }] },
     { data: bySupplier, sheet: "Por proveedor", columns: [{ width: 34 }, { width: 11 }, { width: 16 }, { width: 12 }] },
   ]).toBuffer();
 

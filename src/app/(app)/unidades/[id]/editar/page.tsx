@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { listActiveDrivers } from "@/features/catalogos/queries";
 import { UnitForm } from "@/features/unidades/components/unit-form";
-import { getUnit } from "@/features/unidades/queries";
+import { getUnit, getUnitTypes } from "@/features/unidades/queries";
 
 export const metadata: Metadata = { title: "Editar unidad" };
 
@@ -15,13 +15,13 @@ async function EditUnit({ params }: { params: PageProps<"/unidades/[id]/editar">
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [unit, drivers] = await Promise.all([getUnit(id), listActiveDrivers()]);
+  const [unit, drivers, types] = await Promise.all([getUnit(id), listActiveDrivers(), getUnitTypes()]);
   if (!unit) notFound();
 
   return (
     <>
       <PageHeader title={`Editar ${unit.economicNumber}`} />
-      <UnitForm unit={unit} drivers={drivers} />
+      <UnitForm unit={unit} drivers={drivers} types={types} />
     </>
   );
 }

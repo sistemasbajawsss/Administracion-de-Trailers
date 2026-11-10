@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UnitPicker } from "@/features/servicios/components/unit-picker";
 import type { UnitOption } from "@/features/servicios/types";
 import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
+import { useToday } from "@/components/shared/use-today";
 
 import { registerShopEntry } from "../actions";
 import { shopEntrySchema, type ShopEntryInput } from "../schemas";
@@ -29,7 +30,8 @@ export function ShopEntryForm(props: ShopEntryFormProps) {
 }
 
 /** Entrada a taller: unidad, fecha (hoy por defecto) y la falla. La unidad pasa a En taller. */
-function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFormProps & { onSaved: () => void }) {
+function ShopEntryFormBody({ units, today: serverToday, initialUnitId, onSaved }: ShopEntryFormProps & { onSaved: () => void }) {
+  const today = useToday(serverToday);
   const goBack = useGoBack();
   const [saved, setSaved] = useState(false);
 
@@ -40,7 +42,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
 
   const unitId = useWatch({ control: form.control, name: "unitId" });
   const selectedUnit = units.find((u) => u.id === unitId);
-  const isBox = selectedUnit?.type === "caja";
+  const isBox = selectedUnit ? !selectedUnit.hasOdometer : false;
   const lastMileage = selectedUnit?.mileage ?? null;
 
   /**
@@ -80,7 +82,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
   }
 
   const isSubmitting = form.formState.isSubmitting;
-  const confirmLeave = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting);
+  const { confirmLeave, leaveDialog } = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting, onSaved);
 
   return (
     <form
@@ -180,7 +182,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
             type="button"
             variant="ghost"
             size="touch"
-            onClick={() => confirmLeave() && goBack("/taller")}
+            onClick={() => confirmLeave(() => goBack("/taller"))}
           >
             Cancelar
           </Button>
@@ -190,6 +192,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
           </Button>
         </div>
       </FieldGroup>
+      {leaveDialog}
     </form>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "@/features/unidades/components/unit-group-tabs";
 import { UnitFilters } from "@/features/unidades/components/unit-filters";
 import { UnitList, UnitListSkeleton } from "@/features/unidades/components/unit-list";
+import { getUnitTypes } from "@/features/unidades/queries";
 import { unitFiltersSchema } from "@/features/unidades/schemas";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
@@ -31,7 +32,7 @@ async function NewUnitButton() {
 }
 
 async function UnitsContent({ searchParams }: { searchParams: PageProps<"/unidades">["searchParams"] }) {
-  const [user, params] = await Promise.all([getCurrentUser(), searchParams]);
+  const [user, params, types] = await Promise.all([getCurrentUser(), searchParams, getUnitTypes()]);
   const filters = unitFiltersSchema.parse(params);
 
   return (
@@ -39,7 +40,7 @@ async function UnitsContent({ searchParams }: { searchParams: PageProps<"/unidad
       <Suspense fallback={<UnitGroupTabsSkeleton />}>
         <UnitGroupTabs current={filters.grupo} />
       </Suspense>
-      <UnitFilters />
+      <UnitFilters types={types} />
       <Suspense fallback={<UnitListSkeleton />}>
         <UnitList filters={filters} canEdit={user.role === "admin"} />
       </Suspense>
@@ -52,7 +53,7 @@ export default function UnidadesPage({ searchParams }: PageProps<"/unidades">) {
     <RequireRole role={VIEW_ALL_ROLES}>
       <PageHeader
         title="Unidades"
-        description="Trailers, cajas, camiones rabones, pipas y camionetas de la flotilla."
+        description="Trailers, cajas, dollys, góndolas, camiones rabones, pipas y camionetas de la flotilla."
         actions={
           <Suspense fallback={null}>
             <NewUnitButton />

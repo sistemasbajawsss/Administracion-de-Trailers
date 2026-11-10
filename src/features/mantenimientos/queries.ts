@@ -5,10 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
 import {
-  MAINTENANCE_STATUS_ORDER,
+  byUrgency,
   type FleetMaintenance,
   type Maintenance,
-  type MaintenanceSource,
+  type MaintenanceTarget,
   type MaintenanceStatus,
 } from "./types";
 
@@ -31,8 +31,6 @@ const toMaintenance = (m: PendingRow): Maintenance => ({
   status: m.estado as MaintenanceStatus,
 });
 
-const byUrgency = (a: Maintenance, b: Maintenance) =>
-  MAINTENANCE_STATUS_ORDER[a.status] - MAINTENANCE_STATUS_ORDER[b.status] || a.name.localeCompare(b.name, "es");
 
 /**
  * Mantenimientos activos de una unidad con lo que les falta (mantenimientos_pendientes:
@@ -54,8 +52,12 @@ export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
   const supabase = await createClient();
   const [pending, units] = await Promise.all([
     supabase.rpc("mantenimientos_pendientes"),
-    // Mismo orden que la lista de unidades: por tipo (orden del enum) y número.
-    supabase.from("unidades").select("id, numero_economico, tipo, estatus").order("tipo").order("numero_orden"),
+    // Mismo orden que la lista de unidades: por tipo (orden del catálogo) y número.
+    supabase
+      .from("unidades")
+      .select("id, numero_economico, estatus, tipo_info:tipos_unidad(nombre)")
+      .order("orden_tipo")
+      .order("numero_orden"),
   ]);
   if (pending.error || units.error) throw new Error("No se pudieron cargar los mantenimientos");
 
@@ -65,7 +67,9 @@ export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
     .flatMap((row) => {
       const unit = unitById.get(row.unidad_id);
       if (!unit || isRetired(unit.estatus)) return [];
-      const item: FleetMaintenance = { ...toMaintenance(row), economicNumber: unit.numero_economico, unitType: unit.tipo };
+      const item: FleetMaintenance = { ...toMaintenance(row), economicNumber: unit.numero_economico,
+        unitTypeName: unit.tipo_info?.nombre ?? "",
+      };
       return [{ item, order: unit.index }];
     })
     .sort((a, b) => a.order - b.order || byUrgency(a.item, b.item))
@@ -79,29 +83,29 @@ export async function listMaintenanceByUnit(): Promise<Record<string, Maintenanc
   return byUnit;
 }
 
-/** Unidades con mantenimientos activos, para "Copiar de otra unidad" (menos la propia). */
-export async function listMaintenanceSources(exceptUnitId: string): Promise<MaintenanceSource[]> {
+/** Todas las demás unidades (menos las de baja o vendidas), para "Aplicar también a" al agregar uno. */
+export async function listMaintenanceTargets(exceptUnitId: string): Promise<MaintenanceTarget[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("mantenimientos_unidad")
-    .select("unidad_id, unidad:unidades!inner(numero_economico, numero_orden, tipo)")
-    .eq("activo", true)
-    .neq("unidad_id", exceptUnitId);
-  if (error) throw new Error("No se pudieron cargar las unidades con mantenimientos");
+  const [units, mileage] = await Promise.all([
+    supabase
+      .from("unidades")
+      .select("id, numero_economico, tipo, operacion, estatus, tipo_info:tipos_unidad(nombre, lleva_kilometraje)")
+      .neq("id", exceptUnitId)
+      .order("orden_tipo")
+      .order("numero_orden"),
+    supabase.rpc("kilometraje_unidades"),
+  ]);
+  if (units.error || mileage.error) throw new Error("No se pudieron cargar las unidades");
 
-  const byUnit = new Map<string, MaintenanceSource & { order: string }>();
-  for (const row of data) {
-    const current = byUnit.get(row.unidad_id);
-    if (current) current.count += 1;
-    else
-      byUnit.set(row.unidad_id, {
-        unitId: row.unidad_id,
-        economicNumber: row.unidad.numero_economico,
-        count: 1,
-        order: `${row.unidad.tipo}-${String(row.unidad.numero_orden ?? 0).padStart(6, "0")}`,
-      });
-  }
-  return [...byUnit.values()]
-    .sort((a, b) => a.order.localeCompare(b.order))
-    .map(({ unitId, economicNumber, count }) => ({ unitId, economicNumber, count }));
+  const withKm = new Set(mileage.data.filter((k) => k.kilometraje !== null).map((k) => k.unidad_id));
+  return units.data
+    .filter((u) => !isRetired(u.estatus))
+    .map((u) => ({
+      id: u.id,
+      economicNumber: u.numero_economico,
+      typeName: u.tipo_info?.nombre ?? u.tipo,
+      operation: u.operacion,
+      hasOdometer: u.tipo_info?.lleva_kilometraje ?? true,
+      hasKm: (u.tipo_info?.lleva_kilometraje ?? true) && withKm.has(u.id),
+    }));
 }

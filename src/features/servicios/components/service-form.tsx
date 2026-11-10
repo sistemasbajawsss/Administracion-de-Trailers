@@ -48,6 +48,7 @@ import {
   usdToMxnCents,
 } from "@/lib/utils/format";
 import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
+import { useToday } from "@/components/shared/use-today";
 
 import { createService, suggestExchangeRate, updateService } from "../actions";
 import {
@@ -149,13 +150,14 @@ function ServiceFormBody({
   units,
   categories,
   suppliers: initialSuppliers,
-  today,
+  today: serverToday,
   initialUnitId = "",
   initialServiceType = "",
   initialMaintenanceIds = [],
   maintenanceByUnit = {},
   onSaved,
 }: ServiceFormProps & { onSaved: () => void }) {
+  const today = useToday(serverToday);
   const router = useRouter();
   const goBack = useGoBack();
   const isEdit = Boolean(service);
@@ -196,6 +198,7 @@ function ServiceFormBody({
             status: "baja" as const,
             detail: "Dada de baja o vendida",
             shopStay: null,
+            hasOdometer: service.unit.hasOdometer,
             mileage: null,
           },
         ]
@@ -204,7 +207,8 @@ function ServiceFormBody({
   const unitId = useWatch({ control: form.control, name: "unitId" });
   const expenses = useWatch({ control: form.control, name: "expenses" });
   const selectedUnit = unitOptions.find((u) => u.id === unitId);
-  const isBox = selectedUnit?.type === "caja";
+  // Sin odómetro: cajas, dollys, góndolas… (catálogo de tipos).
+  const isBox = selectedUnit ? !selectedUnit.hasOdometer : false;
   // Kilometraje (5F, D14): obligatorio al dar de alta (menos cajas). Al editar sigue
   // opcional para no trabar servicios de antes; la BD revisa que cuadre en ambos casos.
   const mileageRequired = !isEdit && !isBox;
@@ -424,7 +428,10 @@ function ServiceFormBody({
 
   const isSubmitting = form.formState.isSubmitting;
   const inputClass = "h-12 bg-white text-base";
-  const confirmLeave = useUnsavedChanges((form.formState.isDirty || receipts.length > 0) && !saved && !isSubmitting);
+  const { confirmLeave, leaveDialog } = useUnsavedChanges(
+    (form.formState.isDirty || receipts.length > 0) && !saved && !isSubmitting,
+    onSaved,
+  );
 
   return (
     <form
@@ -869,7 +876,7 @@ function ServiceFormBody({
             type="button"
             variant="ghost"
             size="touch"
-            onClick={() => confirmLeave() && goBack(service ? `/servicios/${service.id}` : "/servicios")}
+            onClick={() => confirmLeave(() => goBack(service ? `/servicios/${service.id}` : "/servicios"))}
             className="hidden sm:inline-flex"
           >
             Cancelar
@@ -880,6 +887,7 @@ function ServiceFormBody({
           </Button>
         </div>
       </div>
+      {leaveDialog}
     </form>
   );
 }

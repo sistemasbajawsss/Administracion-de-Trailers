@@ -3,7 +3,6 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { buttonVariants } from "@/components/ui/button";
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { cn } from "@/lib/utils";
 import { formatKm } from "@/lib/utils/format";
 
@@ -36,7 +35,7 @@ const EMPTY_FILTER: Record<MaintenanceStatus, string> = {
   sin_kilometraje: "Todas las unidades con mantenimientos por km tienen kilometraje.",
 };
 
-type Group = { unitId: string; economicNumber: string; unitType: FleetMaintenance["unitType"]; km: number | null; items: FleetMaintenance[] };
+type Group = { unitId: string; economicNumber: string; unitTypeName: string; km: number | null; items: FleetMaintenance[] };
 
 /**
  * Pestaña Correctivos (5F): lo que le toca a cada unidad y cuánto le falta, en
@@ -48,6 +47,7 @@ export function FleetMaintenanceList({
   status,
   canRegister,
   canOpenUnits,
+  canEdit,
 }: {
   items: FleetMaintenance[];
   status: MaintenanceStatus | undefined;
@@ -55,18 +55,20 @@ export function FleetMaintenanceList({
   canRegister: boolean;
   /** Admin y gerente ven la ficha de la unidad y todos los servicios. */
   canOpenUnits: boolean;
+  /** Solo el admin programa mantenimientos (al gerente no se le invita a agregar). */
+  canEdit: boolean;
 }) {
   if (items.length === 0) {
     return (
       <EmptyState
         title="Aún no hay mantenimientos programados"
         description={
-          canOpenUnits
+          canEdit
             ? "Se agregan en la ficha de cada unidad: nombre y cada cuántos km o meses."
             : "Cuando el administrador los programe en cada unidad, aquí verás lo que le toca a cada una."
         }
         action={
-          canOpenUnits ? (
+          canEdit ? (
             <Link href="/unidades" className={buttonVariants({ variant: "outline", size: "touch" })}>
               Ir a Unidades
             </Link>
@@ -91,7 +93,7 @@ export function FleetMaintenanceList({
       groups.push({
         unitId: item.unitId,
         economicNumber: item.economicNumber,
-        unitType: item.unitType,
+        unitTypeName: item.unitTypeName,
         km: item.currentKm,
         items: [item],
       });
@@ -151,7 +153,7 @@ export function FleetMaintenanceList({
                   )}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {UNIT_TYPE_LABELS[group.unitType]}
+                  {group.unitTypeName}
                   {group.km !== null && <span className="whitespace-nowrap"> · Hoy marca {formatKm(group.km)}</span>}
                 </p>
               </div>

@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ClipboardPlus, Copy, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { ClipboardPlus, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -28,32 +28,35 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatKm } from "@/lib/utils/format";
+import { useToday } from "@/components/shared/use-today";
 
-import { copyMaintenance, createMaintenance, removeMaintenance, updateMaintenance } from "../actions";
+import { createMaintenance, removeMaintenance, updateMaintenance } from "../actions";
 import { maintenanceSchema, type MaintenanceInput } from "../schemas";
 import {
   describeInterval,
   describeLeft,
   describeNext,
   registerMaintenanceHref as registerHref,
+  type ApplyOutcome,
   type Maintenance,
-  type MaintenanceSource,
+  type MaintenanceTarget,
 } from "../types";
 
 import { MaintenanceLastTime } from "./maintenance-last-time";
 import { MaintenanceStatusBadge } from "./maintenance-status-badge";
+import { UnitMultiPicker } from "./unit-multi-picker";
 
 type UnitMaintenanceProps = {
   unitId: string;
   economicNumber: string;
-  /** Las cajas solo llevan mantenimientos por meses. */
+  /** Sin odómetro (cajas, dollys, góndolas…): solo mantenimientos por meses. */
   isBox: boolean;
   currentKm: number | null;
   items: Maintenance[];
-  sources: MaintenanceSource[];
+  /** Las demás unidades, para "Aplicar también a" al agregar. */
+  targets: MaintenanceTarget[];
   canEdit: boolean;
   /** "Registrar" en cada mantenimiento: abre el servicio con todo puesto (admin, unidad no retirada). */
   canRegister: boolean;
@@ -62,14 +65,13 @@ type UnitMaintenanceProps = {
 
 /**
  * Sección "Mantenimientos" de la ficha (5F): lo programado de la unidad, lo
- * urgente primero, con cuánto le falta. El admin agrega, edita, quita y copia de
- * otra unidad; el gerente solo ve.
+ * urgente primero, con cuánto le falta. El admin agrega (a esta y, si quiere, a
+ * otras unidades), edita y quita; el gerente solo ve.
  */
 export function UnitMaintenance(props: UnitMaintenanceProps) {
-  const { economicNumber, items, sources, canEdit, canRegister } = props;
+  const { economicNumber, items, canEdit, canRegister } = props;
   const [editing, setEditing] = useState<Maintenance | "new" | null>(null);
   const [removing, setRemoving] = useState<Maintenance | null>(null);
-  const [copying, setCopying] = useState(false);
 
   return (
     <section aria-labelledby="mantenimientos-unidad" className="mb-10">
@@ -82,23 +84,15 @@ export function UnitMaintenance(props: UnitMaintenanceProps) {
             {items.length
               ? "Lo programado para esta unidad; lo más urgente primero."
               : canEdit
-                ? `${economicNumber} no tiene mantenimientos programados. Agrega uno o cópialos de otra unidad.`
+                ? `${economicNumber} no tiene mantenimientos programados. Al agregar uno puedes aplicarlo también a otras unidades.`
                 : `${economicNumber} no tiene mantenimientos programados.`}
           </p>
         </div>
         {canEdit && (
-          <div className="flex flex-wrap gap-2">
-            {sources.length > 0 && (
-              <Button variant="outline" size="touch" onClick={() => setCopying(true)}>
-                <Copy aria-hidden="true" />
-                Copiar de otra unidad
-              </Button>
-            )}
-            <Button size="touch" onClick={() => setEditing("new")}>
-              <Plus aria-hidden="true" />
-              Agregar
-            </Button>
-          </div>
+          <Button size="touch" onClick={() => setEditing("new")}>
+            <Plus aria-hidden="true" />
+            Agregar
+          </Button>
         )}
       </div>
 
@@ -155,7 +149,6 @@ export function UnitMaintenance(props: UnitMaintenanceProps) {
             onClose={() => setEditing(null)}
           />
           <RemoveDialog {...props} item={removing} onClose={() => setRemoving(null)} />
-          <CopyDialog {...props} open={copying} onClose={() => setCopying(false)} />
         </>
       )}
     </section>
@@ -167,11 +160,13 @@ function MaintenanceDialog({
   economicNumber,
   isBox,
   currentKm,
-  today,
+  today: serverToday,
+  targets,
   item,
   open,
   onClose,
 }: UnitMaintenanceProps & { item: Maintenance | null; open: boolean; onClose: () => void }) {
+  const today = useToday(serverToday);
   const router = useRouter();
   const form = useForm<MaintenanceInput>({
     resolver: zodResolver(maintenanceSchema),
@@ -182,9 +177,18 @@ function MaintenanceDialog({
           everyMonths: item.everyMonths !== null ? String(item.everyMonths) : "",
           lastDate: item.lastDate,
           lastKm: item.lastKm !== null ? String(item.lastKm) : "",
+          alsoUnitIds: [],
         }
-      : { name: "", everyKm: "", everyMonths: "", lastDate: today, lastKm: currentKm !== null ? String(currentKm) : "" },
+      : {
+          name: "",
+          everyKm: "",
+          everyMonths: "",
+          lastDate: today,
+          lastKm: currentKm !== null ? String(currentKm) : "",
+          alsoUnitIds: [],
+        },
   });
+  const everyKm = useWatch({ control: form.control, name: "everyKm" });
 
   async function onSubmit(values: MaintenanceInput) {
     if (values.lastDate > today) {
@@ -193,9 +197,15 @@ function MaintenanceDialog({
     }
     const clean = isBox ? { ...values, everyKm: "", lastKm: "" } : values;
     try {
-      const result = item ? await updateMaintenance(item.id, unitId, clean) : await createMaintenance(unitId, clean);
-      if (!result.ok) return void toast.error(result.error);
-      toast.success(item ? `Cambios guardados en ${clean.name}` : `${clean.name} quedó programado para ${economicNumber}`);
+      if (item) {
+        const result = await updateMaintenance(item.id, unitId, clean);
+        if (!result.ok) return void toast.error(result.error);
+        toast.success(`Cambios guardados en ${clean.name}`);
+      } else {
+        const result = await createMaintenance(unitId, clean);
+        if (!result.ok) return void toast.error(result.error);
+        announce(clean.name.trim(), result.data.outcomes);
+      }
       onClose();
       router.refresh();
     } catch {
@@ -216,7 +226,7 @@ function MaintenanceDialog({
             </DialogTitle>
             <DialogDescription>
               {isBox
-                ? "Las cajas no tienen odómetro: se programan cada cierto número de meses."
+                ? "Esta unidad no tiene odómetro: se programa cada cierto número de meses."
                 : "Cada cuántos km, cada cuántos meses, o ambos (lo que pase primero)."}
             </DialogDescription>
           </DialogHeader>
@@ -333,6 +343,28 @@ function MaintenanceDialog({
                 {!isBox && currentKm !== null && ` Hoy marca ${formatKm(currentKm)}.`}
               </FieldDescription>
             </fieldset>
+
+            {!item && targets.length > 0 && (
+              <Controller
+                name="alsoUnitIds"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <fieldset className="grid min-w-0 gap-3">
+                    <legend className="mb-1 text-sm font-medium">Aplicar también a</legend>
+                    <FieldDescription className="-mt-1">
+                      En las otras cuenta desde hoy y su kilometraje actual. Las que ya lo tienen se saltan.
+                    </FieldDescription>
+                    <UnitMultiPicker
+                      units={targets}
+                      value={field.value}
+                      onChange={field.onChange}
+                      byKm={!isBox && everyKm.trim() !== ""}
+                    />
+                    <FieldError errors={[fieldState.error]} />
+                  </fieldset>
+                )}
+              />
+            )}
           </FieldGroup>
 
           <DialogFooter>
@@ -348,6 +380,32 @@ function MaintenanceDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+const numbers = (list: ApplyOutcome[]) => list.map((o) => o.economicNumber).join(", ");
+
+/** Aviso de cómo quedó en cada unidad: dónde se agregó y cuáles se saltaron y por qué. */
+function announce(name: string, outcomes: ApplyOutcome[]) {
+  const [own, ...others] = outcomes;
+  if (!own) return;
+  if (others.length === 0) {
+    toast.success(`${name} quedó programado para ${own.economicNumber}`);
+    return;
+  }
+  const of = (...results: ApplyOutcome["result"][]) => others.filter((o) => results.includes(o.result));
+  const added = of("agregado", "solo_meses");
+  const lines = [
+    of("solo_meses").length && `Solo por meses (sin odómetro o sin kilometraje): ${numbers(of("solo_meses"))}.`,
+    of("ya_tiene").length && `Ya lo tenían: ${numbers(of("ya_tiene"))}.`,
+    of("sin_kilometraje").length && `No se agregó, no tienen kilometraje: ${numbers(of("sin_kilometraje"))}.`,
+    of("caja_solo_km").length && `No se agregó, no llevan kilometraje: ${numbers(of("caja_solo_km"))}.`,
+    of("retirada").length && `De baja o vendidas: ${numbers(of("retirada"))}.`,
+  ].filter(Boolean);
+  const total = added.length + 1;
+  toast.success(`${name} quedó programado en ${total} ${total === 1 ? "unidad" : "unidades"}`, {
+    description: lines.length ? lines.join(" ") : undefined,
+    duration: lines.length ? 12000 : undefined,
+  });
 }
 
 function RemoveDialog({
@@ -394,92 +452,5 @@ function RemoveDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-}
-
-function CopyDialog({
-  unitId,
-  economicNumber,
-  isBox,
-  sources,
-  open,
-  onClose,
-}: UnitMaintenanceProps & { open: boolean; onClose: () => void }) {
-  const router = useRouter();
-  const [sourceUnitId, setSourceUnitId] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const items = Object.fromEntries(
-    sources.map((s) => [s.unitId, `${s.economicNumber} (${s.count} ${s.count === 1 ? "mantenimiento" : "mantenimientos"})`]),
-  );
-
-  function close() {
-    setSourceUnitId("");
-    setError(null);
-    onClose();
-  }
-
-  function confirm() {
-    if (!sourceUnitId) return setError("Elige de qué unidad copiar");
-    startTransition(async () => {
-      try {
-        const result = await copyMaintenance(unitId, { sourceUnitId });
-        if (!result.ok) return void toast.error(result.error);
-        const n = result.data.copied;
-        if (n === 0) toast.info(`${economicNumber} ya tenía todos los mantenimientos de esa unidad`);
-        else toast.success(`Se ${n === 1 ? "copió 1 mantenimiento" : `copiaron ${n} mantenimientos`} a ${economicNumber}`);
-        close();
-        router.refresh();
-      } catch {
-        toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
-      }
-    });
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && close()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-heading text-xl">Copiar mantenimientos a {economicNumber}</DialogTitle>
-          <DialogDescription>
-            Se copian los que {economicNumber} aún no tiene, contando desde hoy
-            {isBox ? ". A una caja solo pasan los que van por meses." : " y su kilometraje actual."} Después puedes
-            ajustar cada uno.
-          </DialogDescription>
-        </DialogHeader>
-        <Field data-invalid={Boolean(error)}>
-          <FieldLabel htmlFor="copy-source">Copiar de</FieldLabel>
-          <Select
-            items={items}
-            value={sourceUnitId || null}
-            onValueChange={(value) => {
-              setSourceUnitId(String(value ?? ""));
-              setError(null);
-            }}
-          >
-            <SelectTrigger id="copy-source" className="h-11 w-full bg-white text-base">
-              <SelectValue placeholder="Elige la unidad" />
-            </SelectTrigger>
-            <SelectContent>
-              {sources.map((s) => (
-                <SelectItem key={s.unitId} value={s.unitId} className="min-h-11">
-                  {items[s.unitId]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {error && <FieldError>{error}</FieldError>}
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" size="touch" onClick={close}>
-            Cancelar
-          </Button>
-          <Button size="touch" onClick={confirm} disabled={isPending}>
-            {isPending && <LoaderCircle className="animate-spin" aria-hidden="true" />}
-            {isPending ? "Copiando…" : "Copiar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

@@ -67,7 +67,11 @@ export async function updateUser(id: string, input: unknown): Promise<ActionResu
     return fail(parsed.error?.issues[0]?.message ?? "Revisa los datos del usuario.");
   }
 
-  await requireRole("admin");
+  const me = await requireRole("admin");
+  // El propio rol no se cambia (la BD tampoco deja que un admin se quite su acceso).
+  if (id === me.id && parsed.data.role !== me.role) {
+    return fail("Tu propio rol no se puede cambiar desde tu cuenta. Si hace falta, otro administrador puede cambiarlo.");
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -96,7 +100,14 @@ export async function setUserActive(id: string, active: boolean): Promise<Action
   if (error) return fail(dbMessage(error, "No se pudo cambiar el estado del usuario."));
   if (!data.length) return fail("No se encontró el usuario.");
   // Desactivado: además de que RLS ya no le muestra nada, se le cierran las sesiones.
-  if (!active) await supabase.rpc("cerrar_sesiones_usuario", { p_usuario: id });
+  if (!active) {
+    const { error: sessionsError } = await supabase.rpc("cerrar_sesiones_usuario", { p_usuario: id });
+    // Igual que al restablecer contraseña: no decir "ya no puede entrar" si no se cerraron.
+    if (sessionsError) {
+      revalidatePath("/admin/usuarios");
+      return fail("Se desactivó, pero no se pudieron cerrar sus sesiones abiertas. Ya no ve nada; inténtalo de nuevo para cerrarlas.");
+    }
+  }
 
   revalidatePath("/admin/usuarios");
   return ok();
