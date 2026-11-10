@@ -1,4 +1,4 @@
-export const CATALOG_KINDS = ["choferes", "categorias", "proveedores"] as const;
+export const CATALOG_KINDS = ["choferes", "categorias", "proveedores", "talleres"] as const;
 export type CatalogKind = (typeof CATALOG_KINDS)[number];
 
 export type CatalogItem = {
@@ -11,6 +11,8 @@ export type CatalogItem = {
 
 export type DriverOption = { id: string; name: string };
 export type SupplierOption = { id: string; name: string };
+/** Taller de fuera (5G): quién hizo el trabajo si no fue en Taller Realso. */
+export type WorkshopOption = { id: string; name: string };
 /** requiresConcept: el gasto debe decir qué fue (p. ej. "Otros (especificar)"). */
 export type CategoryOption = { id: string; name: string; requiresConcept: boolean };
 
@@ -50,8 +52,17 @@ export const CATALOG_LABELS: Record<
     singular: "proveedor",
     a: "un",
     the: "el",
-    empty: "Talleres y refaccionarias donde se hacen los servicios.",
+    empty: "Refaccionarias y negocios donde se compran las piezas.",
     hasPhone: true,
     hasNotes: true,
+  },
+  talleres: {
+    title: "Talleres",
+    singular: "taller",
+    a: "un",
+    the: "el",
+    empty: "Talleres de fuera que hacen trabajos, en su local o en camino. Taller Realso no va aquí: se elige aparte.",
+    hasPhone: false,
+    hasNotes: false,
   },
 };

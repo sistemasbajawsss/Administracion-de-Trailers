@@ -17,6 +17,7 @@ import type {
   ServiceBrief,
   ServiceDetail,
   ServiceListItem,
+  ServicePlace,
   ServiceShopLink,
   ServiceType,
   ShopStay,
@@ -24,7 +25,7 @@ import type {
   UnitTotals,
   UsdAmount,
 } from "./types";
-import { SERVICE_TYPE_LABELS } from "./types";
+import { SERVICE_PLACE_LABELS, SERVICE_TYPE_LABELS } from "./types";
 
 /** Nombre del tipo de unidad y si lleva kilometraje (catálogo tipos_unidad). */
 type TypeInfoRow = { nombre: string; lleva_kilometraje: boolean } | null;
@@ -106,7 +107,9 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
     // Taller (5E) con su estancia anidada; RLS: el capturista solo ve las estancias abiertas.
     supabase
       .from("servicios")
-      .select("entrada_taller_id, sin_entrada_taller, motivo_sin_entrada, entrada:entradas_taller(fecha_entrada, fecha_salida, falla)")
+      .select(
+        "entrada_taller_id, sin_entrada_taller, motivo_sin_entrada, lugar, taller_id, entrada:entradas_taller(fecha_entrada, fecha_salida, falla), taller:talleres(nombre)",
+      )
       .eq("id", id)
       .maybeSingle(),
   ]);
@@ -129,6 +132,10 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
     maintenance: (maintenance.data ?? [])
       .map((m) => ({ id: m.id, name: m.nombre }))
       .sort((a, b) => a.name.localeCompare(b.name, "es")),
+    place: shop.data?.lugar ?? null,
+    workshopId: shop.data?.taller_id ?? null,
+    // RLS: el capturista no ve los talleres desactivados (queda sin nombre).
+    workshopName: shop.data?.taller?.nombre ?? null,
     expenses: expenses.data.map((e) => ({
       id: e.id,
       categoryId: e.categoria_id,
@@ -432,6 +439,7 @@ type Row = Record<string, Json | undefined>;
 type Names = {
   units: Map<string, string>;
   suppliers: Map<string, string>;
+  workshops: Map<string, string>;
   categories: Map<string, string>;
   maintenance: Map<string, string>;
 };
@@ -455,6 +463,10 @@ function describeServiceField(field: string, value: Json | undefined, names: Nam
       return names.units.get(text) ?? "Unidad";
     case "proveedor_id":
       return names.suppliers.get(text) ?? "Proveedor";
+    case "lugar":
+      return SERVICE_PLACE_LABELS[text as ServicePlace] ?? text;
+    case "taller_id":
+      return names.workshops.get(text) ?? "Taller";
     case "fecha":
       return formatDate(text);
     case "kilometraje":
@@ -472,6 +484,8 @@ const SERVICE_FIELDS: [string, string][] = [
   ["tipo", "Tipo de servicio"],
   ["mantenimientos", "Cuenta como mantenimiento"],
   ["kilometraje", "Kilometraje"],
+  ["lugar", "Dónde se hizo"],
+  ["taller_id", "Taller"],
   ["proveedor_id", "Proveedor"],
   ["descripcion", "Descripción"],
   ["motivo_sin_entrada", "Motivo sin entrada a taller"],
@@ -559,6 +573,7 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
   const ids = {
     units: new Set<string>(),
     suppliers: new Set<string>(),
+    workshops: new Set<string>(),
     categories: new Set<string>(),
     maintenance: new Set<string>(),
   };
@@ -566,17 +581,21 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
     for (const value of [asRow(row.datos_anteriores), asRow(row.datos_nuevos)]) {
       if (value.unidad_id) ids.units.add(str(value.unidad_id));
       if (value.proveedor_id) ids.suppliers.add(str(value.proveedor_id));
+      if (value.taller_id) ids.workshops.add(str(value.taller_id));
       if (value.categoria_id) ids.categories.add(str(value.categoria_id));
       for (const id of idList(value.mantenimientos)) ids.maintenance.add(id);
     }
   }
 
-  const [units, suppliers, categories, maintenance] = await Promise.all([
+  const [units, suppliers, workshops, categories, maintenance] = await Promise.all([
     ids.units.size
       ? supabase.from("unidades").select("id, numero_economico").in("id", [...ids.units])
       : Promise.resolve({ data: [] as { id: string; numero_economico: string }[] }),
     ids.suppliers.size
       ? supabase.from("proveedores").select("id, nombre").in("id", [...ids.suppliers])
+      : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
+    ids.workshops.size
+      ? supabase.from("talleres").select("id, nombre").in("id", [...ids.workshops])
       : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
     ids.categories.size
       ? supabase.from("categorias").select("id, nombre").in("id", [...ids.categories])
@@ -589,6 +608,7 @@ export async function getServiceHistory(serviceId: string): Promise<HistoryEntry
   const names: Names = {
     units: new Map((units.data ?? []).map((u) => [u.id, u.numero_economico])),
     suppliers: new Map((suppliers.data ?? []).map((s) => [s.id, s.nombre])),
+    workshops: new Map((workshops.data ?? []).map((w) => [w.id, w.nombre])),
     categories: new Map((categories.data ?? []).map((c) => [c.id, c.nombre])),
     maintenance: new Map((maintenance.data ?? []).map((m) => [m.id, m.nombre])),
   };

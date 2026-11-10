@@ -17,6 +17,7 @@ import { getOpenShopStay, getServiceShopLink, getUnitMileageRule, listExpenses, 
 import {
   exchangeRateDateSchema,
   fallsInStay,
+  placeIssues,
   shopIssues,
   purgeServiceSchema,
   restoreServiceSchema,
@@ -26,7 +27,7 @@ import {
   serviceSchema,
   type ServiceInput,
 } from "./schemas";
-import { SERVICE_TYPES, type ExpenseListItem, type ServiceBrief, type ShopStay } from "./types";
+import { placeNeedsWorkshop, SERVICE_TYPES, type ExpenseListItem, type ServiceBrief, type ShopStay } from "./types";
 
 /** Los tipos generados marcan los argumentos de las funciones como no nulos, pero aceptan null. */
 const nullable = <T,>(value: T | null) => value as T;
@@ -42,6 +43,9 @@ function toArgs(service: ServiceInput) {
     p_descripcion: nullable(emptyToNull(service.description)),
     // Vacío (servicio de antes sin clasificar): la BD conserva el que tenía.
     p_tipo: service.serviceType || undefined,
+    // ¿Dónde se hizo? (5G). Vacío (uno de antes): la BD conserva lo que tenía.
+    p_lugar: service.place || undefined,
+    p_taller_id: placeNeedsWorkshop(service.place) && service.workshopId ? service.workshopId : undefined,
     // Solo un correctivo cumple mantenimientos; sin tipo (uno de antes), la BD conserva lo que tenía.
     p_mantenimientos:
       service.serviceType === "correctivo" ? service.maintenanceIds : service.serviceType ? [] : undefined,
@@ -118,6 +122,8 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
   });
   if (mileageRule.hasOdometer && kmProblem) return fail(kmProblem);
   if (!values.serviceType) return fail("Elige el tipo de servicio.");
+  const placeProblem = placeIssues(values, { required: true })[0];
+  if (placeProblem) return fail(`${placeProblem.message}.`);
   const linked = fallsInStay(stay, values.date);
   const issues = shopIssues(values, { stay, linked, needsReason: true, allowForgot: true });
   if (issues.length) return fail(issues[0]!.message);
@@ -168,6 +174,8 @@ export async function updateService(
   const linked = legacy || keepsLink || linksToStay;
   const issues = shopIssues(values, { stay, linked, needsReason: !current.noEntryReason, allowForgot: false });
   if (issues.length) return fail(issues[0]!.message);
+  const placeProblem = placeIssues(values, { required: false })[0];
+  if (placeProblem) return fail(`${placeProblem.message}.`);
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("actualizar_servicio", {

@@ -41,6 +41,8 @@ function insertRow(supabase: Supabase, kind: CatalogKind, item: CatalogItemInput
         })
         .select("id, nombre")
         .single();
+    case "talleres":
+      return supabase.from("talleres").insert({ nombre: item.name, created_by: userId }).select("id, nombre").single();
   }
 }
 
@@ -60,6 +62,8 @@ function updateRow(supabase: Supabase, kind: CatalogKind, id: string, item: Cata
         .update({ nombre: item.name, telefono: emptyToNull(item.phone), notas: emptyToNull(item.notes) })
         .eq("id", id)
         .select("id");
+    case "talleres":
+      return supabase.from("talleres").update({ nombre: item.name }).eq("id", id).select("id");
   }
 }
 
@@ -93,8 +97,8 @@ export async function createCatalogItem(
   const parsed = catalogItemSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos.");
 
-  // Proveedores: quien captura (alta rápida). El resto: solo admin. El gerente no escribe.
-  const user = await requireRole(kind === "proveedores" ? CAPTURE_ROLES : "admin");
+  // Proveedores y talleres: quien captura (alta rápida). El resto: solo admin. El gerente no escribe.
+  const user = await requireRole(kind === "proveedores" || kind === "talleres" ? CAPTURE_ROLES : "admin");
 
   const supabase = await createClient();
   const { data, error } = await insertRow(supabase, kind, parsed.data, user.id);
@@ -134,7 +138,7 @@ export async function setCatalogItemActive(
   await requireRole("admin");
 
   const supabase = await createClient();
-  // Las tres tablas comparten la columna activo, así que aquí basta una consulta.
+  // Las cuatro tablas comparten la columna activo, así que aquí basta una consulta.
   const { data, error } = await supabase
     .from(kind as "choferes")
     .update({ activo: active })

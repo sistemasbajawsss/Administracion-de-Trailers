@@ -52,15 +52,26 @@ import { useToday } from "@/components/shared/use-today";
 
 import { createService, suggestExchangeRate, updateService } from "../actions";
 import {
+  placeIssues,
   serviceEditSchema,
   serviceSchema,
   shopIssues,
   type Currency,
   type ServiceEditInput,
 } from "../schemas";
-import type { CategoryOption, ServiceDetail, ServiceType, SupplierOption, UnitOption } from "../types";
+import type { WorkshopOption } from "@/features/catalogos/types";
+
+import {
+  placeNeedsWorkshop,
+  type CategoryOption,
+  type ServiceDetail,
+  type ServiceType,
+  type SupplierOption,
+  type UnitOption,
+} from "../types";
 
 import { ServiceMaintenancePicker, type MaintenanceChoice } from "./service-maintenance-picker";
+import { ServicePlacePicker } from "./service-place-picker";
 import { ServiceShopPanel, shopState } from "./service-shop-panel";
 import { ServiceTypePicker } from "./service-type-picker";
 import { UnitPicker } from "./unit-picker";
@@ -87,6 +98,8 @@ function toFormValues(
     serviceType: service ? (service.serviceType ?? "") : initial.serviceType,
     maintenanceIds: service ? service.maintenance.map((m) => m.id) : initial.maintenanceIds,
     supplierId: service?.supplierId ?? "",
+    place: service?.place ?? "",
+    workshopId: service?.workshopId ?? "",
     description: service?.description ?? "",
     // En dólares, el formulario edita la cantidad en dólares; los pesos los calcula la BD.
     expenses: service?.expenses.map((e) => ({
@@ -125,6 +138,8 @@ type ServiceFormProps = {
   units: UnitOption[];
   categories: CategoryOption[];
   suppliers: SupplierOption[];
+  /** Talleres de fuera activos, para "¿Dónde se hizo?" (5G). */
+  workshops: WorkshopOption[];
   today: string;
   initialUnitId?: string;
   /** Desde "Registrar" de un mantenimiento (5F): correctivo con ese mantenimiento marcado. */
@@ -150,6 +165,7 @@ function ServiceFormBody({
   units,
   categories,
   suppliers: initialSuppliers,
+  workshops: initialWorkshops,
   today: serverToday,
   initialUnitId = "",
   initialServiceType = "",
@@ -162,6 +178,7 @@ function ServiceFormBody({
   const goBack = useGoBack();
   const isEdit = Boolean(service);
   const [suppliers, setSuppliers] = useState(initialSuppliers);
+  const [workshops, setWorkshops] = useState(initialWorkshops);
   const [receipts, setReceipts] = useState<ReceiptDraft[]>([]);
   // Guardado con éxito: el botón queda deshabilitado mientras carga la siguiente
   // pantalla (con señal lenta, un segundo toque duplicaba el servicio).
@@ -218,6 +235,7 @@ function ServiceFormBody({
   // Mantenimientos (5F, Etapa 4): solo un correctivo cuenta como mantenimiento programado.
   // Al editar, lo que ya tenía marcado se ofrece aunque después se haya quitado.
   const serviceType = useWatch({ control: form.control, name: "serviceType" });
+  const place = useWatch({ control: form.control, name: "place" });
   const scheduled = maintenanceByUnit[unitId] ?? [];
   const maintenanceChoices: MaintenanceChoice[] = [
     ...scheduled.map((m) => ({ id: m.id, name: m.name, current: m })),
@@ -305,7 +323,7 @@ function ServiceFormBody({
   const conceptRequired = new Set(categories.filter((c) => c.requiresConcept).map((c) => c.id));
   const categoryItems = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const supplierItems = {
-    [NO_SUPPLIER]: "Sin proveedor (lo hicimos nosotros)",
+    [NO_SUPPLIER]: "Sin proveedor",
     ...Object.fromEntries(suppliers.map((s) => [s.id, s.name])),
   };
 
@@ -329,9 +347,17 @@ function ServiceFormBody({
     return problem;
   }
 
+  /** ¿Dónde se hizo? (5G): obligatorio en alta; fuera o en camino, con su taller. */
+  function markPlaceProblem(values: Pick<ServiceEditInput, "place" | "workshopId">) {
+    const problems = placeIssues(values, { required: !isEdit });
+    for (const problem of problems) form.setError(problem.path, { message: problem.message });
+    return problems[0] ?? null;
+  }
+
   /** Lo que depende de la unidad o de si es alta: se marca junto con los errores del schema. */
   function markExtraProblems(values: ServiceEditInput) {
     markTypeProblem(values);
+    markPlaceProblem(values);
     markMileageProblem(values);
   }
 
@@ -350,6 +376,12 @@ function ServiceFormBody({
     if (typeProblem) {
       form.setFocus("serviceType");
       return void toast.error(typeProblem);
+    }
+
+    const placeProblem = markPlaceProblem(values);
+    if (placeProblem) {
+      form.setFocus(placeProblem.path);
+      return void toast.error(placeProblem.message);
     }
 
     const kmProblem = markMileageProblem(values);
@@ -376,6 +408,7 @@ function ServiceFormBody({
     const clean = {
       ...values,
       mileage: isBox ? "" : values.mileage,
+      workshopId: placeNeedsWorkshop(values.place) ? values.workshopId : "",
       // Solo los de la unidad elegida (lo que se marcó con otra unidad no cuenta).
       maintenanceIds: values.maintenanceIds.filter((id) => maintenanceChoices.some((c) => c.id === id)),
     };
@@ -517,6 +550,74 @@ function ServiceFormBody({
           />
         )}
 
+        <Controller
+          name="place"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <FieldSet data-invalid={fieldState.invalid}>
+              <FieldLegend className="font-heading text-xl">¿Dónde se hizo?</FieldLegend>
+              <ServicePlacePicker
+                value={field.value}
+                onChange={field.onChange}
+                inputRef={field.ref}
+                invalid={fieldState.invalid}
+              />
+              {isEdit && !service?.place && !field.value && (
+                <FieldDescription>Este servicio es de antes y no dice dónde se hizo. Puedes elegirlo o dejarlo así.</FieldDescription>
+              )}
+              <FieldError errors={[fieldState.error]} />
+            </FieldSet>
+          )}
+        />
+
+        {placeNeedsWorkshop(place) && (
+          <Controller
+            name="workshopId"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="workshopId" className="font-heading text-xl">
+                  ¿Qué taller?
+                </FieldLabel>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Select
+                    items={Object.fromEntries(workshops.map((w) => [w.id, w.name]))}
+                    value={field.value || null}
+                    onValueChange={(value) => field.onChange(value ?? "")}
+                  >
+                    <SelectTrigger
+                      id="workshopId"
+                      ref={field.ref}
+                      aria-invalid={fieldState.invalid}
+                      className={`${inputClass} w-full sm:flex-1`}
+                    >
+                      <SelectValue placeholder={workshops.length ? "Elige el taller" : "Agrega el taller con el botón"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workshops.map((w) => (
+                        <SelectItem key={w.id} value={w.id} className="min-h-11">
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <SupplierQuickAdd
+                    kind="talleres"
+                    onCreated={(workshop) => {
+                      setWorkshops((current) =>
+                        [...current, workshop].sort((a, b) => a.name.localeCompare(b.name, "es")),
+                      );
+                      field.onChange(workshop.id);
+                      form.clearErrors("workshopId");
+                    }}
+                  />
+                </div>
+                <FieldError errors={[fieldState.error]} />
+              </Field>
+            )}
+          />
+        )}
+
         <FieldSet>
           <FieldLegend className="font-heading text-xl">Datos del servicio</FieldLegend>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -576,7 +677,7 @@ function ServiceFormBody({
               control={form.control}
               render={({ field }) => (
                 <Field className="sm:col-span-2">
-                  <FieldLabel htmlFor="supplierId">Proveedor o taller</FieldLabel>
+                  <FieldLabel htmlFor="supplierId">Proveedor de las piezas</FieldLabel>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Select
                       items={supplierItems}

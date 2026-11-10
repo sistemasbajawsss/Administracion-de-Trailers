@@ -2,26 +2,28 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 
-import type { CatalogItem, CategoryOption, DriverOption, SupplierOption } from "./types";
+import type { CatalogItem, CategoryOption, DriverOption, SupplierOption, WorkshopOption } from "./types";
 
 /**
- * Los tres catálogos en paralelo (una sola espera para la pantalla de
+ * Los cuatro catálogos en paralelo (una sola espera para la pantalla de
  * catálogos). RLS decide qué ve cada rol: el admin también ve los inactivos.
  */
 export async function listCatalogs(): Promise<{
   choferes: CatalogItem[];
   categorias: CatalogItem[];
   proveedores: CatalogItem[];
+  talleres: CatalogItem[];
 }> {
   const supabase = await createClient();
 
-  const [drivers, categories, suppliers] = await Promise.all([
+  const [drivers, categories, suppliers, workshops] = await Promise.all([
     supabase.from("choferes").select("id, nombre, telefono, activo").order("nombre"),
     supabase.from("categorias").select("id, nombre, activo").order("nombre"),
     supabase.from("proveedores").select("id, nombre, telefono, notas, activo").order("nombre"),
+    supabase.from("talleres").select("id, nombre, activo").order("nombre"),
   ]);
 
-  if (drivers.error || categories.error || suppliers.error) {
+  if (drivers.error || categories.error || suppliers.error || workshops.error) {
     throw new Error("No se pudieron cargar los catálogos");
   }
 
@@ -47,6 +49,7 @@ export async function listCatalogs(): Promise<{
       notes: s.notas,
       active: s.activo,
     })),
+    talleres: workshops.data.map((w) => ({ id: w.id, name: w.nombre, phone: null, notes: null, active: w.activo })),
   };
 }
 
@@ -87,4 +90,13 @@ export async function listActiveSuppliers(): Promise<SupplierOption[]> {
 
   if (error) throw new Error("No se pudieron cargar los proveedores");
   return data.map((s) => ({ id: s.id, name: s.nombre }));
+}
+
+/** Talleres de fuera activos para "¿Dónde se hizo?" del formulario de servicio (5G). */
+export async function listActiveWorkshops(): Promise<WorkshopOption[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("talleres").select("id, nombre").eq("activo", true).order("nombre");
+
+  if (error) throw new Error("No se pudieron cargar los talleres");
+  return data.map((w) => ({ id: w.id, name: w.nombre }));
 }

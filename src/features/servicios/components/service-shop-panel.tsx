@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils/format";
 import { useToday } from "@/components/shared/use-today";
 
-import { fallsInStay, NO_ENTRY_REASONS, OWN_SHOP_REASONS, type ServiceEditInput } from "../schemas";
+import { fallsInStay, NO_ENTRY_REASONS, type ServiceEditInput } from "../schemas";
 import type { ServiceShopLink, ShopStay } from "../types";
 
 /** Días completos entre dos fechas "aaaa-mm-dd" (sin zonas horarias). */
@@ -93,15 +93,7 @@ export function ServiceShopPanel({
   const date = useWatch({ control: form.control, name: "date" });
   const [reason, forgot] = useWatch({ control: form.control, name: ["noEntryReason", "forgotEntry"] });
   const [mode, setMode] = useState<ReasonMode>(() =>
-    forgot
-      ? "forgot"
-      : (OWN_SHOP_REASONS as readonly string[]).includes(reason)
-        ? "Mantenimiento taller Realso" // también el nombre anterior, "Mantenimiento en patio"
-        : (NO_ENTRY_REASONS as readonly string[]).includes(reason)
-          ? (reason as ReasonMode)
-          : reason
-            ? "other"
-            : null,
+    forgot ? "forgot" : (NO_ENTRY_REASONS as readonly string[]).includes(reason) ? (reason as ReasonMode) : reason ? "other" : null,
   );
 
   if (state.legacy) return null;

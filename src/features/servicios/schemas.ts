@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { isRealDate, normalizeAmount, toCents, toRateUnits } from "@/lib/utils/format";
 
-import { SERVICE_TYPES, type ShopStay } from "./types";
+import { placeNeedsWorkshop, SERVICE_PLACES, SERVICE_TYPES, type ShopStay } from "./types";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -77,6 +77,10 @@ export const serviceSchema = z.object({
   /** Mantenimientos programados que cumple (5F, Etapa 4). Solo cuentan si es correctivo. */
   maintenanceIds: z.array(z.uuid()).max(20, "Máximo 20 mantenimientos"),
   supplierId: z.union([z.literal(""), z.uuid()]),
+  /** ¿Dónde se hizo? (5G). Vacío solo al editar uno de antes; en alta lo exigen el formulario y el servidor. */
+  place: z.union([z.literal(""), z.enum(SERVICE_PLACES)]),
+  /** Qué taller lo hizo (fuera o en camino). */
+  workshopId: z.union([z.literal(""), z.uuid()]),
   description: z.string().trim().max(1000, "Descripción: máximo 1000 caracteres"),
   expenses: z.array(expenseLineSchema).min(1, "Agrega al menos un gasto").max(50, "Máximo 50 gastos por servicio"),
   // ---- Taller (5E, D13) ----
@@ -93,15 +97,27 @@ export const serviceSchema = z.object({
 export type ServiceInput = z.infer<typeof serviceSchema>;
 
 /** Motivos rápidos cuando la unidad no tuvo entrada a taller (D13). Además: "Se olvidó la entrada" y "Otro…". */
-export const NO_ENTRY_REASONS = ["Reparación en camino", "Mantenimiento taller Realso"] as const;
+// Sin "Mantenimiento en patio" / "Mantenimiento taller Realso" (2026-11-10): en
+// Realso primero se da la entrada a taller; si no se dio, es "Se olvidó la
+// entrada". Dónde se hizo el trabajo va en "¿Dónde se hizo?" (5G). Los servicios
+// guardados con esos motivos los muestran como "Otro".
+export const NO_ENTRY_REASONS = ["Reparación en camino"] as const;
 
 /**
- * "Mantenimiento en patio" es el nombre anterior de "Mantenimiento taller Realso"
- * (servicios guardados antes del 2026-11-10): al editarlos sale elegido el nuevo.
- * Siguen saliendo en "Sin entrada a taller": Realso es el taller propio y primero
- * se da la entrada a taller y luego el servicio (lo aclaró el usuario).
+ * ¿Dónde se hizo? (5G), igual en el navegador y en el servidor: obligatorio en
+ * alta (al editar uno de antes puede quedar sin dato) y, fuera o en camino, con
+ * su taller.
  */
-export const OWN_SHOP_REASONS = ["Mantenimiento taller Realso", "Mantenimiento en patio"] as const;
+export function placeIssues(
+  values: Pick<ServiceInput, "place" | "workshopId">,
+  { required }: { required: boolean },
+): { path: "place" | "workshopId"; message: string }[] {
+  if (!values.place) return required ? [{ path: "place", message: "Elige dónde se hizo el servicio" }] : [];
+  if (placeNeedsWorkshop(values.place) && !values.workshopId) {
+    return [{ path: "workshopId", message: "Elige qué taller hizo el servicio" }];
+  }
+  return [];
+}
 
 /** ¿El servicio queda dentro de la estancia abierta? (misma regla que preparar_servicio en la BD). */
 export const fallsInStay = (stay: ShopStay | null, date: string) => Boolean(stay && date >= stay.entryDate);
