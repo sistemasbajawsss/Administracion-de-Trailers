@@ -47,6 +47,8 @@ export type Maintenance = {
 export type FleetMaintenance = Maintenance & {
   economicNumber: string;
   unitTypeName: string;
+  /** Local / foráneo; null = grupo Camionetas. */
+  operation: UnitOperation | null;
 };
 
 /** Pestañas de la página Mantenimientos (con los nombres del usuario). */
