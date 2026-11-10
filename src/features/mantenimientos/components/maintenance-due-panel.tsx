@@ -5,7 +5,7 @@ import { HomePanel, HomePanelEmpty } from "@/components/shared/home-panel";
 import { cn } from "@/lib/utils";
 
 import { listFleetMaintenance } from "../queries";
-import { describeLeft, MAINTENANCE_STATUS_ORDER, registerMaintenanceHref } from "../types";
+import { byUrgency, describeLeft, registerMaintenanceHref } from "../types";
 
 import { MaintenanceStatusBadge } from "./maintenance-status-badge";
 
@@ -14,14 +14,14 @@ const SHOWN = 8;
 
 /**
  * Aviso de Inicio (5F): mantenimientos vencidos y por vencer de toda la flotilla,
- * lo vencido primero. El admin y el gerente abren la ficha de la unidad; el
+ * lo más urgente primero (lo que más se pasó, aunque sea de una unidad de número alto). El admin y el gerente abren la ficha de la unidad; el
  * capturista, el servicio ya preparado para registrarlo.
  */
 export async function MaintenanceDuePanel({ openUnits }: { openUnits: boolean }) {
   const due = (await listFleetMaintenance())
     .filter((m) => m.status === "vencido" || m.status === "por_vencer")
-    // Estable: dentro de cada estado se conserva el orden de la lista de unidades.
-    .sort((a, b) => MAINTENANCE_STATUS_ORDER[a.status] - MAINTENANCE_STATUS_ORDER[b.status]);
+    // Antes solo por estado: con más de 8 vencidos se quedaba fuera el más atrasado (auditoría 2026-11-10).
+    .sort(byUrgency);
   const overdue = due.filter((m) => m.status === "vencido").length;
 
   return (

@@ -196,6 +196,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
           expenseCount={totals.expenseCount}
           totalLabel={formatMoney(totals.total)}
           afterDeleteHref={group === "local" ? "/unidades" : `/unidades?grupo=${group}`}
+          canDeactivate={unit.status !== "vendida" && unit.status !== "en_taller" && unit.status !== "baja"}
         />
       )}
     </>

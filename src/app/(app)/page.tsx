@@ -71,7 +71,7 @@ async function Welcome() {
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
         <Suspense fallback={<HomePanelSkeleton />}>
-          <PendingReceiptsPanel title="Servicios sin factura" showAuthor />
+          <PendingReceiptsPanel title="Servicios sin factura" showAuthor canUpload={user.role === "admin"} />
         </Suspense>
         <div className="flex min-w-0 flex-col gap-6">
           <Suspense fallback={<HomePanelSkeleton />}>

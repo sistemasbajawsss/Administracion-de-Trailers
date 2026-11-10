@@ -109,3 +109,20 @@ export function describeLeft(m: Pick<Maintenance, "kmLeft" | "daysLeft" | "statu
  */
 export const registerMaintenanceHref = (m: Pick<Maintenance, "unitId" | "id">) =>
   `/servicios/nuevo?unidad=${m.unitId}&tipo=correctivo&mantenimiento=${m.id}`;
+
+/**
+ * Qué parte del intervalo le queda (negativo = ya se pasó). Con km y meses manda
+ * lo que esté más cerca. Sirve para poner primero lo más urgente dentro de un
+ * mismo estado: un vencido hace 6 meses antes que uno vencido ayer.
+ */
+export function remainingShare(m: Pick<Maintenance, "kmLeft" | "daysLeft" | "everyKm" | "everyMonths">) {
+  const byKm = m.kmLeft !== null && m.everyKm ? m.kmLeft / m.everyKm : Infinity;
+  const byDays = m.daysLeft !== null && m.everyMonths ? m.daysLeft / (m.everyMonths * 30.4) : Infinity;
+  return Math.min(byKm, byDays);
+}
+
+/** Lo más urgente primero: por estado y, dentro de cada estado, lo que menos intervalo le queda. */
+export const byUrgency = (a: Maintenance, b: Maintenance) =>
+  MAINTENANCE_STATUS_ORDER[a.status] - MAINTENANCE_STATUS_ORDER[b.status] ||
+  remainingShare(a) - remainingShare(b) ||
+  a.name.localeCompare(b.name, "es");

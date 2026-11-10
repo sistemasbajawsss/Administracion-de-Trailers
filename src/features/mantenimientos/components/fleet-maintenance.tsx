@@ -47,6 +47,7 @@ export function FleetMaintenanceList({
   status,
   canRegister,
   canOpenUnits,
+  canEdit,
 }: {
   items: FleetMaintenance[];
   status: MaintenanceStatus | undefined;
@@ -54,18 +55,20 @@ export function FleetMaintenanceList({
   canRegister: boolean;
   /** Admin y gerente ven la ficha de la unidad y todos los servicios. */
   canOpenUnits: boolean;
+  /** Solo el admin programa mantenimientos (al gerente no se le invita a agregar). */
+  canEdit: boolean;
 }) {
   if (items.length === 0) {
     return (
       <EmptyState
         title="Aún no hay mantenimientos programados"
         description={
-          canOpenUnits
+          canEdit
             ? "Se agregan en la ficha de cada unidad: nombre y cada cuántos km o meses."
             : "Cuando el administrador los programe en cada unidad, aquí verás lo que le toca a cada una."
         }
         action={
-          canOpenUnits ? (
+          canEdit ? (
             <Link href="/unidades" className={buttonVariants({ variant: "outline", size: "touch" })}>
               Ir a Unidades
             </Link>

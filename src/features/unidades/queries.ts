@@ -153,7 +153,9 @@ export async function listUnitsInShop(): Promise<UnitInShop[]> {
     .from("entradas_taller")
     .select("fecha_entrada, falla, unidad:unidades!inner(id, numero_economico, tipo, operacion)")
     .is("fecha_salida", null)
-    .order("fecha_entrada", { ascending: true });
+    // Mismo orden que la página Taller (con dos del mismo día, el que entró primero).
+    .order("fecha_entrada", { ascending: true })
+    .order("created_at", { ascending: true });
 
   if (error) throw new Error("No se pudieron cargar las unidades en taller");
   return data.map((row) => ({

@@ -36,9 +36,14 @@ export function CatalogManager({ kind, items }: { kind: CatalogKind; items: Cata
   function toggle(item: CatalogItem, active: boolean) {
     startTransition(async () => {
       setOptimisticActive({ id: item.id, active });
-      const result = await setCatalogItemActive(kind, item.id, active);
-      if (!result.ok) toast.error(result.error);
-      else toast.success(`Se ${active ? "activó" : "desactivó"} ${item.name}`);
+      try {
+        const result = await setCatalogItemActive(kind, item.id, active);
+        if (!result.ok) toast.error(result.error);
+        else toast.success(`Se ${active ? "activó" : "desactivó"} ${item.name}`);
+      } catch {
+        // Sin esto, sin internet la pantalla caía en la página de error (auditoría 2026-11-10).
+        toast.error("No se pudo conectar. Revisa tu internet e inténtalo de nuevo.");
+      }
     });
   }
 

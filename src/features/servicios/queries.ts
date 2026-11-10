@@ -637,8 +637,9 @@ const toBrief = (row: BriefRow): ServiceBrief => ({
 });
 
 /**
- * Servicios sin factura, del más reciente al más viejo, y cuántos son en total.
- * RLS decide el alcance: el capturista solo ve los suyos.
+ * Servicios sin factura, del último capturado al primero, y cuántos son en total.
+ * Por momento de captura (no por fecha del servicio): un ticket viejo capturado hoy
+ * sale arriba, que es cuando hay que subirle la factura. RLS: el capturista, los suyos.
  */
 export async function listServicesWithoutReceipts(limit = 50): Promise<{ services: ServiceBrief[]; total: number }> {
   const supabase = await createClient();
@@ -646,8 +647,8 @@ export async function listServicesWithoutReceipts(limit = 50): Promise<{ service
     .from("servicios_resumen")
     .select(BRIEF_COLUMNS, { count: "exact" })
     .eq("num_comprobantes", 0)
-    .order("fecha", { ascending: false })
     .order("created_at", { ascending: false })
+    .order("id")
     .limit(limit)
     .returns<BriefRow[]>();
 

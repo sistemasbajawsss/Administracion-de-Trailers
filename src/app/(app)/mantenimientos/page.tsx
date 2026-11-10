@@ -25,6 +25,7 @@ async function Correctives({ filters }: { filters: MaintenanceFilters }) {
       status={filters.estado}
       canRegister={includes(CAPTURE_ROLES, user.role)}
       canOpenUnits={includes(VIEW_ALL_ROLES, user.role)}
+      canEdit={user.role === "admin"}
     />
   );
 }

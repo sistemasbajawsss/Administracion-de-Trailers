@@ -33,6 +33,7 @@ const ROLE_HINTS: Record<Role, string> = {
 export function UserFormDialog({
   user,
   isSelf = false,
+  isLastAdmin = false,
   open,
   onOpenChange,
 }: {
@@ -44,6 +45,8 @@ export function UserFormDialog({
    * dejaba intentar y al guardar marcaba error.
    */
   isSelf?: boolean;
+  /** Es el único admin activo: no se le puede quitar el rol (la BD lo exige). */
+  isLastAdmin?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -155,7 +158,7 @@ export function UserFormDialog({
                     <Select
                       items={roleItems}
                       value={field.value}
-                      disabled={isSelf}
+                      disabled={isSelf || isLastAdmin}
                       onValueChange={(value) => value && field.onChange(value)}
                     >
                       <SelectTrigger id="user-role" className="h-12 w-full bg-white text-base">
@@ -172,7 +175,9 @@ export function UserFormDialog({
                     <FieldDescription>
                       {isSelf
                         ? "Tu propio rol no se puede cambiar desde tu cuenta. Si hace falta, otro administrador puede cambiarlo."
-                        : ROLE_HINTS[role]}
+                        : isLastAdmin
+                          ? "Es el único administrador activo: debe quedar al menos uno."
+                          : ROLE_HINTS[role]}
                     </FieldDescription>
                     <FieldError errors={[fieldState.error]} />
                   </Field>

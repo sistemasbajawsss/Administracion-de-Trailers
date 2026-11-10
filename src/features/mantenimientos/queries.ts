@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
 import {
-  MAINTENANCE_STATUS_ORDER,
+  byUrgency,
   type FleetMaintenance,
   type Maintenance,
   type MaintenanceTarget,
@@ -31,8 +31,6 @@ const toMaintenance = (m: PendingRow): Maintenance => ({
   status: m.estado as MaintenanceStatus,
 });
 
-const byUrgency = (a: Maintenance, b: Maintenance) =>
-  MAINTENANCE_STATUS_ORDER[a.status] - MAINTENANCE_STATUS_ORDER[b.status] || a.name.localeCompare(b.name, "es");
 
 /**
  * Mantenimientos activos de una unidad con lo que les falta (mantenimientos_pendientes:

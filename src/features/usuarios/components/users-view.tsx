@@ -147,13 +147,27 @@ export function UsersView({ users, currentUserId }: { users: UserListItem[]; cur
       )}
 
       {dialog?.kind === "create" && <UserFormDialog open onOpenChange={(open) => !open && close()} />}
-      {dialog?.kind === "edit" && <UserFormDialog
+      {dialog?.kind === "edit" && (
+        <UserFormDialog
+          open
+          user={dialog.user}
+          isSelf={dialog.user.id === currentUserId}
+          isLastAdmin={
+            dialog.user.role === "admin" &&
+            dialog.user.active &&
+            users.filter((u) => u.role === "admin" && u.active).length === 1
+          }
+          onOpenChange={(open) => !open && close()}
+        />
+      )}
+      {dialog?.kind === "password" && (
+        <ResetPasswordDialog
           open
           user={dialog.user}
           isSelf={dialog.user.id === currentUserId}
           onOpenChange={(open) => !open && close()}
-        />}
-      {dialog?.kind === "password" && <ResetPasswordDialog open user={dialog.user} onOpenChange={(open) => !open && close()} />}
+        />
+      )}
       {dialog?.kind === "toggle" && (
         <AlertDialog open onOpenChange={(open) => !open && close()}>
           <AlertDialogContent className="sm:max-w-md">
