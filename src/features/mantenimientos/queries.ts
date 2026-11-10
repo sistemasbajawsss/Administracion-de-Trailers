@@ -8,7 +8,7 @@ import {
   MAINTENANCE_STATUS_ORDER,
   type FleetMaintenance,
   type Maintenance,
-  type MaintenanceSource,
+  type MaintenanceTarget,
   type MaintenanceStatus,
 } from "./types";
 
@@ -79,29 +79,28 @@ export async function listMaintenanceByUnit(): Promise<Record<string, Maintenanc
   return byUnit;
 }
 
-/** Unidades con mantenimientos activos, para "Copiar de otra unidad" (menos la propia). */
-export async function listMaintenanceSources(exceptUnitId: string): Promise<MaintenanceSource[]> {
+/** Todas las demás unidades (menos las de baja o vendidas), para "Aplicar también a" al agregar uno. */
+export async function listMaintenanceTargets(exceptUnitId: string): Promise<MaintenanceTarget[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("mantenimientos_unidad")
-    .select("unidad_id, unidad:unidades!inner(numero_economico, numero_orden, tipo)")
-    .eq("activo", true)
-    .neq("unidad_id", exceptUnitId);
-  if (error) throw new Error("No se pudieron cargar las unidades con mantenimientos");
+  const [units, mileage] = await Promise.all([
+    supabase
+      .from("unidades")
+      .select("id, numero_economico, tipo, operacion, estatus")
+      .neq("id", exceptUnitId)
+      .order("tipo")
+      .order("numero_orden"),
+    supabase.rpc("kilometraje_unidades"),
+  ]);
+  if (units.error || mileage.error) throw new Error("No se pudieron cargar las unidades");
 
-  const byUnit = new Map<string, MaintenanceSource & { order: string }>();
-  for (const row of data) {
-    const current = byUnit.get(row.unidad_id);
-    if (current) current.count += 1;
-    else
-      byUnit.set(row.unidad_id, {
-        unitId: row.unidad_id,
-        economicNumber: row.unidad.numero_economico,
-        count: 1,
-        order: `${row.unidad.tipo}-${String(row.unidad.numero_orden ?? 0).padStart(6, "0")}`,
-      });
-  }
-  return [...byUnit.values()]
-    .sort((a, b) => a.order.localeCompare(b.order))
-    .map(({ unitId, economicNumber, count }) => ({ unitId, economicNumber, count }));
+  const withKm = new Set(mileage.data.filter((k) => k.kilometraje !== null).map((k) => k.unidad_id));
+  return units.data
+    .filter((u) => !isRetired(u.estatus))
+    .map((u) => ({
+      id: u.id,
+      economicNumber: u.numero_economico,
+      type: u.tipo,
+      operation: u.operacion,
+      hasKm: u.tipo !== "caja" && withKm.has(u.id),
+    }));
 }

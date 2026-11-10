@@ -1,4 +1,4 @@
-import type { UnitType } from "@/features/unidades/types";
+import type { UnitOperation, UnitType } from "@/features/unidades/types";
 import { formatDate, formatKm } from "@/lib/utils/format";
 
 /** Estado de un mantenimiento programado (mantenimientos_pendientes en la BD). */
@@ -53,8 +53,20 @@ export type FleetMaintenance = Maintenance & {
 export const MAINTENANCE_VIEWS = ["correctivos", "preventivos"] as const;
 export type MaintenanceView = (typeof MAINTENANCE_VIEWS)[number];
 
-/** Unidad de la que se pueden copiar mantenimientos. */
-export type MaintenanceSource = { unitId: string; economicNumber: string; count: number };
+/** Otra unidad a la que se puede aplicar un mantenimiento nuevo (las de baja o vendidas no salen). */
+export type MaintenanceTarget = {
+  id: string;
+  economicNumber: string;
+  type: UnitType;
+  operation: UnitOperation | null;
+  /** Sin kilometraje (o caja): solo le pasa la parte por meses. */
+  hasKm: boolean;
+};
+
+/** Lo que pasó en cada unidad al agregar un mantenimiento (agregar_mantenimiento en la BD). */
+export const APPLY_RESULTS = ["agregado", "solo_meses", "ya_tiene", "sin_kilometraje", "caja_solo_km", "retirada"] as const;
+export type ApplyResult = (typeof APPLY_RESULTS)[number];
+export type ApplyOutcome = { unitId: string; economicNumber: string; result: ApplyResult };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const months = (n: number) => plural(n, "mes", "meses");

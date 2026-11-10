@@ -899,6 +899,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      agregar_mantenimiento: {
+        Args: {
+          p_cada_km: number
+          p_cada_meses: number
+          p_desde_fecha: string
+          p_desde_km: number
+          p_nombre: string
+          p_otras?: string[]
+          p_unidad_id: string
+        }
+        Returns: {
+          numero_economico: string
+          resultado: string
+          unidad_id: string
+        }[]
+      }
       archivo_comprobante_en_uso: { Args: { p_ruta: string }; Returns: boolean }
       buscar_comprobante_duplicado: {
         Args: { p_hash: string }

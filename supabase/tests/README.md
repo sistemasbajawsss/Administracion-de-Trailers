@@ -28,6 +28,7 @@ npx supabase db query --linked -f supabase/tests/<archivo>.sql
 | `kilometraje.sql` | Kilometraje por fecha, entrada a taller, correcciones del admin (5F) | 31/31 |
 | `tipo-servicio.sql` | Tipo de servicio: alta, edición, restaurar, Reportes y Excel (5F) | 15/15 |
 | `mantenimientos.sql` | Mantenimientos por unidad: cálculo de lo pendiente, validaciones, copiar, permisos (5F) | 27/27 |
+| `mantenimientos-varias.sql` | Agregar un mantenimiento a varias unidades: desde hoy y su km, repetidos se saltan, cajas y sin km solo meses, todo o nada, permisos (5F) | 23/23 |
 | `mantenimientos-cumplidos.sql` | Un correctivo cumple mantenimientos y reinicia su contador: validaciones, edición, historial, eliminar y restaurar, mismo cálculo para los tres roles (5F) | 27/27 |
 
 Notas:

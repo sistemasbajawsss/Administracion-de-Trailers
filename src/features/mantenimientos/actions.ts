@@ -8,7 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/utils/ids";
 import { parseKm } from "@/lib/utils/mileage";
 
-import { copyMaintenanceSchema, maintenanceSchema, type MaintenanceInput } from "./schemas";
+import { maintenanceSchema, type MaintenanceInput } from "./schemas";
+import { APPLY_RESULTS, type ApplyOutcome, type ApplyResult } from "./types";
 
 /** Del formulario a columnas de la BD (lo que no aplica va en null). */
 function toRow(input: MaintenanceInput) {
@@ -39,19 +40,40 @@ function revalidateMaintenance(unitId: string) {
   revalidatePath("/mantenimientos");
 }
 
-export async function createMaintenance(unitId: string, input: unknown): Promise<ActionResult> {
+/**
+ * Agrega el mantenimiento a esta unidad y, en la misma transacción, a las otras
+ * elegidas (cuentan desde hoy y su km actual; las que ya lo tienen se saltan).
+ * Regresa lo que pasó en cada unidad.
+ */
+export async function createMaintenance(unitId: string, input: unknown): Promise<ActionResult<{ outcomes: ApplyOutcome[] }>> {
   if (!isUuid(unitId)) return fail("Unidad no válida.");
   const parsed = maintenanceSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa los datos del mantenimiento.");
 
   await requireRole("admin");
 
+  const row = toRow(parsed.data);
   const supabase = await createClient();
-  const { error } = await supabase.from("mantenimientos_unidad").insert({ unidad_id: unitId, ...toRow(parsed.data) });
+  const { data, error } = await supabase.rpc("agregar_mantenimiento", {
+    p_unidad_id: unitId,
+    p_nombre: row.nombre,
+    // La BD acepta null (los tipos generados no lo dicen).
+    p_cada_km: row.cada_km as number,
+    p_cada_meses: row.cada_meses as number,
+    p_desde_fecha: row.desde_fecha,
+    p_desde_km: row.desde_km as number,
+    p_otras: parsed.data.alsoUnitIds.filter((id) => id !== unitId),
+  });
   if (error) return fail(errorMessage(error, "No se pudo agregar el mantenimiento. Inténtalo de nuevo."));
 
   revalidateMaintenance(unitId);
-  return ok();
+  // La ficha de las otras unidades también cambió.
+  if (data.length > 1) revalidatePath("/unidades/[id]", "page");
+  return ok({
+    outcomes: data
+      .filter((d) => (APPLY_RESULTS as readonly string[]).includes(d.resultado))
+      .map((d) => ({ unitId: d.unidad_id, economicNumber: d.numero_economico, result: d.resultado as ApplyResult })),
+  });
 }
 
 export async function updateMaintenance(id: string, unitId: string, input: unknown): Promise<ActionResult> {
@@ -93,23 +115,4 @@ export async function removeMaintenance(id: string, unitId: string): Promise<Act
 
   revalidateMaintenance(unitId);
   return ok();
-}
-
-/** Copia los mantenimientos de otra unidad que esta aún no tiene. Regresa cuántos copió. */
-export async function copyMaintenance(unitId: string, input: unknown): Promise<ActionResult<{ copied: number }>> {
-  if (!isUuid(unitId)) return fail("Unidad no válida.");
-  const parsed = copyMaintenanceSchema.safeParse(input);
-  if (!parsed.success) return fail("Elige de qué unidad copiar.");
-
-  await requireRole("admin");
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("copiar_mantenimientos", {
-    p_origen: parsed.data.sourceUnitId,
-    p_destino: unitId,
-  });
-  if (error) return fail(errorMessage(error, "No se pudieron copiar los mantenimientos. Inténtalo de nuevo."));
-
-  revalidateMaintenance(unitId);
-  return ok({ copied: data });
 }

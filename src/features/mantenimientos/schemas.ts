@@ -28,6 +28,8 @@ export const maintenanceSchema = z
     everyMonths: optionalWhole(1, 120, "Meses no válidos (de 1 a 120)"),
     lastDate: z.string().refine(isRealDate, "Elige la fecha"),
     lastKm: optionalWhole(0, 9_999_999, "Kilometraje: solo números"),
+    /** Solo al agregar: otras unidades a las que también se aplica (cuentan desde hoy y su km actual). */
+    alsoUnitIds: z.array(z.uuid()).max(200, "Demasiadas unidades a la vez"),
   })
   .superRefine((value, ctx) => {
     if (!value.everyKm && !value.everyMonths) {
@@ -39,8 +41,6 @@ export const maintenanceSchema = z
   });
 
 export type MaintenanceInput = z.infer<typeof maintenanceSchema>;
-
-export const copyMaintenanceSchema = z.object({ sourceUnitId: z.uuid("Elige la unidad") });
 
 /** Pestaña y estado elegidos en la página Mantenimientos (?vista=, ?estado=). Lo que no se entiende, se ignora. */
 export const maintenanceFiltersSchema = z.object({
