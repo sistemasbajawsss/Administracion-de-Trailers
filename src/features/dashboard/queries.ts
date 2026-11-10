@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { ServiceType } from "@/features/servicios/types";
+import type { ServicePlace, ServiceType } from "@/features/servicios/types";
 import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -97,6 +97,18 @@ export async function getReport(
       total: text(p.total),
       services: num(p.servicios),
     })),
+    byPlace: rows(r.por_lugar).map((p) => ({
+      place: orNull(p.lugar) as ServicePlace | null,
+      total: text(p.total),
+      services: num(p.servicios),
+    })),
+    byWorkshop: rows(r.por_taller).map((t) => ({
+      id: text(t.id),
+      name: text(t.nombre),
+      total: text(t.total),
+      services: num(t.servicios),
+      onTheRoad: num(t.en_camino),
+    })),
   };
 }
 
@@ -128,5 +140,7 @@ export async function listExportRows(
     usdAmount: row.monto_usd,
     exchangeRate: row.tipo_cambio,
     serviceType: row.tipo_servicio,
+    place: row.lugar,
+    workshop: row.taller,
   }));
 }

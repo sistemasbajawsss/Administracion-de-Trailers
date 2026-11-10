@@ -1,4 +1,4 @@
-import type { ServiceType } from "@/features/servicios/types";
+import type { ServicePlace, ServiceType } from "@/features/servicios/types";
 import type { UnitType } from "@/features/unidades/types";
 
 import type { Group } from "./schemas";
@@ -30,6 +30,29 @@ export const SERVICE_KIND_COLORS: Record<ServiceKind, string> = {
   sin_tipo: "#a3b1b5",
 };
 
+/**
+ * ¿Dónde se hizo? en Reportes (5G): Taller Realso, taller de fuera, en camino y,
+ * los de antes de la 5G, sin dato. Colores revisados con el validador de
+ * paletas (daltonismo ΔE ≥ 14, contraste ≥ 3:1); sin dato en gris, siempre con
+ * su nombre y su monto al lado.
+ */
+export const PLACE_KINDS = ["taller_propio", "taller_externo", "en_camino", "sin_dato"] as const;
+export type PlaceKind = (typeof PLACE_KINDS)[number];
+
+export const PLACE_KIND_LABELS: Record<PlaceKind, string> = {
+  taller_propio: "Taller Realso",
+  taller_externo: "Talleres de fuera",
+  en_camino: "En camino",
+  sin_dato: "Sin dato",
+};
+
+export const PLACE_KIND_COLORS: Record<PlaceKind, string> = {
+  taller_propio: "#0a8f6a",
+  taller_externo: "#7c4dbd",
+  en_camino: "#c2410c",
+  sin_dato: "#a3b1b5",
+};
+
 /** Montos como texto exacto de la BD ("12345.67"); se convierten a centavos para dibujar. */
 export type Report = {
   /** Nombre de cada tipo de unidad (catálogo), por clave. */
@@ -53,6 +76,10 @@ export type Report = {
   /** Por tipo de servicio (5F); type null = servicios de antes, sin tipo. */
   byServiceType: { type: ServiceType | null; total: string; services: number }[];
   bySupplier: { id: string | null; name: string; total: string; services: number }[];
+  /** ¿Dónde se hizo? (5G); place null = servicios de antes, sin dato. */
+  byPlace: { place: ServicePlace | null; total: string; services: number }[];
+  /** Talleres de fuera (también en camino), los que más se llevaron. */
+  byWorkshop: { id: string; name: string; total: string; services: number; onTheRoad: number }[];
 };
 
 export type ExportRow = {
@@ -71,7 +98,19 @@ export type ExportRow = {
   usdAmount: string | null;
   exchangeRate: string | null;
   serviceType: ServiceType | null;
+  place: ServicePlace | null;
+  workshop: string | null;
 };
+
+/** Total y servicios de cada lugar en el periodo (de byPlace; null = sin dato). */
+export function placeKindTotals(byPlace: Report["byPlace"]): Record<PlaceKind, { total: string; services: number }> {
+  const out = Object.fromEntries(PLACE_KINDS.map((k) => [k, { total: "0", services: 0 }])) as Record<
+    PlaceKind,
+    { total: string; services: number }
+  >;
+  for (const p of byPlace) out[p.place ?? "sin_dato"] = { total: p.total, services: p.services };
+  return out;
+}
 
 /** Total y servicios de cada tipo en el periodo (de byServiceType; null = sin tipo). */
 export function serviceKindTotals(byServiceType: Report["byServiceType"]): Record<ServiceKind, { total: string; services: number }> {
