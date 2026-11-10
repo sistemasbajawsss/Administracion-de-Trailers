@@ -40,13 +40,19 @@ export function ServiceBriefList({
                 {formatDate(service.date)}
                 {service.serviceType && <ServiceTypeBadge type={service.serviceType} className="h-5 px-2" />}
               </span>
-              <span className="block text-sm text-muted-foreground">
-                {service.unitTypeName}
-                {showAuthor && service.author && ` · ${service.author}`}
-              </span>
-              {showNoEntryReason && (
-                <span className={`block text-sm ${service.noEntryReason ? "" : "font-medium text-amber-800"}`}>
-                  {service.noEntryReason ?? "Sin motivo"}
+              {showNoEntryReason ? (
+                // Sin entrada a taller (5E): el motivo en lugar del tipo de unidad, para que
+                // los renglones midan lo mismo que en las otras tarjetas de Inicio.
+                <span className="block text-sm">
+                  <span className={service.noEntryReason ? "" : "font-medium text-amber-800"}>
+                    {service.noEntryReason ?? "Sin motivo"}
+                  </span>
+                  {showAuthor && service.author && <span className="text-muted-foreground"> · {service.author}</span>}
+                </span>
+              ) : (
+                <span className="block text-sm text-muted-foreground">
+                  {service.unitTypeName}
+                  {showAuthor && service.author && ` · ${service.author}`}
                 </span>
               )}
             </span>

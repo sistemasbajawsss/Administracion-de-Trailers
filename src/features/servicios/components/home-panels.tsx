@@ -5,8 +5,12 @@ import { listRecentServices, listServicesWithoutReceipts, listServicesWithoutSho
 import { HomeListDialog } from "./home-list-dialog";
 import { ServiceBriefList } from "./service-brief-list";
 
-/** Renglones en las tarjetas de Inicio; el resto, en "Ver los N" (ventana con su propio scroll). */
-const PENDING_LIMIT = 10;
+/**
+ * Renglones en las tarjetas de Inicio: pocos para que el Inicio quepa en la
+ * pantalla de la computadora sin bajar (lo pidió el usuario); el resto, en
+ * "Ver los N" (ventana con su propio scroll).
+ */
+export const HOME_ROWS = 3;
 
 /**
  * Servicios a los que les falta la factura. Admin y gerente ven todos (con quién
@@ -16,34 +20,41 @@ export async function PendingReceiptsPanel({
   showAuthor,
   title,
   canUpload = true,
+  rows = HOME_ROWS,
+  className,
 }: {
   showAuthor: boolean;
   title: string;
   /** El gerente solo consulta: no se le invita a subir facturas. */
   canUpload?: boolean;
+  rows?: number;
+  className?: string;
 }) {
-  const { services, total } = await listServicesWithoutReceipts(PENDING_LIMIT);
+  const { services, total } = await listServicesWithoutReceipts(rows);
 
   return (
-    <HomePanel title={title} count={total} description={total > 0 ? (canUpload ? "Toca uno para subirle su factura." : "Toca uno para ver su detalle.") : undefined}>
+    <HomePanel
+      title={title}
+      count={total}
+      className={className}
+      description={total > 0 ? (canUpload ? "Toca uno para subirle su factura." : "Toca uno para ver su detalle.") : undefined}
+      footer={
+        total > rows ? (
+          <HomeListDialog
+            list="sin_factura"
+            title={title}
+            description={canUpload ? "Del capturado más reciente al más viejo. Toca uno para subirle su factura." : "Del capturado más reciente al más viejo. Toca uno para ver su detalle."}
+            total={total}
+            initialItems={services}
+            showAuthor={showAuthor}
+          />
+        ) : undefined
+      }
+    >
       {total === 0 ? (
         <HomePanelEmpty>Todos los servicios tienen su factura.</HomePanelEmpty>
       ) : (
-        <>
-          <div>
-            <ServiceBriefList services={services} showAuthor={showAuthor} />
-          </div>
-          {total > PENDING_LIMIT && (
-            <HomeListDialog
-              list="sin_factura"
-              title={title}
-              description={canUpload ? "Del capturado más reciente al más viejo. Toca uno para subirle su factura." : "Del capturado más reciente al más viejo. Toca uno para ver su detalle."}
-              total={total}
-              initialItems={services}
-              showAuthor={showAuthor}
-            />
-          )}
-        </>
+        <ServiceBriefList services={services} showAuthor={showAuthor} />
       )}
     </HomePanel>
   );
@@ -63,33 +74,31 @@ function daysAgo(today: string, days: number) {
  * entrada a taller, con el motivo que dio quien los capturó.
  */
 export async function NoShopEntryPanel({ today }: { today: string }) {
-  const { services, total } = await listServicesWithoutShopEntry(daysAgo(today, NO_ENTRY_DAYS), PENDING_LIMIT);
+  const { services, total } = await listServicesWithoutShopEntry(daysAgo(today, NO_ENTRY_DAYS), HOME_ROWS);
 
   return (
     <HomePanel
       title="Sin entrada a taller"
       count={total}
-      description={`Servicios de los últimos ${NO_ENTRY_DAYS} días que no pasaron por Taller, con su motivo.`}
+      description={`Últimos ${NO_ENTRY_DAYS} días, con su motivo.`}
+      footer={
+        total > HOME_ROWS ? (
+          <HomeListDialog
+            list="sin_entrada"
+            title="Sin entrada a taller"
+            description={`Servicios de los últimos ${NO_ENTRY_DAYS} días que no pasaron por Taller, del más reciente al más viejo.`}
+            total={total}
+            initialItems={services}
+            showAuthor
+            showNoEntryReason
+          />
+        ) : undefined
+      }
     >
       {total === 0 ? (
         <HomePanelEmpty>Todos los servicios recientes pasaron por Taller.</HomePanelEmpty>
       ) : (
-        <>
-          <div>
-            <ServiceBriefList services={services} showAuthor showNoEntryReason />
-          </div>
-          {total > PENDING_LIMIT && (
-            <HomeListDialog
-              list="sin_entrada"
-              title="Sin entrada a taller"
-              description={`Servicios de los últimos ${NO_ENTRY_DAYS} días que no pasaron por Taller, del más reciente al más viejo.`}
-              total={total}
-              initialItems={services}
-              showAuthor
-              showNoEntryReason
-            />
-          )}
-        </>
+        <ServiceBriefList services={services} showAuthor showNoEntryReason />
       )}
     </HomePanel>
   );
@@ -97,7 +106,7 @@ export async function NoShopEntryPanel({ today }: { today: string }) {
 
 /** Los últimos servicios que capturó el usuario (Inicio del capturista). */
 export async function RecentServicesPanel() {
-  const services = await listRecentServices(5);
+  const services = await listRecentServices(HOME_ROWS);
 
   return (
     <HomePanel title="Tus últimos servicios">

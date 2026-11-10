@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { HomePanel, HomePanelEmpty } from "@/components/shared/home-panel";
+import { buttonVariants } from "@/components/ui/button";
 
 import { getUnitTypes, listUnitsInShop } from "../queries";
 import { UNIT_OPERATION_LABELS, unitTypeName } from "../types";
@@ -17,17 +18,26 @@ function daysBetween(from: string, to: string) {
  * Unidades en taller ahora mismo (Inicio del admin y el gerente), de sus entradas
  * abiertas: la que lleva más días primero, con su falla. Una semana o más, en ámbar.
  */
-export async function UnitsInShopPanel({ today }: { today: string }) {
+export async function UnitsInShopPanel({ today, rows = 3, className }: { today: string; rows?: number; className?: string }) {
   const [units, types] = await Promise.all([listUnitsInShop(), getUnitTypes()]);
 
   return (
-    <HomePanel title="Unidades en taller" count={units.length}>
+    <HomePanel
+      title="Unidades en taller"
+      count={units.length}
+      className={className}
+      footer={
+        <Link href="/taller" className={`${buttonVariants({ variant: "outline", size: "touch" })} w-full sm:w-auto`}>
+          {units.length > rows ? `Ver las ${units.length} en Taller` : "Ver Taller"}
+        </Link>
+      }
+    >
       {units.length === 0 ? (
         <HomePanelEmpty>Ninguna unidad está en taller.</HomePanelEmpty>
       ) : (
         <>
           <ul className="divide-y">
-            {units.map((unit) => {
+            {units.slice(0, rows).map((unit) => {
               const days = daysBetween(unit.entryDate, today);
               return (
                 <li key={unit.id}>
@@ -57,9 +67,6 @@ export async function UnitsInShopPanel({ today }: { today: string }) {
               );
             })}
           </ul>
-          <Link href="/taller" className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-brand-cyan">
-            Ver Taller
-          </Link>
         </>
       )}
     </HomePanel>

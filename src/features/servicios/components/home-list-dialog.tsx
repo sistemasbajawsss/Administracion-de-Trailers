@@ -83,7 +83,7 @@ export function HomeListDialog({
 
   return (
     <>
-      <Button type="button" variant="outline" size="touch" className="mt-3 w-full sm:w-auto" onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" size="touch" className="w-full sm:w-auto" onClick={() => setOpen(true)}>
         Ver los {total}
       </Button>
       <Dialog

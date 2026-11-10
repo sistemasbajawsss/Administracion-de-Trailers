@@ -31,23 +31,19 @@ async function Welcome() {
       <>
         <PageHeader title={`Hola, ${firstName}`} description="Registra los servicios con su comprobante." />
         {newServiceLink("mb-6 h-14 w-full px-6 text-lg sm:w-auto")}
-        {/* Dos columnas como el Inicio del admin: lo suyo (facturas y últimos) a la
-            izquierda y Mantenimientos a la derecha. Con tres tarjetas sueltas en una
-            cuadrícula de dos, la tercera quedaba sola y desfasada (lo reportó el usuario). */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
-          <div className="flex min-w-0 flex-col gap-6">
-            <Suspense fallback={<HomePanelSkeleton />}>
-              <PendingReceiptsPanel title="Te falta subir factura" showAuthor={false} />
-            </Suspense>
-            <Suspense fallback={<HomePanelSkeleton />}>
-              <RecentServicesPanel />
-            </Suspense>
-          </div>
-          <div className="flex min-w-0 flex-col gap-6">
-            <Suspense fallback={<HomePanelSkeleton />}>
-              <MaintenanceDuePanel openUnits={false} />
-            </Suspense>
-          </div>
+        {/* Cuadrícula de 2 x 2 sin scroll en la computadora (lo pidió el usuario):
+            lo suyo (facturas y últimos) a la izquierda y Mantenimientos a la derecha,
+            de los dos renglones de alto y con más renglones para llenarla. */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <PendingReceiptsPanel title="Te falta subir factura" showAuthor={false} />
+          </Suspense>
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <MaintenanceDuePanel openUnits={false} rows={7} className="lg:row-span-2" />
+          </Suspense>
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <RecentServicesPanel />
+          </Suspense>
         </div>
       </>
     );
@@ -69,29 +65,34 @@ async function Welcome() {
           </>
         }
       />
-      {/* Dos columnas que se apilan en celular: a la izquierda (ancha) las listas de
-          servicios (sin factura, sin entrada a taller) y a la derecha lo de las
-          unidades (mantenimientos, en taller). Antes las tres de la derecha iban una
-          bajo otra y la izquierda quedaba con un hueco largo (lo reportó el usuario). */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-6">
-          <Suspense fallback={<HomePanelSkeleton />}>
-            <PendingReceiptsPanel title="Servicios sin factura" showAuthor canUpload={user.role === "admin"} />
-          </Suspense>
-          {user.role === "admin" && (
+      {/* Cuadrícula de 2 x 2 que cabe en la pantalla de la computadora sin bajar
+          (lo pidió el usuario): las tarjetas de un renglón miden lo mismo y su
+          "Ver los N" queda alineado abajo; lo demás, en esa ventana o página.
+          Izquierda, servicios (sin factura, sin entrada a taller); derecha,
+          unidades (mantenimientos, en taller). El gerente no ve "Sin entrada a
+          taller": su tarjeta de facturas ocupa los dos renglones. En celular,
+          una columna. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-flow-col lg:grid-cols-2 lg:grid-rows-2">
+        {user.role === "admin" ? (
+          <>
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <PendingReceiptsPanel title="Servicios sin factura" showAuthor />
+            </Suspense>
             <Suspense fallback={<HomePanelSkeleton />}>
               <NoShopEntryPanel today={todayInTijuana()} />
             </Suspense>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-col gap-6">
+          </>
+        ) : (
           <Suspense fallback={<HomePanelSkeleton />}>
-            <MaintenanceDuePanel openUnits />
+            <PendingReceiptsPanel title="Servicios sin factura" showAuthor canUpload={false} rows={7} className="lg:row-span-2" />
           </Suspense>
-          <Suspense fallback={<HomePanelSkeleton />}>
-            <UnitsInShopPanel today={todayInTijuana()} />
-          </Suspense>
-        </div>
+        )}
+        <Suspense fallback={<HomePanelSkeleton />}>
+          <MaintenanceDuePanel openUnits />
+        </Suspense>
+        <Suspense fallback={<HomePanelSkeleton />}>
+          <UnitsInShopPanel today={todayInTijuana()} />
+        </Suspense>
       </div>
     </>
   );
