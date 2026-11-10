@@ -1088,11 +1088,13 @@ export type Database = {
           descripcion: string
           fecha: string
           grupo: string
+          lugar: Database["public"]["Enums"]["lugar_servicio"]
           moneda: Database["public"]["Enums"]["moneda"]
           monto: string
           monto_usd: string
           numero_economico: string
           proveedor: string
+          taller: string
           tipo: string
           tipo_cambio: string
           tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
@@ -1123,6 +1125,7 @@ export type Database = {
           fecha: string
           gasto_id: string
           grupo: string
+          lugar: Database["public"]["Enums"]["lugar_servicio"]
           moneda: Database["public"]["Enums"]["moneda"]
           monto: number
           monto_usd: number
@@ -1131,6 +1134,8 @@ export type Database = {
           proveedor: string
           proveedor_id: string
           servicio_id: string
+          taller: string
+          taller_id: string
           tipo: string
           tipo_cambio: number
           tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
