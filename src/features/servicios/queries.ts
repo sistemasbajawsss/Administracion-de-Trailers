@@ -6,7 +6,7 @@ import type { Json } from "@/lib/supabase/database.types";
 import { formatDate, formatKm, formatMoney, formatRate, formatUsd, toCents } from "@/lib/utils/format";
 import { toLastMileage, type LastMileage } from "@/lib/utils/mileage";
 
-import type { ServiceFilters } from "./schemas";
+import { OWN_SHOP_REASONS, type ServiceFilters } from "./schemas";
 import type {
   DeletedService,
   ExpenseListItem,
@@ -683,6 +683,8 @@ export async function listServicesWithoutShopEntry(
     .from("servicios_resumen")
     .select(`${BRIEF_COLUMNS}, motivo_sin_entrada`, { count: "exact" })
     .eq("sin_entrada_taller", true)
+    // Los mantenimientos del taller Realso no pasan por Taller y está bien (pedido del usuario, 2026-11-10).
+    .or(`motivo_sin_entrada.is.null,motivo_sin_entrada.not.in.(${OWN_SHOP_REASONS.map((r) => `"${r}"`).join(",")})`)
     .gte("fecha", since)
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false })

@@ -38,6 +38,8 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 - **"Copiar de otra unidad" solo listaba unidades que ya tenían mantenimientos y copiaba todo junto.** — **Regla:** "Aplicar también a" con el selector de unidades (todas, salvo baja/vendidas). Las listas para elegir unidades muestran todas las que aplican, no solo las que ya tienen algo. — ESTADO 5F, 2026-11-10.
 - **Las cajas se tomaban como único tipo sin kilometraje; al agregar dolly y góndola había 35 reglas con `'caja'` fijo.** — **Regla:** nada de comparar contra un tipo fijo (`'caja'`, `'camioneta'`): preguntar al catálogo (`lleva_kilometraje`, `lleva_largo`, `lleva_operacion`; grupo Camionetas = sin operación). — 2026-11-10.
 
+- **"Sin entrada a taller" avisaba también de los mantenimientos hechos en el taller Realso, que nunca pasan por Taller.** — **Regla:** un aviso solo junta lo que de verdad hay que revisar; los motivos esperados (`OWN_SHOP_REASONS`, incluido el nombre anterior "Mantenimiento en patio") se excluyen. Al renombrar un valor guardado como texto, el nombre anterior se sigue reconociendo. — Usuario, 2026-11-10.
+
 ## 3. Textos
 
 - **Un motivo largo sin espacios se salía del contenedor y creaba scroll lateral.** — **Regla:** `body` con `overflow-wrap: anywhere` en `globals.css` (no quitarla ni poner `break-normal`). Probar cada pantalla con 200 caracteres sin espacios, en 360 px y escritorio. — CLAUDE.md, commits eafb48e, b4d3829.
