@@ -2,9 +2,10 @@ import { HomePanel, HomePanelEmpty } from "@/components/shared/home-panel";
 
 import { listRecentServices, listServicesWithoutReceipts, listServicesWithoutShopEntry } from "../queries";
 
+import { HomeListDialog } from "./home-list-dialog";
 import { ServiceBriefList } from "./service-brief-list";
 
-/** Renglones en las tarjetas de Inicio (sin cuadro con scroll propio: en el celular atrapaba el dedo). */
+/** Renglones en las tarjetas de Inicio; el resto, en "Ver los N" (ventana con su propio scroll). */
 const PENDING_LIMIT = 10;
 
 /**
@@ -33,9 +34,14 @@ export async function PendingReceiptsPanel({
             <ServiceBriefList services={services} showAuthor={showAuthor} />
           </div>
           {total > PENDING_LIMIT && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Se muestran los {PENDING_LIMIT} capturados más recientemente de {total}.
-            </p>
+            <HomeListDialog
+              list="sin_factura"
+              title={title}
+              description={canUpload ? "Del capturado más reciente al más viejo. Toca uno para subirle su factura." : "Del capturado más reciente al más viejo. Toca uno para ver su detalle."}
+              total={total}
+              initialItems={services}
+              showAuthor={showAuthor}
+            />
           )}
         </>
       )}
@@ -73,9 +79,15 @@ export async function NoShopEntryPanel({ today }: { today: string }) {
             <ServiceBriefList services={services} showAuthor showNoEntryReason />
           </div>
           {total > PENDING_LIMIT && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Se muestran los {PENDING_LIMIT} más recientes de {total}.
-            </p>
+            <HomeListDialog
+              list="sin_entrada"
+              title="Sin entrada a taller"
+              description={`Servicios de los últimos ${NO_ENTRY_DAYS} días que no pasaron por Taller, del más reciente al más viejo.`}
+              total={total}
+              initialItems={services}
+              showAuthor
+              showNoEntryReason
+            />
           )}
         </>
       )}

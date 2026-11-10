@@ -10,10 +10,18 @@ import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { getFixRate, type FixRate } from "@/lib/banxico";
 import { createClient } from "@/lib/supabase/server";
 import { removeReceiptFiles } from "@/lib/supabase/storage";
-import { normalizeAmount, normalizeRate } from "@/lib/utils/format";
+import { normalizeAmount, normalizeRate, todayInTijuana } from "@/lib/utils/format";
 import { mileageIssue } from "@/lib/utils/mileage";
 
-import { getOpenShopStay, getServiceShopLink, getUnitMileageRule, listExpenses, listServicesOfType } from "./queries";
+import {
+  getOpenShopStay,
+  getServiceShopLink,
+  getUnitMileageRule,
+  listExpenses,
+  listServicesOfType,
+  listServicesWithoutReceipts,
+  listServicesWithoutShopEntry,
+} from "./queries";
 import {
   exchangeRateDateSchema,
   fallsInStay,
@@ -274,6 +282,37 @@ export async function loadMoreExpenses(input: unknown): Promise<ActionResult<Exp
     return ok(await listExpenses({ ...parsed.data.filters, unitId: parsed.data.unitId }, parsed.data.offset));
   } catch {
     return fail("No se pudieron cargar más gastos. Inténtalo de nuevo.");
+  }
+}
+
+/** Días hacia atrás del aviso "Sin entrada a taller" de Inicio. */
+const NO_ENTRY_DAYS_BACK = 30;
+/** Renglones por tanda en "Ver todos" de las tarjetas de Inicio. */
+const HOME_LIST_BATCH = 20;
+
+const homeListSchema = z.object({
+  list: z.enum(["sin_factura", "sin_entrada"]),
+  offset: z.number().int().min(0).max(100_000),
+});
+
+/**
+ * Siguiente tanda de "Ver todos" de Inicio: servicios sin factura (RLS: el
+ * capturista, los suyos) o sin entrada a taller de los últimos 30 días (admin).
+ */
+export async function loadHomeList(input: unknown): Promise<ActionResult<ServiceBrief[]>> {
+  const parsed = homeListSchema.safeParse(input);
+  if (!parsed.success) return fail("No se pudieron cargar más servicios.");
+  const { list, offset } = parsed.data;
+
+  await requireRole(list === "sin_entrada" ? "admin" : ["admin", "capturista", "gerente"]);
+
+  try {
+    if (list === "sin_factura") return ok((await listServicesWithoutReceipts(HOME_LIST_BATCH, offset)).services);
+    const [y, m, d] = todayInTijuana().split("-").map(Number) as [number, number, number];
+    const since = new Date(Date.UTC(y, m - 1, d - NO_ENTRY_DAYS_BACK)).toISOString().slice(0, 10);
+    return ok((await listServicesWithoutShopEntry(since, HOME_LIST_BATCH, offset)).services);
+  } catch {
+    return fail("No se pudieron cargar más servicios. Inténtalo de nuevo.");
   }
 }
 
