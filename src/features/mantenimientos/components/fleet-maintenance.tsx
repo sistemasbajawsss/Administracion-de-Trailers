@@ -111,7 +111,8 @@ export function FleetMaintenanceList({
   // Agrupado por unidad, conservando el orden de la lista de unidades.
   const units: Unit[] = [];
   for (const item of items) {
-    const last = units.at(-1);
+    // [length - 1] y no .at(-1) ni .toSorted(): iPhones con iOS viejo no los tienen.
+    const last = units[units.length - 1];
     if (last?.unitId === item.unitId) last.items.push(item);
     else
       units.push({
@@ -136,7 +137,7 @@ export function FleetMaintenanceList({
   const total = inGroup.reduce((n, u) => n + u.items.length, 0);
 
   const shown = inGroup
-    .map((u) => ({ ...u, items: (status ? u.items.filter((m) => m.status === status) : u.items).toSorted(byUrgency) }))
+    .map((u) => ({ ...u, items: (status ? u.items.filter((m) => m.status === status) : u.items).slice().sort(byUrgency) }))
     .filter((u) => u.items.length > 0);
 
   // Secciones: grupo y, dentro, tipo (mismo orden en que vienen).
@@ -144,7 +145,7 @@ export function FleetMaintenanceList({
     const ofGroup = shown.filter((u) => u.group === g);
     const types: { name: string; units: Unit[] }[] = [];
     for (const u of ofGroup) {
-      const last = types.at(-1);
+      const last = types[types.length - 1];
       if (last?.name === u.unitTypeName) last.units.push(u);
       else types.push({ name: u.unitTypeName, units: [u] });
     }

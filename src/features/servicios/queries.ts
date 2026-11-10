@@ -661,7 +661,7 @@ const toBrief = (row: BriefRow): ServiceBrief => ({
  * Por momento de captura (no por fecha del servicio): un ticket viejo capturado hoy
  * sale arriba, que es cuando hay que subirle la factura. RLS: el capturista, los suyos.
  */
-export async function listServicesWithoutReceipts(limit = 50): Promise<{ services: ServiceBrief[]; total: number }> {
+export async function listServicesWithoutReceipts(limit = 50, offset = 0): Promise<{ services: ServiceBrief[]; total: number }> {
   const supabase = await createClient();
   const { data, count, error } = await supabase
     .from("servicios_resumen")
@@ -669,7 +669,7 @@ export async function listServicesWithoutReceipts(limit = 50): Promise<{ service
     .eq("num_comprobantes", 0)
     .order("created_at", { ascending: false })
     .order("id")
-    .limit(limit)
+    .range(offset, offset + limit - 1)
     .returns<BriefRow[]>();
 
   if (error) throw new Error("No se pudieron cargar los servicios sin factura");
@@ -697,6 +697,7 @@ export async function listRecentServices(limit = 5): Promise<ServiceBrief[]> {
 export async function listServicesWithoutShopEntry(
   since: string,
   limit = 50,
+  offset = 0,
 ): Promise<{ services: ServiceBrief[]; total: number }> {
   const supabase = await createClient();
   const { data, count, error } = await supabase
@@ -706,7 +707,8 @@ export async function listServicesWithoutShopEntry(
     .gte("fecha", since)
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(limit)
+    .order("id")
+    .range(offset, offset + limit - 1)
     .returns<(BriefRow & { motivo_sin_entrada: string | null })[]>();
 
   if (error) throw new Error("No se pudieron cargar los servicios sin entrada a taller");

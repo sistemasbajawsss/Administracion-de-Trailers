@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { HomePanel, HomePanelEmpty } from "@/components/shared/home-panel";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { listFleetMaintenance } from "../queries";
@@ -9,15 +10,22 @@ import { byUrgency, describeLeft, registerMaintenanceHref } from "../types";
 
 import { MaintenanceStatusBadge } from "./maintenance-status-badge";
 
-/** Cuántos se muestran en la tarjeta; el resto, en la página Mantenimientos. */
-const SHOWN = 8;
 
 /**
  * Aviso de Inicio (5F): mantenimientos vencidos y por vencer de toda la flotilla,
  * lo más urgente primero (lo que más se pasó, aunque sea de una unidad de número alto). El admin y el gerente abren la ficha de la unidad; el
  * capturista, el servicio ya preparado para registrarlo.
  */
-export async function MaintenanceDuePanel({ openUnits }: { openUnits: boolean }) {
+export async function MaintenanceDuePanel({
+  openUnits,
+  rows = 3,
+  className,
+}: {
+  openUnits: boolean;
+  /** Cuántos se muestran en la tarjeta; el resto, en la página Mantenimientos. */
+  rows?: number;
+  className?: string;
+}) {
   const due = (await listFleetMaintenance())
     .filter((m) => m.status === "vencido" || m.status === "por_vencer")
     // Antes solo por estado: con más de 8 vencidos se quedaba fuera el más atrasado (auditoría 2026-11-10).
@@ -28,6 +36,14 @@ export async function MaintenanceDuePanel({ openUnits }: { openUnits: boolean })
     <HomePanel
       title="Mantenimientos"
       count={due.length}
+      className={className}
+      footer={
+        due.length ? (
+          <Link href="/mantenimientos" className={`${buttonVariants({ variant: "outline", size: "touch" })} w-full sm:w-auto`}>
+            {due.length > rows ? `Ver los ${due.length}` : "Ver Mantenimientos"}
+          </Link>
+        ) : undefined
+      }
       description={
         due.length
           ? `${overdue === 1 ? "1 vencido" : `${overdue} vencidos`} y ${due.length - overdue} por vencer.`
@@ -39,7 +55,7 @@ export async function MaintenanceDuePanel({ openUnits }: { openUnits: boolean })
       ) : (
         <>
           <ul className="divide-y">
-            {due.slice(0, SHOWN).map((m) => (
+            {due.slice(0, rows).map((m) => (
               <li key={m.id}>
                 <Link
                   href={openUnits ? `/unidades/${m.unitId}` : registerMaintenanceHref(m)}
@@ -62,12 +78,6 @@ export async function MaintenanceDuePanel({ openUnits }: { openUnits: boolean })
               </li>
             ))}
           </ul>
-          <Link
-            href="/mantenimientos"
-            className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-brand-cyan"
-          >
-            {due.length > SHOWN ? `Ver los ${due.length} en Mantenimientos` : "Ver Mantenimientos"}
-          </Link>
         </>
       )}
     </HomePanel>

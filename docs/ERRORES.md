@@ -51,6 +51,7 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 ## 4. Scroll, móvil y acomodo
 
 - **El Inicio del capturista tenía tres tarjetas en una cuadrícula de dos: la tercera quedaba sola y desfasada.** — **Regla:** el Inicio de cada rol se acomoda en columnas que se apilan (izquierda: lo propio; derecha: avisos), igual que el del admin; no dejar tarjetas sueltas en una cuadrícula. Revisar el Inicio de los tres roles cuando se agrega una tarjeta. — Usuario, 2026-11-10.
+- **El Inicio del admin no cabía en la pantalla de la computadora: tarjetas de 10 renglones, una columna con tres tarjetas y otra con una.** — **Regla:** en computadora el Inicio es una cuadrícula de 2 x 2 sin scroll: 3 renglones por tarjeta (`HOME_ROWS`), las de un renglón del mismo alto y su "Ver los N" alineado al pie (`HomePanel footer`); lo demás, en la ventana "Ver los N" o en su página. Si un rol tiene tres tarjetas, una ocupa los dos renglones con más renglones. Los renglones de las tarjetas miden lo mismo (dos líneas). — Usuario, 2026-11-10.
 - **En la ficha de la unidad, los gastos con scroll infinito de página hacían imposible llegar a lo que sigue (vender, eliminar) cuando había muchos.** — **Regla:** una lista larga con más cosas debajo muestra unos 10 renglones y luego su propio cuadro con scroll, cargando por tandas dentro del cuadro (`ExpenseFeed scrollBox`, `ShopStays`). Para no atrapar el dedo: máximo 60 % de la pantalla y sin `overscroll-contain`. — Usuario, 2026-11-10.
 - **Se escribió en CLAUDE.md una regla "nunca cuadros con scroll propio" atribuida al usuario, que él nunca dijo.** — **Regla:** no atribuir al usuario reglas que no dijo; si una regla nace de una suposición, se anota como decisión propia y se confirma con él. — Usuario, 2026-11-10.
 - **Listas cortadas en N con un orden que deja fuera lo importante** (Inicio: Mantenimientos ordenaba vencidos por unidad y con más de 8 se quedaba fuera el más atrasado; "Te falta subir factura" ordenaba por fecha del servicio y un ticket viejo capturado hoy no salía). Además, las unidades en taller salían en distinto orden en Inicio y en Taller. — **Regla:** una lista que se corta en N se ordena por lo que importa a quien la ve (urgencia: `byUrgency`; pendientes: momento de captura), y la misma lista lleva el mismo orden en todas las pantallas, con desempate (`created_at`, `id`). — Auditoría 2026-11-10.
@@ -97,6 +98,9 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 - **Nombres de comprobante con caracteres problemáticos.** — **Regla:** sanear en servidor y descargar en ASCII. — ESTADO 5D.
 
 ## 8. Next.js
+
+- **Mantenimientos usaba `toSorted()` y `.at(-1)` en el navegador: en iPhones con iOS viejo (antes de 16) la página tronaba.** — **Regla:** en componentes de cliente, nada de `toSorted`, `toReversed`, `at`, `findLast`, `Object.groupBy`: usar `slice().sort()` y `[length - 1]`. — Revisión 2026-11-10.
+- **La ventana "Ver los N" guardaba la lista de la primera vez: después de subir una factura seguía mostrando ese servicio.** — **Regla:** un componente de cliente que copia datos del servidor a su estado lleva un `key` con la firma de esos datos, para empezar de cero cuando cambian. — Revisión 2026-11-10.
 
 - **`Date.now()` en prerender.** — **Regla:** leer Supabase al momento de la petición (`connection()`). — commit 5942e69.
 - **`usePathname` fuera de Suspense ("blocking route").** — **Regla:** dentro de Suspense. — commit 210d20f.
