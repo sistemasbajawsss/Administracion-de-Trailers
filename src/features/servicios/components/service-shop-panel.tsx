@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils/format";
+import { useToday } from "@/components/shared/use-today";
 
 import { fallsInStay, NO_ENTRY_REASONS, type ServiceEditInput } from "../schemas";
 import type { ServiceShopLink, ShopStay } from "../types";
@@ -81,13 +82,14 @@ export function ServiceShopPanel({
   form,
   stay,
   state,
-  today,
+  today: serverToday,
 }: {
   form: UseFormReturn<ServiceEditInput>;
   stay: ShopStay | null;
   state: ShopState;
   today: string;
 }) {
+  const today = useToday(serverToday);
   const date = useWatch({ control: form.control, name: "date" });
   const [reason, forgot] = useWatch({ control: form.control, name: ["noEntryReason", "forgotEntry"] });
   const [mode, setMode] = useState<ReasonMode>(() =>

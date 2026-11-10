@@ -30,6 +30,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatKm } from "@/lib/utils/format";
+import { useToday } from "@/components/shared/use-today";
 
 import { createMaintenance, removeMaintenance, updateMaintenance } from "../actions";
 import { maintenanceSchema, type MaintenanceInput } from "../schemas";
@@ -159,12 +160,13 @@ function MaintenanceDialog({
   economicNumber,
   isBox,
   currentKm,
-  today,
+  today: serverToday,
   targets,
   item,
   open,
   onClose,
 }: UnitMaintenanceProps & { item: Maintenance | null; open: boolean; onClose: () => void }) {
+  const today = useToday(serverToday);
   const router = useRouter();
   const form = useForm<MaintenanceInput>({
     resolver: zodResolver(maintenanceSchema),

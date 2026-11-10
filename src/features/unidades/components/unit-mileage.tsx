@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, formatDateTime, formatKm } from "@/lib/utils/format";
 import { describeMileage } from "@/lib/utils/mileage";
+import { useToday } from "@/components/shared/use-today";
 
 import { correctUnitMileage } from "../actions";
 import { correctMileageSchema, type CorrectMileageInput } from "../schemas";
@@ -80,7 +81,7 @@ function CorrectionForm({
   unitId,
   economicNumber,
   mileage,
-  today,
+  today: serverToday,
   onDone,
 }: {
   unitId: string;
@@ -89,6 +90,7 @@ function CorrectionForm({
   today: string;
   onDone: () => void;
 }) {
+  const today = useToday(serverToday);
   const router = useRouter();
   const form = useForm<CorrectMileageInput>({
     resolver: zodResolver(correctMileageSchema),

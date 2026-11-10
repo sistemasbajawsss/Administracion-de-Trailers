@@ -19,6 +19,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils/format";
+import { useToday } from "@/components/shared/use-today";
 
 import { releaseFromShop } from "../actions";
 import { shopReleaseSchema } from "../schemas";
@@ -28,7 +29,7 @@ export function ReleaseShopDialog({
   entryId,
   economicNumber,
   entryDate,
-  today,
+  today: serverToday,
   serviceCount,
 }: {
   entryId: string;
@@ -38,6 +39,7 @@ export function ReleaseShopDialog({
   /** Sin servicios en la estancia, el motivo es obligatorio (la BD también lo exige). */
   serviceCount: number;
 }) {
+  const today = useToday(serverToday);
   const reasonRequired = serviceCount === 0;
   const router = useRouter();
   const [open, setOpen] = useState(false);

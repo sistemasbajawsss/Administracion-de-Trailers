@@ -48,6 +48,7 @@ import {
   usdToMxnCents,
 } from "@/lib/utils/format";
 import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
+import { useToday } from "@/components/shared/use-today";
 
 import { createService, suggestExchangeRate, updateService } from "../actions";
 import {
@@ -149,13 +150,14 @@ function ServiceFormBody({
   units,
   categories,
   suppliers: initialSuppliers,
-  today,
+  today: serverToday,
   initialUnitId = "",
   initialServiceType = "",
   initialMaintenanceIds = [],
   maintenanceByUnit = {},
   onSaved,
 }: ServiceFormProps & { onSaved: () => void }) {
+  const today = useToday(serverToday);
   const router = useRouter();
   const goBack = useGoBack();
   const isEdit = Boolean(service);

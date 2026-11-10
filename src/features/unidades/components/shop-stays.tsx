@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { formatDate, formatMoney } from "@/lib/utils/format";
+import { useToday } from "@/components/shared/use-today";
 
 import { loadMoreShopStays } from "../actions";
 import type { UnitShopStay } from "../types";
@@ -23,15 +24,16 @@ const serviceLabel = (n: number) => (n === 0 ? "sin servicios" : n === 1 ? "1 se
  * Estancias en taller de la unidad (ficha; admin y gerente, 5E). Cada una es una
  * tarjeta desplegable que aparece cerrada (fechas, días, falla y lo gastado) y se
  * abre al tocarla (sus servicios, cada uno lleva a su detalle, y cuál la sacó de
- * taller). Con muchas, se cargan por tandas con el scroll normal de la página
- * (sin cuadro con scroll propio, que en el celular atrapaba el dedo).
+ * taller). Van en un cuadro con su propio scroll (unas 10 a la vista, máximo 60 %
+ * de la pantalla) y cargan por tandas dentro del cuadro, para que con muchas se
+ * pueda llegar a lo que sigue en la ficha (pedido del usuario, 2026-11-10).
  */
 export function ShopStays({
   unitId,
   initialStays,
   total,
   batchSize,
-  today,
+  today: serverToday,
 }: {
   unitId: string;
   initialStays: UnitShopStay[];
@@ -39,11 +41,13 @@ export function ShopStays({
   batchSize: number;
   today: string;
 }) {
+  const today = useToday(serverToday);
   const [stays, setStays] = useState(initialStays);
   const [done, setDone] = useState(initialStays.length >= total || initialStays.length < batchSize);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   const loadMore = useCallback(async () => {
     if (loading || done) return;
@@ -75,7 +79,7 @@ export function ShopStays({
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) void loadMore();
       },
-      { rootMargin: "0px 0px 400px 0px" },
+      { root: boxRef.current, rootMargin: "0px 0px 400px 0px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -93,6 +97,13 @@ export function ShopStays({
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">Toca una para ver sus servicios.</p>
 
+      <div
+        ref={boxRef}
+        role="region"
+        aria-label="Estancias en taller"
+        tabIndex={0}
+        className="max-h-[min(44rem,60dvh)] overflow-y-auto rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
       <ol className="space-y-3">
         {stays.map((stay) => {
           const open = stay.exitDate === null;
@@ -184,6 +195,7 @@ export function ShopStays({
             {error} Toca para reintentar.
           </button>
         )}
+      </div>
       </div>
     </section>
   );

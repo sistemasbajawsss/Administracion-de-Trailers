@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UnitPicker } from "@/features/servicios/components/unit-picker";
 import type { UnitOption } from "@/features/servicios/types";
 import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
+import { useToday } from "@/components/shared/use-today";
 
 import { registerShopEntry } from "../actions";
 import { shopEntrySchema, type ShopEntryInput } from "../schemas";
@@ -29,7 +30,8 @@ export function ShopEntryForm(props: ShopEntryFormProps) {
 }
 
 /** Entrada a taller: unidad, fecha (hoy por defecto) y la falla. La unidad pasa a En taller. */
-function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFormProps & { onSaved: () => void }) {
+function ShopEntryFormBody({ units, today: serverToday, initialUnitId, onSaved }: ShopEntryFormProps & { onSaved: () => void }) {
+  const today = useToday(serverToday);
   const goBack = useGoBack();
   const [saved, setSaved] = useState(false);
 
