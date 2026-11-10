@@ -93,7 +93,15 @@ export const serviceSchema = z.object({
 export type ServiceInput = z.infer<typeof serviceSchema>;
 
 /** Motivos rápidos cuando la unidad no tuvo entrada a taller (D13). Además: "Se olvidó la entrada" y "Otro…". */
-export const NO_ENTRY_REASONS = ["Reparación en camino", "Mantenimiento en patio"] as const;
+export const NO_ENTRY_REASONS = ["Reparación en camino", "Mantenimiento taller Realso"] as const;
+
+/**
+ * "Mantenimiento en patio" es el nombre anterior de "Mantenimiento taller Realso"
+ * (servicios guardados antes del 2026-11-10): al editarlos sale elegido el nuevo.
+ * Siguen saliendo en "Sin entrada a taller": Realso es el taller propio y primero
+ * se da la entrada a taller y luego el servicio (lo aclaró el usuario).
+ */
+export const OWN_SHOP_REASONS = ["Mantenimiento taller Realso", "Mantenimiento en patio"] as const;
 
 /** ¿El servicio queda dentro de la estancia abierta? (misma regla que preparar_servicio en la BD). */
 export const fallsInStay = (stay: ShopStay | null, date: string) => Boolean(stay && date >= stay.entryDate);

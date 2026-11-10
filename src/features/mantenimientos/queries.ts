@@ -55,7 +55,7 @@ export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
     // Mismo orden que la lista de unidades: por tipo (orden del catálogo) y número.
     supabase
       .from("unidades")
-      .select("id, numero_economico, estatus, tipo_info:tipos_unidad(nombre)")
+      .select("id, numero_economico, estatus, operacion, tipo_info:tipos_unidad(nombre)")
       .order("orden_tipo")
       .order("numero_orden"),
   ]);
@@ -67,8 +67,11 @@ export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
     .flatMap((row) => {
       const unit = unitById.get(row.unidad_id);
       if (!unit || isRetired(unit.estatus)) return [];
-      const item: FleetMaintenance = { ...toMaintenance(row), economicNumber: unit.numero_economico,
+      const item: FleetMaintenance = {
+        ...toMaintenance(row),
+        economicNumber: unit.numero_economico,
         unitTypeName: unit.tipo_info?.nombre ?? "",
+        operation: unit.operacion,
       };
       return [{ item, order: unit.index }];
     })
