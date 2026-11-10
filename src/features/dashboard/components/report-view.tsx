@@ -13,6 +13,7 @@ import { KindMonthlyChartLoader } from "./kind-monthly-chart-loader";
 import { KpiRow } from "./kpi-row";
 import { MaintenanceSplit, ServiceKindLegend } from "./maintenance-split";
 import { MonthlyChartLoader } from "./monthly-chart-loader";
+import { PlaceSplit } from "./place-split";
 import { PrintKindMonthlyBars } from "./print-kind-monthly-bars";
 import { PrintMonthlyBars } from "./print-monthly-bars";
 import { RankedBars } from "./ranked-bars";
@@ -89,7 +90,7 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
 
       {/*
         Una cuadrícula de 6 columnas para todo; cada tarjeta dice cuánto ocupa:
-        - Pantalla ancha: mes 4 + grupos 2 / categorías 3 + unidades 3 / tipo de servicio 2 + proveedores 4.
+        - Pantalla ancha: mes 4 + grupos 2 / mantenimiento 6 / dónde se hizo 6 / categorías 3 + unidades 3 / proveedores 6.
         - Hoja vertical: mes 6 / grupos 3 + proveedores 3 / categorías 3 + unidades 3 / tipo de servicio 3.
         - Hoja horizontal: mes 4 + grupos 2 (hoja 1) / categorías, unidades y proveedores 2 + 2 + 2, tipo de servicio 2 (hoja 2).
       */}
@@ -200,6 +201,14 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
         </Panel>
 
         <Panel
+          title="Dónde se hizo"
+          description="Trabajos en Taller Realso, en talleres de fuera y en camino."
+          className="lg:col-span-6 print:order-7 print:col-span-6"
+        >
+          <PlaceSplit report={report} />
+        </Panel>
+
+        <Panel
           title="Por categoría"
           description="En qué se va el dinero."
           className="lg:col-span-3 print:order-4 print:col-span-3 print:landscape:order-3 print:landscape:col-span-2 print:landscape:break-before-page"
@@ -235,8 +244,8 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
         </Panel>
 
         <Panel
-          title="Proveedores y talleres"
-          description="Dónde se hacen los servicios."
+          title="Proveedores de las piezas"
+          description="Dónde se compran las piezas."
           className="lg:col-span-6 print:order-3 print:portrait:col-span-3 print:landscape:order-5 print:landscape:col-span-2"
         >
           <RankedBars

@@ -17,7 +17,7 @@ async function Catalogs() {
 
   return (
     <Tabs defaultValue="choferes">
-      {/* Cuatro pestañas: en celular bajan de renglón (sin scroll lateral). */}
+      {/* Cinco pestañas: en celular bajan de renglón (sin scroll lateral). */}
       <TabsList className="mb-6 h-auto min-h-11 w-full flex-wrap bg-muted sm:w-auto">
         {CATALOG_KINDS.map((kind) => (
           <TabsTrigger key={kind} value={kind} className="min-h-9 px-4 text-base">
@@ -45,7 +45,7 @@ export default function CatalogosPage() {
     <RequireRole role="admin">
       <PageHeader
         title="Catálogos"
-        description="Choferes, categorías de gasto, proveedores y tipos de unidad. Lo que se desactiva deja de aparecer en la captura, pero su historial se conserva."
+        description="Choferes, categorías de gasto, proveedores, talleres y tipos de unidad. Lo que se desactiva deja de aparecer en la captura, pero su historial se conserva."
       />
       <Suspense fallback={<div className="h-80 animate-pulse rounded-lg bg-muted" aria-label="Cargando catálogos" />}>
         <Catalogs />

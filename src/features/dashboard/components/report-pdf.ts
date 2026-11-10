@@ -4,7 +4,18 @@ import { formatCents, formatDate, formatDateTime, formatMoney, formatUsd, toCent
 
 import type { ReportPdfData } from "../actions";
 import { GROUPS, GROUP_LABELS, monthLabel } from "../schemas";
-import { SERVICE_KIND_COLORS, SERVICE_KIND_LABELS, SERVICE_KINDS, serviceKindTotals, type ServiceKind } from "../types";
+import {
+  PLACE_KIND_COLORS,
+  PLACE_KIND_LABELS,
+  PLACE_KINDS,
+  placeKindTotals,
+  SERVICE_KIND_COLORS,
+  SERVICE_KIND_LABELS,
+  SERVICE_KINDS,
+  serviceKindTotals,
+  type PlaceKind,
+  type ServiceKind,
+} from "../types";
 
 /**
  * Reporte en PDF armado en el navegador con jsPDF (se carga solo al pedirlo).
@@ -401,7 +412,54 @@ export async function buildReportPdf({ report, period, filters }: ReportPdfData)
     y = base + 8;
   }
 
-  sectionTitle("Proveedores y talleres", "Dónde se hacen los servicios.");
+  // ¿Dónde se hizo? (5G): barra al 100 %, un renglón por lugar y los talleres de fuera.
+  sectionTitle("Dónde se hizo", "Trabajos en Taller Realso, en talleres de fuera y en camino.");
+  {
+    const places = placeKindTotals(report.byPlace);
+    const pc = (k: PlaceKind) => toCents(places[k].total) ?? 0;
+    const shown = PLACE_KINDS.filter((k) => pc(k) > 0);
+    ensure(30);
+    let x = M;
+    shown.forEach((k, i) => {
+      const w = (pc(k) / grand) * W - (i < shown.length - 1 ? 0.6 : 0);
+      doc.setFillColor(PLACE_KIND_COLORS[k]);
+      doc.rect(x, y, Math.max(w, 0.1), 5, "F");
+      x += w + (i < shown.length - 1 ? 0.6 : 0);
+    });
+    y += 10;
+    for (const k of shown) {
+      ensure(7);
+      doc.setFillColor(PLACE_KIND_COLORS[k]);
+      doc.rect(M, y - 2.6, 3, 3, "F");
+      font(9, "bold");
+      const label = PLACE_KIND_LABELS[k];
+      text(label, M + 5, y);
+      const used = doc.getTextWidth(clean(label));
+      font(8, "normal", MUTED);
+      text(` · ${plural(places[k].services, "servicio", "servicios")}${k === "sin_dato" ? " de antes" : ""}`, M + 5 + used, y);
+      font(9, "normal");
+      text(formatCents(pc(k)), PAGE_W - M - 16, y, "right");
+      font(8, "normal", MUTED);
+      text(percent.format(pc(k) / grand), PAGE_W - M, y, "right");
+      y += 5.5;
+    }
+    if (report.byWorkshop.length) {
+      y += 3;
+      ensure(10);
+      font(10, "bold");
+      text("Talleres de fuera", M, y);
+      y += 6;
+      ranked(
+        report.byWorkshop.map((t) => ({
+          label: t.name,
+          detail: plural(t.services, "servicio", "servicios") + (t.onTheRoad ? `, ${t.onTheRoad} en camino` : ""),
+          total: t.total,
+        })),
+      );
+    }
+  }
+
+  sectionTitle("Proveedores de las piezas", "Dónde se compran las piezas.");
   ranked(report.bySupplier.map((p) => ({ label: p.name, detail: plural(p.services, "servicio", "servicios"), total: p.total })));
 
   // Número de página al pie.

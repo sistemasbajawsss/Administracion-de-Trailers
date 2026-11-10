@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 
 import { PageHeader } from "@/components/shared/page-header";
-import { listActiveCategories, listActiveSuppliers } from "@/features/catalogos/queries";
+import { listActiveCategories, listActiveSuppliers, listActiveWorkshops } from "@/features/catalogos/queries";
 import { listMaintenanceByUnit } from "@/features/mantenimientos/queries";
 import { ServiceForm } from "@/features/servicios/components/service-form";
 import { getService, listUnitOptions } from "@/features/servicios/queries";
@@ -18,17 +18,18 @@ async function EditService({ params }: { params: PageProps<"/servicios/[id]/edit
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [, service, units, categories, suppliers, maintenanceByUnit] = await Promise.all([
+  const [, service, units, categories, suppliers, workshops, maintenanceByUnit] = await Promise.all([
     requireRole(CAPTURE_ROLES),
     getService(id),
     listUnitOptions(),
     listActiveCategories(),
     listActiveSuppliers(),
+    listActiveWorkshops(),
     listMaintenanceByUnit(),
   ]);
   if (!service) notFound();
 
-  // Categorías o proveedores desactivados después de capturar: se conservan en el formulario.
+  // Categorías, proveedores o talleres desactivados después de capturar: se conservan en el formulario.
   const missingCategories = service.expenses
     .filter((e) => !categories.some((c) => c.id === e.categoryId))
     .map((e) => ({ id: e.categoryId, name: `${e.categoryName} (inactiva)`, requiresConcept: false }));
@@ -36,6 +37,10 @@ async function EditService({ params }: { params: PageProps<"/servicios/[id]/edit
     service.supplierId && !suppliers.some((s) => s.id === service.supplierId)
       ? [...suppliers, { id: service.supplierId, name: `${service.supplierName ?? "Proveedor"} (inactivo)` }]
       : suppliers;
+  const allWorkshops =
+    service.workshopId && !workshops.some((w) => w.id === service.workshopId)
+      ? [...workshops, { id: service.workshopId, name: `${service.workshopName ?? "Taller"} (inactivo)` }]
+      : workshops;
 
   return (
     <>
@@ -48,6 +53,7 @@ async function EditService({ params }: { params: PageProps<"/servicios/[id]/edit
         units={units}
         categories={[...categories, ...new Map(missingCategories.map((c) => [c.id, c])).values()]}
         suppliers={allSuppliers}
+        workshops={allWorkshops}
         today={todayInTijuana()}
         maintenanceByUnit={maintenanceByUnit}
       />

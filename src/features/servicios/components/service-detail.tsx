@@ -1,6 +1,8 @@
+import { Wrench } from "lucide-react";
+
 import { formatDate, formatKm, formatMoney, formatRate, formatUsd } from "@/lib/utils/format";
 
-import type { ServiceDetail } from "../types";
+import { describePlace, type ServiceDetail } from "../types";
 
 import { EditedBadge } from "./edited-badge";
 import { ServiceTypeBadge } from "./service-type-badge";
@@ -46,6 +48,8 @@ function ShopRow({ shop }: { shop: ServiceDetail["shop"] }) {
  * gasto en medio y el total oficial (sumado en la BD) al pie.
  */
 export function ServiceDetailView({ service }: { service: ServiceDetail }) {
+  // ¿Dónde se hizo? (5G): "Taller Realso", "Taller Pérez, en camino". Los de antes, nada.
+  const place = describePlace(service.place, service.workshopName);
   return (
     <article className="overflow-hidden rounded-xl border bg-white">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b px-5 py-5 sm:px-6">
@@ -56,9 +60,15 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
           <p className="mt-2 text-muted-foreground">
             {service.unit.typeName} · {formatDate(service.date)}
           </p>
-          {service.serviceType && (
-            <p className="mt-2">
-              <ServiceTypeBadge type={service.serviceType} />
+          {(service.serviceType || place) && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+              {service.serviceType && <ServiceTypeBadge type={service.serviceType} />}
+              {place && (
+                <span className="flex min-w-0 items-center gap-1.5 text-base">
+                  <Wrench className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="min-w-0">Hecho en {place}</span>
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -70,7 +80,7 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-4 border-b px-5 py-5 sm:grid-cols-3 sm:px-6">
         <div>
-          <dt className="text-sm text-muted-foreground">Proveedor o taller</dt>
+          <dt className="text-sm text-muted-foreground">Proveedor de las piezas</dt>
           <dd className="text-base">{service.supplierName ?? "Sin proveedor"}</dd>
         </div>
         <div>

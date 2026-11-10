@@ -3,7 +3,7 @@ import writeXlsxFile, { type Cell, type CellObject, type SheetData } from "write
 import { getReport, listExportRows } from "@/features/dashboard/queries";
 import { GROUP_LABELS, monthLongLabel, reportFiltersSchema, resolvePeriod } from "@/features/dashboard/schemas";
 import { SERVICE_KIND_LABELS, SERVICE_KINDS } from "@/features/dashboard/types";
-import { serviceTypeLabel, type ServiceType } from "@/features/servicios/types";
+import { NO_PLACE_LABEL, SERVICE_PLACE_LABELS, serviceTypeLabel, type ServiceType } from "@/features/servicios/types";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { formatDate, formatDateTime, toCents, toRateUnits, todayInTijuana } from "@/lib/utils/format";
@@ -58,13 +58,13 @@ export async function GET(request: Request) {
     ["Equivalente en pesos (incluido en el total)", money(report.usd.mxn)],
     ["Generado", formatDateTime(new Date().toISOString())],
     rows.length === 50000 ? ["Aviso", "El detalle se cortó en 50,000 renglones; usa un periodo más corto."] : [],
-    report.byUnit.length === RANKING_LIMIT || report.bySupplier.length === RANKING_LIMIT
-      ? ["Aviso", `Las hojas por unidad y por proveedor muestran las ${RANKING_LIMIT} con más gasto.`]
+    report.byUnit.length === RANKING_LIMIT || report.bySupplier.length === RANKING_LIMIT || report.byWorkshop.length === RANKING_LIMIT
+      ? ["Aviso", `Las hojas por unidad, por proveedor y por taller muestran los ${RANKING_LIMIT} con más gasto.`]
       : [],
   ];
 
   const expenses: SheetData = [
-    header("Fecha", "Unidad", "Tipo", "Grupo", "Categoría", "Concepto", "Proveedor", "Descripción", "Monto", "Moneda", "Dólares", "Tipo de cambio", "Tipo de servicio", "Mantenimiento / Reparación"),
+    header("Fecha", "Unidad", "Tipo", "Grupo", "Categoría", "Concepto", "Proveedor", "Descripción", "Monto", "Moneda", "Dólares", "Tipo de cambio", "Tipo de servicio", "Mantenimiento / Reparación", "Dónde se hizo", "Taller"),
     ...rows.map((row): Cell[] => [
       date(row.date),
       row.economicNumber,
@@ -80,6 +80,8 @@ export async function GET(request: Request) {
       row.exchangeRate ? { value: (toRateUnits(row.exchangeRate) ?? 0) / 10000, type: Number, format: RATE } : null,
       serviceTypeLabel(row.serviceType),
       kindGroup(row.serviceType),
+      row.place ? SERVICE_PLACE_LABELS[row.place] : NO_PLACE_LABEL,
+      row.workshop ?? "",
     ]),
     [null, null, null, null, null, null, null, { value: "Total", fontWeight: "bold" }, { ...money(report.total), fontWeight: "bold" }],
   ];
@@ -123,8 +125,24 @@ export async function GET(request: Request) {
   ];
 
   const bySupplier: SheetData = [
-    header("Proveedor o taller", "Servicios", "Total", "% del total"),
+    header("Proveedor de las piezas", "Servicios", "Total", "% del total"),
     ...report.bySupplier.map((p): Cell[] => [p.name, p.services, money(p.total), share(p.total, totalCents)]),
+  ];
+
+  // ¿Dónde se hizo? (5G): por lugar y los talleres de fuera que más se llevaron.
+  const byPlace: SheetData = [
+    header("Dónde se hizo", "Servicios", "Total", "% del total"),
+    ...report.byPlace.map((p): Cell[] => [
+      p.place ? SERVICE_PLACE_LABELS[p.place] : `${NO_PLACE_LABEL} (servicios de antes)`,
+      p.services,
+      money(p.total),
+      share(p.total, totalCents),
+    ]),
+  ];
+
+  const byWorkshop: SheetData = [
+    header("Taller de fuera", "Servicios", "En camino", "Total", "% del total"),
+    ...report.byWorkshop.map((t): Cell[] => [t.name, t.services, t.onTheRoad, money(t.total), share(t.total, totalCents)]),
   ];
 
   const buffer = await writeXlsxFile([
@@ -132,12 +150,14 @@ export async function GET(request: Request) {
     {
       data: expenses,
       sheet: "Gastos",
-      columns: [{ width: 12 }, { width: 10 }, { width: 14 }, { width: 12 }, { width: 34 }, { width: 30 }, { width: 26 }, { width: 40 }, { width: 14 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 24 }],
+      columns: [{ width: 12 }, { width: 10 }, { width: 14 }, { width: 12 }, { width: 34 }, { width: 30 }, { width: 26 }, { width: 40 }, { width: 14 }, { width: 8 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 24 }, { width: 18 }, { width: 30 }],
     },
     { data: byUnit, sheet: "Por unidad", columns: [{ width: 10 }, { width: 14 }, { width: 12 }, { width: 11 }, { width: 16 }, { width: 12 }] },
     { data: byCategory, sheet: "Por categoría", columns: [{ width: 40 }, { width: 10 }, { width: 16 }, { width: 12 }] },
     { data: byMonth, sheet: "Por mes", columns: [{ width: 22 }, { width: 11 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }] },
     { data: byServiceType, sheet: "Por tipo de servicio", columns: [{ width: 26 }, { width: 34 }, { width: 11 }, { width: 16 }, { width: 12 }] },
+    { data: byPlace, sheet: "Dónde se hizo", columns: [{ width: 34 }, { width: 11 }, { width: 16 }, { width: 12 }] },
+    { data: byWorkshop, sheet: "Por taller", columns: [{ width: 34 }, { width: 11 }, { width: 11 }, { width: 16 }, { width: 12 }] },
     { data: bySupplier, sheet: "Por proveedor", columns: [{ width: 34 }, { width: 11 }, { width: 16 }, { width: 12 }] },
   ]).toBuffer();
 

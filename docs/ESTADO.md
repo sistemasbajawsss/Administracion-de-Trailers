@@ -6,6 +6,7 @@
 **Salida a producción (2026-10-30).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B, 5C, 5D y 5E. La 5F (Mantenimientos) está terminada en su rama, esperando el visto bueno para subir. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
 
 ### Próximos pasos para retomar
+- **Sección 5G (¿Dónde se hizo?): hecha en la rama `seccion-5g-donde-se-hizo` (2026-11-10), migraciones aplicadas, falta revisarla en pantalla y el visto bueno para subir a `main`.** La 5F ya está en `main` y en Vercel.
 - **Sección 5F (Mantenimientos): terminada en la rama `seccion-5f-mantenimientos` (2026-11-09), falta el visto bueno del usuario para el merge y push a `main`.** Pendiente del usuario: revisar en el iPhone (360 px) la ficha, Mantenimientos, el formulario de servicio e Inicio; capturar los intervalos reales de cada unidad (T-17 ya tiene "Cambio de aceite", 15,000 km o 6 meses, desde el 09/11/2026); registrar el primer correctivo real desde "Registrar" para ver que el contador se reinicie.
 - **Siguiente (a futuro):** Fase 2 (Almacén) cuando el almacén físico esté ordenado.
 0. **Probar en el navegador lo de la 5D** que depende de cómo navega Next (no se puede probar por SQL): guardar un servicio y volver a "Nuevo servicio" (debe salir vacío); eliminar o editar un servicio y regresar a la lista (debe actualizarse); "Nuevo proveedor" dentro del formulario (no debe guardar el servicio); escribir `1500,50` (debe quedar $1,500.50); salir de un formulario con cambios (debe avisar).
@@ -108,6 +109,15 @@
 - Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 5G — ¿Dónde se hizo? (2026-11-10, rama `seccion-5g-donde-se-hizo`, pedida por el usuario)
+- Qué: cada servicio dice dónde se hizo el trabajo: **Taller Realso** (el taller propio), **taller de fuera** o **en camino**; fuera y en camino dicen qué taller. El proveedor sigue siendo dónde se compran las piezas (el formulario dice "Proveedor de las piezas").
+- BD (`20261110150813_donde_se_hizo.sql`, aplicada): enum `lugar_servicio`; tabla `talleres` (como proveedores: admin y capturista dan de alta, solo el admin edita y desactiva, RLS); `servicios.lugar` y `servicios.taller_id` con candado (Realso sin taller; fuera y en camino con taller); trigger `validar_lugar_servicio` (taller activo; al restaurar no revisa); `registrar_servicio` / `actualizar_servicio` con `p_lugar` y `p_taller_id` opcionales al final (sin lugar al editar se conserva); `restaurar_servicio` y `servicios_resumen` con los dos datos. Opcional en la BD: lo exige el servidor de la app en servicios nuevos.
+- BD (`20261110151818_reporte_donde_se_hizo.sql`, aplicada): `reporte_gastos` con `por_lugar` y `por_taller`; `gastos_para_reporte` y `exportar_gastos` con lugar y taller.
+- App: "¿Dónde se hizo?" en el formulario de servicio (obligatorio en alta; al editar uno de antes puede quedar sin dato) y "¿Qué taller?" con "Nuevo taller"; pestaña Talleres en Catálogos; "Hecho en …" en el detalle; línea de cambios con lugar y taller; Reportes: tarjeta "Dónde se hizo" (barra, tres bloques y talleres de fuera), en el PDF y en el Excel (columnas y hojas "Dónde se hizo" y "Por taller").
+- Se quitó el motivo "Mantenimiento taller Realso" (antes "Mantenimiento en patio") de "sin entrada a taller": en Realso primero se da la entrada; si no se dio, es "Se olvidó la entrada". Los servicios que ya lo tenían lo muestran como "Otro".
+- No se muestra en la lista de gastos de la ficha (es por gasto, no por servicio).
+- Pruebas: `donde-se-hizo.sql` 21/21, `reporte-donde-se-hizo.sql` 5/5; regresión igual a la línea base (capturista 42/43, la falla conocida).
 
 ### Sección 5F — Mantenimientos (terminada 2026-11-09, rama `seccion-5f-mantenimientos`, sin merge)
 - Etapa 1, kilometraje (`20261109185639_kilometraje.sql`): el km actual se calcula (última lectura desde la última corrección), no se guarda; la revisión es cronológica (no menor a lo de antes ni mayor a lo de después; el mismo día no se compara). Al editar servicios de antes el km sigue opcional. Corrección del admin con motivo en la ficha; el gerente ve las correcciones.

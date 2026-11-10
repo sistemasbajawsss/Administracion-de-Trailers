@@ -23,6 +23,37 @@ export const SERVICE_TYPE_HINTS: Record<ServiceType, string> = {
 /** Servicios de antes de la 5F. */
 export const NO_SERVICE_TYPE_LABEL = "Sin tipo";
 
+/** ¿Dónde se hizo? (5G). El proveedor es dónde se compró la pieza; esto, quién hizo el trabajo. */
+export type ServicePlace = Database["public"]["Enums"]["lugar_servicio"];
+
+export const SERVICE_PLACES = ["taller_propio", "taller_externo", "en_camino"] as const satisfies readonly ServicePlace[];
+
+export const SERVICE_PLACE_LABELS: Record<ServicePlace, string> = {
+  taller_propio: "Taller Realso",
+  taller_externo: "Taller de fuera",
+  en_camino: "En camino",
+};
+
+export const SERVICE_PLACE_HINTS: Record<ServicePlace, string> = {
+  taller_propio: "Lo hicimos en nuestro taller.",
+  taller_externo: "Lo hizo otro taller, en su local.",
+  en_camino: "Se arregló en la carretera.",
+};
+
+/** Servicios de antes de la 5G. */
+export const NO_PLACE_LABEL = "Sin dato";
+
+/** Fuera y en camino dicen qué taller lo hizo; Taller Realso, no. */
+export const placeNeedsWorkshop = (place: ServicePlace | "" | null) => place === "taller_externo" || place === "en_camino";
+
+/** "Taller Realso", "Taller Pérez", "Taller Pérez, en camino"; null si es de antes. */
+export function describePlace(place: ServicePlace | null, workshop: string | null): string | null {
+  if (!place) return null;
+  if (place === "taller_propio") return SERVICE_PLACE_LABELS.taller_propio;
+  const name = workshop ?? "Taller sin nombre";
+  return place === "en_camino" ? `${name}, en camino` : name;
+}
+
 /** Unidad elegible en el formulario de servicio (las de baja o vendidas no aparecen). */
 export type UnitOption = {
   id: string;
@@ -104,6 +135,10 @@ export type ServiceDetail = ServiceListItem & {
   expenses: ExpenseLine[];
   /** Mantenimientos programados que cumplió (5F); incluye los que después se quitaron. */
   maintenance: { id: string; name: string }[];
+  /** ¿Dónde se hizo? (5G). null en los de antes. */
+  place: ServicePlace | null;
+  workshopId: string | null;
+  workshopName: string | null;
   /** stay: fechas de su estancia (null si no tiene, o si el capturista ya no la ve porque cerró). */
   shop: ServiceShopLink & { stay: { entryDate: string; exitDate: string | null; fault: string } | null };
 };
