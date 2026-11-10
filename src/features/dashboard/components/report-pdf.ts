@@ -1,11 +1,11 @@
 import { jsPDF } from "jspdf";
 
-import { serviceTypeLabel } from "@/features/servicios/types";
 import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { formatCents, formatDate, formatDateTime, formatMoney, formatUsd, toCents } from "@/lib/utils/format";
 
 import type { ReportPdfData } from "../actions";
 import { GROUPS, GROUP_LABELS, monthLabel } from "../schemas";
+import { SERVICE_KIND_COLORS, SERVICE_KIND_LABELS, SERVICE_KINDS, serviceKindTotals, type ServiceKind } from "../types";
 
 /**
  * Reporte en PDF armado en el navegador con jsPDF (se carga solo al pedirlo).
@@ -313,14 +313,94 @@ export async function buildReportPdf({ report, period, filters }: ReportPdfData)
     })),
   );
 
-  sectionTitle("Por tipo de servicio", "Preventivo, correctivo o servicio.");
-  ranked(
-    report.byServiceType.map((t) => ({
-      label: serviceTypeLabel(t.type),
-      detail: `${plural(t.services, "servicio", "servicios")}${t.type ? "" : " de antes"}`,
-      total: t.total,
-    })),
-  );
+  // Mantenimiento y reparaciones: barra al 100 %, renglones por tipo y columnas apiladas por mes.
+  sectionTitle("Mantenimiento y reparaciones", "Correctivo y preventivo contra lo que se descompuso.");
+  {
+    const kinds = serviceKindTotals(report.byServiceType);
+    const kc = (k: ServiceKind) => toCents(kinds[k].total) ?? 0;
+    const shown = SERVICE_KINDS.filter((k) => kc(k) > 0);
+    ensure(40);
+    let x = M;
+    shown.forEach((k, i) => {
+      const w = (kc(k) / grand) * W - (i < shown.length - 1 ? 0.6 : 0);
+      doc.setFillColor(SERVICE_KIND_COLORS[k]);
+      doc.rect(x, y, Math.max(w, 0.1), 5, "F");
+      x += w + (i < shown.length - 1 ? 0.6 : 0);
+    });
+    y += 10;
+    const row = (label: string, detail: string, cents: number, color: string | null, bold: boolean) => {
+      ensure(7);
+      if (color) {
+        doc.setFillColor(color);
+        doc.rect(M + (bold ? 0 : 4), y - 2.6, 3, 3, "F");
+      }
+      const lx = M + (bold ? (color ? 5 : 0) : 9);
+      font(9, "bold");
+      text(label, lx, y);
+      const used = doc.getTextWidth(clean(label));
+      font(8, "normal", MUTED);
+      text(` · ${detail}`, lx + used, y);
+      font(9, bold ? "bold" : "normal");
+      text(formatCents(cents), PAGE_W - M - 16, y, "right");
+      font(8, "normal", MUTED);
+      text(percent.format(cents / grand), PAGE_W - M, y, "right");
+      y += 5.5;
+    };
+    const services = (k: ServiceKind) => plural(kinds[k].services, "servicio", "servicios");
+    row("Mantenimiento", plural(kinds.correctivo.services + kinds.preventivo.services, "servicio", "servicios"), kc("correctivo") + kc("preventivo"), null, true);
+    row(SERVICE_KIND_LABELS.correctivo, services("correctivo"), kc("correctivo"), SERVICE_KIND_COLORS.correctivo, false);
+    row(SERVICE_KIND_LABELS.preventivo, services("preventivo"), kc("preventivo"), SERVICE_KIND_COLORS.preventivo, false);
+    row("Reparaciones (Servicio)", services("servicio"), kc("servicio"), SERVICE_KIND_COLORS.servicio, true);
+    if (kc("sin_tipo") > 0) row("Sin tipo", `${services("sin_tipo")} de antes`, kc("sin_tipo"), SERVICE_KIND_COLORS.sin_tipo, true);
+
+    // Gasto por mes por tipo.
+    const chartH = 42;
+    ensure(chartH + 22);
+    y += 4;
+    font(10, "bold");
+    text("Gasto por mes por tipo", M, y);
+    let lx = PAGE_W - M;
+    const monthKinds = SERVICE_KINDS.filter((k) => report.byMonth.some((m) => (toCents(m.kinds[k]) ?? 0) > 0));
+    font(7.5, "normal", MUTED);
+    for (const k of [...monthKinds].reverse()) {
+      const w = doc.getTextWidth(SERVICE_KIND_LABELS[k]);
+      lx -= w;
+      text(SERVICE_KIND_LABELS[k], lx, y);
+      doc.setFillColor(SERVICE_KIND_COLORS[k]);
+      doc.rect(lx - 3.5, y - 2.4, 2.6, 2.6, "F");
+      lx -= 7;
+    }
+    const totals = report.byMonth.map((m) => toCents(m.total) ?? 0);
+    const top = niceMax(Math.max(...totals, 0) / 100);
+    const axisW = 16;
+    const x0 = M + axisW;
+    const plotW = W - axisW;
+    const base = y + 4 + chartH;
+    font(7, "normal", MUTED);
+    doc.setDrawColor(BORDER);
+    doc.setLineWidth(0.2);
+    for (const t of [1, 0.5, 0]) {
+      const ty = base - chartH * t;
+      doc.line(x0, ty, PAGE_W - M, ty);
+      text(compact(top * t), x0 - 2, ty + 1, "right");
+    }
+    const slot = plotW / Math.max(totals.length, 1);
+    const barW = Math.min(slot * 0.6, 8);
+    report.byMonth.forEach((m, i) => {
+      const cx = x0 + slot * i + slot / 2;
+      let stack = base;
+      for (const k of monthKinds) {
+        const h = ((toCents(m.kinds[k]) ?? 0) / 100 / top) * chartH;
+        if (h <= 0) continue;
+        doc.setFillColor(SERVICE_KIND_COLORS[k]);
+        doc.rect(cx - barW / 2, stack - h, barW, Math.max(h - 0.3, 0.1), "F");
+        stack -= h;
+      }
+      font(totals.length > 14 ? 5.5 : 7, "normal", MUTED);
+      text(monthLabel(m.month), cx, base + 4, "center");
+    });
+    y = base + 8;
+  }
 
   sectionTitle("Proveedores y talleres", "Dónde se hacen los servicios.");
   ranked(report.bySupplier.map((p) => ({ label: p.name, detail: plural(p.services, "servicio", "servicios"), total: p.total })));

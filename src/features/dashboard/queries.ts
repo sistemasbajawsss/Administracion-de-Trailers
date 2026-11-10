@@ -48,7 +48,17 @@ export async function getReport(
     expenses: num(r.gastos),
     units: num(r.unidades),
     usd: { amount: text(usd.usd) || "0", mxn: text(usd.mxn) || "0", expenses: num(usd.gastos) },
-    byMonth: rows(r.por_mes).map((m) => ({ month: text(m.mes), total: text(m.total), services: num(m.servicios) })),
+    byMonth: rows(r.por_mes).map((m) => ({
+      month: text(m.mes),
+      total: text(m.total),
+      services: num(m.servicios),
+      kinds: {
+        correctivo: text(m.correctivo) || "0",
+        preventivo: text(m.preventivo) || "0",
+        servicio: text(m.servicio) || "0",
+        sin_tipo: text(m.sin_tipo) || "0",
+      },
+    })),
     byCategory: rows(r.por_categoria).map((c) => ({
       id: orNull(c.id),
       name: text(c.nombre),
