@@ -63,7 +63,7 @@ export async function NoShopEntryPanel({ today }: { today: string }) {
     <HomePanel
       title="Sin entrada a taller"
       count={total}
-      description={`Servicios de los últimos ${NO_ENTRY_DAYS} días que no pasaron por Taller, con su motivo. No incluye los mantenimientos del taller Realso.`}
+      description={`Servicios de los últimos ${NO_ENTRY_DAYS} días que no pasaron por Taller, con su motivo.`}
     >
       {total === 0 ? (
         <HomePanelEmpty>Todos los servicios recientes pasaron por Taller.</HomePanelEmpty>

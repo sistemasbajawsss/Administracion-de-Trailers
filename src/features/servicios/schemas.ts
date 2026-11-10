@@ -96,9 +96,10 @@ export type ServiceInput = z.infer<typeof serviceSchema>;
 export const NO_ENTRY_REASONS = ["Reparación en camino", "Mantenimiento taller Realso"] as const;
 
 /**
- * Mantenimientos hechos en el taller Realso: no pasan por Taller y está bien, así
- * que no salen en el aviso "Sin entrada a taller". "Mantenimiento en patio" es el
- * nombre anterior del mismo motivo (servicios guardados antes del 2026-11-10).
+ * "Mantenimiento en patio" es el nombre anterior de "Mantenimiento taller Realso"
+ * (servicios guardados antes del 2026-11-10): al editarlos sale elegido el nuevo.
+ * Siguen saliendo en "Sin entrada a taller": Realso es el taller propio y primero
+ * se da la entrada a taller y luego el servicio (lo aclaró el usuario).
  */
 export const OWN_SHOP_REASONS = ["Mantenimiento taller Realso", "Mantenimiento en patio"] as const;
 
