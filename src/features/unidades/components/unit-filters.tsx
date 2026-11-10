@@ -18,9 +18,9 @@ import { Switch } from "@/components/ui/switch";
 import {
   UNIT_STATUS_LABELS,
   UNIT_STATUSES,
-  UNIT_TYPE_LABELS,
-  UNIT_TYPES_BY_GROUP,
+  unitTypesOfGroup,
   type UnitGroup,
+  type UnitTypeCatalog,
 } from "../types";
 
 const ALL = "todos";
@@ -29,7 +29,7 @@ const ALL = "todos";
  * Filtros en la URL. La búsqueda espera 300 ms después de la última tecla
  * para no consultar en cada letra.
  */
-export function UnitFilters() {
+export function UnitFilters({ types: catalog }: { types: UnitTypeCatalog }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -59,8 +59,9 @@ export function UnitFilters() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo reacciona a lo que se escribe
   }, [search]);
 
-  const types = UNIT_TYPES_BY_GROUP[group];
-  const typeItems = { [ALL]: "Todos los tipos", ...Object.fromEntries(types.map((t) => [t, UNIT_TYPE_LABELS[t]])) };
+  // Los desactivados también: puede haber unidades de ese tipo.
+  const types = unitTypesOfGroup(catalog, group, true);
+  const typeItems = { [ALL]: "Todos los tipos", ...Object.fromEntries(types.map((t) => [t.key, t.name])) };
   const statusItems = { [ALL]: "Todos los estatus", ...UNIT_STATUS_LABELS };
   const hasFilters = Boolean(
     searchParams.get("q") || searchParams.get("tipo") || searchParams.get("estatus") || searchParams.get("sinChofer"),

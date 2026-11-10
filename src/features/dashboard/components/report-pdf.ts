@@ -1,6 +1,5 @@
 import { jsPDF } from "jspdf";
 
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { formatCents, formatDate, formatDateTime, formatMoney, formatUsd, toCents } from "@/lib/utils/format";
 
 import type { ReportPdfData } from "../actions";
@@ -110,7 +109,7 @@ export async function buildReportPdf({ report, period, filters }: ReportPdfData)
   const details = [
     `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`,
     filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos los grupos",
-    filters.tipo ? UNIT_TYPE_LABELS[filters.tipo] : "Todos los tipos",
+    filters.tipo ? (report.typeNames[filters.tipo] ?? filters.tipo) : "Todos los tipos",
   ].join(" · ");
   const logoW = 36;
   const titleW = logo ? W - logoW - 6 : W;
@@ -298,7 +297,7 @@ export async function buildReportPdf({ report, period, filters }: ReportPdfData)
       y += 5.5;
     }
     y += 3;
-    ranked(report.byType.map((t) => ({ label: UNIT_TYPE_LABELS[t.type], total: t.total })));
+    ranked(report.byType.map((t) => ({ label: report.typeNames[t.type] ?? t.type, total: t.total })));
   }
 
   sectionTitle("Por categoría", "En qué se va el dinero.");
@@ -308,7 +307,7 @@ export async function buildReportPdf({ report, period, filters }: ReportPdfData)
   ranked(
     report.byUnit.map((u) => ({
       label: u.economicNumber,
-      detail: `${UNIT_TYPE_LABELS[u.type]} · ${GROUP_LABELS[u.group] ?? ""}`,
+      detail: `${report.typeNames[u.type] ?? u.type} · ${GROUP_LABELS[u.group] ?? ""}`,
       total: u.total,
     })),
   );

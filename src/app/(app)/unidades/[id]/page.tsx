@@ -23,10 +23,18 @@ import {
   getUnit,
   getUnitMileage,
   getUnitSale,
+  getUnitTypes,
   listUnitShopStays,
   SHOP_STAYS_BATCH_SIZE,
 } from "@/features/unidades/queries";
-import { isRetired, MILEAGE_SOURCE_LABELS, UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
+import {
+  hasOdometer as unitHasOdometer,
+  isRetired,
+  MILEAGE_SOURCE_LABELS,
+  UNIT_OPERATION_LABELS,
+  unitGroupOf,
+  unitTypeName,
+} from "@/features/unidades/types";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { formatDate, formatKm, formatMoney, todayInTijuana } from "@/lib/utils/format";
@@ -39,7 +47,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [user, unit, totals, sale, shopStays, mileage, maintenance, maintenanceTargets] = await Promise.all([
+  const [user, unit, totals, sale, shopStays, mileage, maintenance, maintenanceTargets, types] = await Promise.all([
     getCurrentUser(),
     getUnit(id),
     getUnitTotals(id),
@@ -48,16 +56,17 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
     getUnitMileage(id),
     listUnitMaintenance(id),
     listMaintenanceTargets(id),
+    getUnitTypes(),
   ]);
   if (!unit) notFound();
   const isAdmin = user.role === "admin";
-  // Las cajas no tienen odómetro (5F).
-  const hasOdometer = unit.type !== "caja";
+  // Cajas, dollys, góndolas…: sin odómetro (5F, catálogo de tipos).
+  const hasOdometer = unitHasOdometer(types, unit.type);
 
   const filters = serviceFiltersSchema.parse(query);
-  const group = unit.type === "camioneta" ? "camionetas" : unit.operation === "foraneo" ? "foraneo" : "local";
+  const group = unitGroupOf(unit.operation);
   const details = [
-    UNIT_TYPE_LABELS[unit.type],
+    unitTypeName(types, unit.type),
     unit.operation ? UNIT_OPERATION_LABELS[unit.operation] : null,
     unit.lengthFt ? `${unit.lengthFt} pies` : null,
     [unit.make, unit.model].filter(Boolean).join(" ") || null,

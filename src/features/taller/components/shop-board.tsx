@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { buttonVariants } from "@/components/ui/button";
-import { UNIT_GROUP_LABELS, UNIT_TYPE_LABELS } from "@/features/unidades/types";
+import { UNIT_GROUP_LABELS } from "@/features/unidades/types";
 import { formatDate } from "@/lib/utils/format";
 
 import type { ShopEntry } from "../types";
@@ -21,8 +21,7 @@ function daysBetween(from: string, to: string) {
 const LONG_STAY_DAYS = 7;
 
 function groupLabel(entry: ShopEntry) {
-  if (entry.unitType === "camioneta") return UNIT_GROUP_LABELS.camionetas;
-  return entry.unitOperation === "foraneo" ? UNIT_GROUP_LABELS.foraneo : UNIT_GROUP_LABELS.local;
+  return UNIT_GROUP_LABELS[entry.unitOperation ?? "camionetas"];
 }
 
 /**
@@ -65,7 +64,7 @@ export function ShopBoard({
                   {entry.economicNumber}
                 </p>
                 <p className="mt-1.5 text-sm text-muted-foreground">
-                  {UNIT_TYPE_LABELS[entry.unitType]} · {groupLabel(entry)}
+                  {entry.unitTypeName} · {groupLabel(entry)}
                 </p>
               </div>
               <div

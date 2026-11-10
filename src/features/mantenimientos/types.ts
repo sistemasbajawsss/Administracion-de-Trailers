@@ -1,4 +1,4 @@
-import type { UnitOperation, UnitType } from "@/features/unidades/types";
+import type { UnitOperation } from "@/features/unidades/types";
 import { formatDate, formatKm } from "@/lib/utils/format";
 
 /** Estado de un mantenimiento programado (mantenimientos_pendientes en la BD). */
@@ -46,7 +46,7 @@ export type Maintenance = {
 /** Un mantenimiento en la página Mantenimientos (todas las unidades). */
 export type FleetMaintenance = Maintenance & {
   economicNumber: string;
-  unitType: UnitType;
+  unitTypeName: string;
 };
 
 /** Pestañas de la página Mantenimientos (con los nombres del usuario). */
@@ -57,9 +57,11 @@ export type MaintenanceView = (typeof MAINTENANCE_VIEWS)[number];
 export type MaintenanceTarget = {
   id: string;
   economicNumber: string;
-  type: UnitType;
+  typeName: string;
   operation: UnitOperation | null;
-  /** Sin kilometraje (o caja): solo le pasa la parte por meses. */
+  /** Su tipo lleva kilometraje (las cajas, dollys y góndolas no). */
+  hasOdometer: boolean;
+  /** Sin kilometraje (o tipo sin odómetro): solo le pasa la parte por meses. */
   hasKm: boolean;
 };
 

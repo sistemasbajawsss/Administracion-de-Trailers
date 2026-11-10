@@ -3,8 +3,8 @@ import Link from "next/link";
 
 import { HomePanel, HomePanelEmpty } from "@/components/shared/home-panel";
 
-import { listUnitsInShop } from "../queries";
-import { UNIT_OPERATION_LABELS, UNIT_TYPE_LABELS } from "../types";
+import { getUnitTypes, listUnitsInShop } from "../queries";
+import { UNIT_OPERATION_LABELS, unitTypeName } from "../types";
 
 /** Días completos entre dos fechas "aaaa-mm-dd" (sin zonas horarias). */
 function daysBetween(from: string, to: string) {
@@ -18,7 +18,7 @@ function daysBetween(from: string, to: string) {
  * abiertas: la que lleva más días primero, con su falla. Una semana o más, en ámbar.
  */
 export async function UnitsInShopPanel({ today }: { today: string }) {
-  const units = await listUnitsInShop();
+  const [units, types] = await Promise.all([listUnitsInShop(), getUnitTypes()]);
 
   return (
     <HomePanel title="Unidades en taller" count={units.length}>
@@ -40,7 +40,7 @@ export async function UnitsInShopPanel({ today }: { today: string }) {
                     </span>
                     <span className="min-w-0 flex-1 text-sm">
                       <span className="block">
-                        {UNIT_TYPE_LABELS[unit.type]}
+                        {unitTypeName(types, unit.type)}
                         {unit.operation && ` · ${UNIT_OPERATION_LABELS[unit.operation]}`}
                       </span>
                       {/* Completa, sin "…": baja de renglón si no cabe. */}

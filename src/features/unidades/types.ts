@@ -3,17 +3,42 @@ import type { LastMileage } from "@/lib/utils/mileage";
 
 type Enums = Database["public"]["Enums"];
 
-export type UnitType = Enums["tipo_unidad"];
+/** Clave del catálogo tipos_unidad ("trailer", "caja", "dolly"…). El admin agrega tipos en Catálogos. */
+export type UnitType = string;
 export type UnitOperation = Enums["operacion_unidad"];
 export type UnitStatus = Enums["estatus_unidad"];
 
-export const UNIT_TYPES = [
-  "trailer",
-  "caja",
-  "camion_rabon",
-  "pipa",
-  "camioneta",
-] as const satisfies readonly UnitType[];
+/** Un tipo de unidad del catálogo: su letra y qué datos lleva. */
+export type UnitTypeInfo = {
+  key: string;
+  name: string;
+  /** Letra del número económico: T de T-17. */
+  prefix: string;
+  /** Tiene odómetro: se le pide kilometraje (las cajas, dollys y góndolas no). */
+  hasOdometer: boolean;
+  /** Se captura su largo en pies (las cajas). */
+  hasLength: boolean;
+  /** Es local o foránea; si no, va con las camionetas. */
+  hasOperation: boolean;
+  active: boolean;
+};
+
+/** Catálogo de tipos por clave, en el orden de las listas. */
+export type UnitTypeCatalog = Record<string, UnitTypeInfo>;
+
+/** "Caja", o la clave si el tipo no está en el catálogo. */
+export const unitTypeName = (catalog: UnitTypeCatalog, key: string) => catalog[key]?.name ?? key;
+
+/** Sin odómetro: no lleva kilometraje (un tipo desconocido se trata como que sí, igual que la BD). */
+export const hasOdometer = (catalog: UnitTypeCatalog, key: string) => catalog[key]?.hasOdometer ?? true;
+
+/** Tipos de un grupo de la pantalla de unidades (Camionetas = los que no son locales ni foráneos). */
+export const unitTypesOfGroup = (catalog: UnitTypeCatalog, group: UnitGroup, includeInactive = false) =>
+  Object.values(catalog).filter(
+    (t) => (includeInactive || t.active) && (group === "camionetas" ? !t.hasOperation : t.hasOperation),
+  );
+
+export const UNIT_TYPE_KEY = /^[a-z][a-z0-9_]{1,39}$/;
 
 export const UNIT_STATUSES = [
   "activo",
@@ -24,14 +49,6 @@ export const UNIT_STATUSES = [
 ] as const satisfies readonly UnitStatus[];
 
 export const UNIT_OPERATIONS = ["local", "foraneo"] as const satisfies readonly UnitOperation[];
-
-export const UNIT_TYPE_LABELS: Record<UnitType, string> = {
-  trailer: "Trailer",
-  caja: "Caja",
-  camion_rabon: "Camión rabón",
-  pipa: "Pipa",
-  camioneta: "Camioneta",
-};
 
 export const UNIT_STATUS_LABELS: Record<UnitStatus, string> = {
   activo: "Activo",
@@ -44,15 +61,6 @@ export const UNIT_STATUS_LABELS: Record<UnitStatus, string> = {
 export const UNIT_OPERATION_LABELS: Record<UnitOperation, string> = {
   local: "Local",
   foraneo: "Foráneo",
-};
-
-/** Debe coincidir con public.prefijo_tipo_unidad() en la base de datos. */
-export const UNIT_TYPE_PREFIX: Record<UnitType, string> = {
-  trailer: "T",
-  caja: "R",
-  camion_rabon: "F",
-  pipa: "P",
-  camioneta: "C",
 };
 
 /** Longitudes de caja que ofrece el formulario (la BD acepta 10–60 pies). */
@@ -68,12 +76,8 @@ export const UNIT_GROUP_LABELS: Record<UnitGroup, string> = {
   camionetas: "Camionetas",
 };
 
-/** Tipos que se pueden elegir dentro de cada grupo. */
-export const UNIT_TYPES_BY_GROUP: Record<UnitGroup, readonly UnitType[]> = {
-  local: ["trailer", "caja", "camion_rabon", "pipa"],
-  foraneo: ["trailer", "caja", "camion_rabon", "pipa"],
-  camionetas: ["camioneta"],
-};
+/** Grupo de una unidad: sin operación (local / foráneo) va con las camionetas. */
+export const unitGroupOf = (operation: UnitOperation | null): UnitGroup => operation ?? "camionetas";
 
 export type UnitListItem = {
   id: string;

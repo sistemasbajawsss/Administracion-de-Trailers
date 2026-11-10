@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { RequireRole } from "@/features/auth/components/require-role";
 import { ReportFilters } from "@/features/dashboard/components/report-filters";
 import { ReportView, ReportViewSkeleton } from "@/features/dashboard/components/report-view";
+import { listReportUnitTypes } from "@/features/dashboard/queries";
 import { reportFiltersSchema, resolvePeriod } from "@/features/dashboard/schemas";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { todayInTijuana } from "@/lib/utils/format";
@@ -12,12 +13,13 @@ import { todayInTijuana } from "@/lib/utils/format";
 export const metadata: Metadata = { title: "Reportes" };
 
 async function Report({ searchParams }: { searchParams: PageProps<"/dashboard">["searchParams"] }) {
-  const filters = reportFiltersSchema.parse(await searchParams);
+  const [params, unitTypes] = await Promise.all([searchParams, listReportUnitTypes()]);
+  const filters = reportFiltersSchema.parse(params);
   const period = resolvePeriod(filters, todayInTijuana());
 
   return (
     <>
-      <ReportFilters from={period.from} to={period.to} />
+      <ReportFilters from={period.from} to={period.to} unitTypes={unitTypes} />
       <Suspense key={JSON.stringify({ period, g: filters.grupo, t: filters.tipo })} fallback={<ReportViewSkeleton />}>
         <ReportView period={period} filters={filters} />
       </Suspense>

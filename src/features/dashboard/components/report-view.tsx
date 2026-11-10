@@ -2,7 +2,6 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { formatDate, formatDateTime, formatMoney, toCents } from "@/lib/utils/format";
 
 import { getReport } from "../queries";
@@ -34,11 +33,11 @@ function Panel({ title, description, children, className = "" }: {
 }
 
 /** Encabezado que solo sale en papel / PDF: qué es, de cuándo y con qué filtros. */
-function PrintHeader({ period, filters }: { period: ResolvedPeriod; filters: ReportFilters }) {
+function PrintHeader({ period, filters, typeNames }: { period: ResolvedPeriod; filters: ReportFilters; typeNames: Record<string, string> }) {
   const details = [
     `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`,
     filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos los grupos",
-    filters.tipo ? UNIT_TYPE_LABELS[filters.tipo] : "Todos los tipos",
+    filters.tipo ? (typeNames[filters.tipo] ?? filters.tipo) : "Todos los tipos",
   ];
   return (
     <header className="hidden items-end justify-between gap-6 border-b-2 border-brand-ink pb-3 print:flex">
@@ -85,7 +84,7 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
 
   return (
     <div className="space-y-6 print:space-y-3">
-      <PrintHeader period={period} filters={filters} />
+      <PrintHeader period={period} filters={filters} typeNames={report.typeNames} />
       <KpiRow report={report} periodLabel={period.label} />
 
       {/*
@@ -140,7 +139,7 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
           <div className="mt-5 border-t pt-5 print:mt-3 print:pt-3">
             <RankedBars
               grandTotal={report.total}
-              items={report.byType.map((t) => ({ key: t.type, label: UNIT_TYPE_LABELS[t.type], total: t.total }))}
+              items={report.byType.map((t) => ({ key: t.type, label: report.typeNames[t.type] ?? t.type, total: t.total }))}
             />
           </div>
         </Panel>
@@ -228,7 +227,7 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
             items={report.byUnit.map((u) => ({
               key: u.id,
               label: u.economicNumber,
-              detail: `${UNIT_TYPE_LABELS[u.type]} · ${GROUP_LABELS[u.group] ?? ""}`,
+              detail: `${report.typeNames[u.type] ?? u.type} · ${GROUP_LABELS[u.group] ?? ""}`,
               total: u.total,
               href: `/unidades/${u.id}`,
             }))}

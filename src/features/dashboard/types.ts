@@ -32,6 +32,8 @@ export const SERVICE_KIND_COLORS: Record<ServiceKind, string> = {
 
 /** Montos como texto exacto de la BD ("12345.67"); se convierten a centavos para dibujar. */
 export type Report = {
+  /** Nombre de cada tipo de unidad (catálogo), por clave. */
+  typeNames: Record<string, string>;
   total: string;
   previousTotal: string;
   /** Fechas contra las que se comparó (mes anterior, mismo tramo del año pasado…). */

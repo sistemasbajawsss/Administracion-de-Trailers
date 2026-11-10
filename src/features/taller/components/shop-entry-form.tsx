@@ -40,7 +40,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
 
   const unitId = useWatch({ control: form.control, name: "unitId" });
   const selectedUnit = units.find((u) => u.id === unitId);
-  const isBox = selectedUnit?.type === "caja";
+  const isBox = selectedUnit ? !selectedUnit.hasOdometer : false;
   const lastMileage = selectedUnit?.mileage ?? null;
 
   /**

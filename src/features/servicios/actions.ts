@@ -112,11 +112,11 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
   if (!mileageRule) return fail("La unidad ya no existe.");
   const values = parsed.data;
   const kmProblem = mileageIssue(values.mileage, {
-    required: mileageRule.type !== "caja",
+    required: mileageRule.hasOdometer,
     last: mileageRule.last,
     date: values.date,
   });
-  if (mileageRule.type !== "caja" && kmProblem) return fail(kmProblem);
+  if (mileageRule.hasOdometer && kmProblem) return fail(kmProblem);
   if (!values.serviceType) return fail("Elige el tipo de servicio.");
   const linked = fallsInStay(stay, values.date);
   const issues = shopIssues(values, { stay, linked, needsReason: true, allowForgot: true });

@@ -50,7 +50,7 @@ export type Database = {
           num_servicios: number
           numero_economico: string
           servicio_id: string | null
-          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo: string
           tipo_registro: string
           total: number
           unidad_id: string
@@ -65,7 +65,7 @@ export type Database = {
           num_servicios: number
           numero_economico: string
           servicio_id?: string | null
-          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo: string
           tipo_registro?: string
           total: number
           unidad_id: string
@@ -80,7 +80,7 @@ export type Database = {
           num_servicios?: number
           numero_economico?: string
           servicio_id?: string | null
-          tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          tipo?: string
           tipo_registro?: string
           total?: number
           unidad_id?: string
@@ -609,6 +609,48 @@ export type Database = {
           },
         ]
       }
+      tipos_unidad: {
+        Row: {
+          activo: boolean
+          clave: string
+          created_at: string
+          created_by: string | null
+          lleva_kilometraje: boolean
+          lleva_largo: boolean
+          lleva_operacion: boolean
+          nombre: string
+          orden: number
+          prefijo: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          clave: string
+          created_at?: string
+          created_by?: string | null
+          lleva_kilometraje: boolean
+          lleva_largo?: boolean
+          lleva_operacion?: boolean
+          nombre: string
+          orden?: number
+          prefijo: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          clave?: string
+          created_at?: string
+          created_by?: string | null
+          lleva_kilometraje?: boolean
+          lleva_largo?: boolean
+          lleva_operacion?: boolean
+          nombre?: string
+          orden?: number
+          prefijo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       unidades: {
         Row: {
           anio: number | null
@@ -624,8 +666,9 @@ export type Database = {
           numero_economico: string
           numero_orden: number | null
           operacion: Database["public"]["Enums"]["operacion_unidad"] | null
+          orden_tipo: number
           placas: string | null
-          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo: string
           updated_at: string
           vin: string | null
         }
@@ -643,8 +686,9 @@ export type Database = {
           numero_economico: string
           numero_orden?: number | null
           operacion?: Database["public"]["Enums"]["operacion_unidad"] | null
+          orden_tipo: number
           placas?: string | null
-          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo: string
           updated_at?: string
           vin?: string | null
         }
@@ -662,8 +706,9 @@ export type Database = {
           numero_economico?: string
           numero_orden?: number | null
           operacion?: Database["public"]["Enums"]["operacion_unidad"] | null
+          orden_tipo?: number
           placas?: string | null
-          tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          tipo?: string
           updated_at?: string
           vin?: string | null
         }
@@ -674,6 +719,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "choferes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unidades_tipo_fkey"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "tipos_unidad"
+            referencedColumns: ["clave"]
           },
         ]
       }
@@ -775,7 +827,7 @@ export type Database = {
           servicio_id: string | null
           tiene_pdf: boolean | null
           tipo_cambio: number | null
-          tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
+          tipo_unidad: string | null
           unidad_id: string | null
         }
         Relationships: [
@@ -806,6 +858,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unidades_tipo_fkey"
+            columns: ["tipo_unidad"]
+            isOneToOne: false
+            referencedRelation: "tipos_unidad"
+            referencedColumns: ["clave"]
           },
         ]
       }
@@ -970,7 +1029,7 @@ export type Database = {
           p_desde: string
           p_grupo?: string
           p_hasta: string
-          p_tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          p_tipo?: string
         }
         Returns: {
           categoria: string
@@ -983,7 +1042,7 @@ export type Database = {
           monto_usd: string
           numero_economico: string
           proveedor: string
-          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo: string
           tipo_cambio: string
           tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
         }[]
@@ -1003,7 +1062,7 @@ export type Database = {
           p_desde: string
           p_grupo: string
           p_hasta: string
-          p_tipo: Database["public"]["Enums"]["tipo_unidad"]
+          p_tipo: string
         }
         Returns: {
           categoria: string
@@ -1021,7 +1080,7 @@ export type Database = {
           proveedor: string
           proveedor_id: string
           servicio_id: string
-          tipo: Database["public"]["Enums"]["tipo_unidad"]
+          tipo: string
           tipo_cambio: number
           tipo_servicio: Database["public"]["Enums"]["tipo_servicio"]
           unidad_id: string
@@ -1063,7 +1122,7 @@ export type Database = {
           servicio_id: string | null
           tiene_pdf: boolean | null
           tipo_cambio: number | null
-          tipo_unidad: Database["public"]["Enums"]["tipo_unidad"] | null
+          tipo_unidad: string | null
           unidad_id: string | null
         }[]
         SetofOptions: {
@@ -1112,10 +1171,6 @@ export type Database = {
       }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
-      prefijo_tipo_unidad: {
-        Args: { tipo: Database["public"]["Enums"]["tipo_unidad"] }
-        Returns: string
-      }
       puede_capturar: { Args: never; Returns: boolean }
       puede_ver_todo: { Args: never; Returns: boolean }
       quitar_comprobante: {
@@ -1156,7 +1211,7 @@ export type Database = {
           p_grupo?: string
           p_hasta: string
           p_limite_ranking?: number
-          p_tipo?: Database["public"]["Enums"]["tipo_unidad"]
+          p_tipo?: string
         }
         Returns: Json
       }
@@ -1181,6 +1236,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
+      tipo_lleva_kilometraje: { Args: { p_tipo: string }; Returns: boolean }
       validar_kilometraje: {
         Args: {
           p_entrada_id?: string
@@ -1203,7 +1259,6 @@ export type Database = {
       operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista" | "gerente"
       tipo_servicio: "preventivo" | "correctivo" | "servicio"
-      tipo_unidad: "trailer" | "caja" | "camion_rabon" | "pipa" | "camioneta"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1340,7 +1395,6 @@ export const Constants = {
       operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista", "gerente"],
       tipo_servicio: ["preventivo", "correctivo", "servicio"],
-      tipo_unidad: ["trailer", "caja", "camion_rabon", "pipa", "camioneta"],
     },
   },
 } as const

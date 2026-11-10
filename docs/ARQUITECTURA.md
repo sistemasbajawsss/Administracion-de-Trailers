@@ -80,12 +80,16 @@ La dirección permitida es: `app → features → components/shared → lib`.
 - `app/` importa de `features/`, `components/` y `lib/`. Nunca al revés.
 - Un feature **no importa internals de otro feature**. Si dos features necesitan lo mismo,
   se mueve a `components/shared/` o `lib/`.
-  - Sí puede importar el `types.ts` de otro feature (tipos y etiquetas, p. ej. `UNIT_TYPE_LABELS`).
+  - Sí puede importar el `types.ts` de otro feature (tipos y etiquetas, p. ej. `UNIT_OPERATION_LABELS`).
+    Los nombres de los tipos de unidad no son fijos: salen del catálogo `tipos_unidad`
+    (en `unidades` con `getUnitTypes()`; en otros features, anidando `tipo_info:tipos_unidad(nombre)`
+    en su propia consulta).
   - Componentes públicos a propósito: `catalogos/components/supplier-quick-add` (alta rápida de
     proveedor dentro del formulario de servicio), `comprobantes/components/receipt-picker` y
     `comprobantes/components/upload-receipts` (elegir y subir comprobantes en el servicio nuevo),
     `comprobantes/components/view-receipts-button` ("Ver factura" en la lista de gastos),
     `servicios/components/unit-picker` (elegir unidad; también en la entrada a taller),
+    `unidades/components/unit-type-manager` (tipos de unidad en Catálogos),
     `servicios/components/service-brief-feed` (historial de preventivos en Mantenimientos),
     `mantenimientos/components/maintenance-status-badge` (estado del mantenimiento en el
     formulario de servicio).

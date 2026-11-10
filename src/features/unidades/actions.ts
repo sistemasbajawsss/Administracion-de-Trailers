@@ -16,29 +16,34 @@ import {
   normalizeEconomicNumber,
   sellUnitSchema,
   undoSaleSchema,
-  unitSchema,
+  makeUnitSchema,
+  renameUnitTypeSchema,
+  unitTypeSchema,
   type UnitInput,
 } from "./schemas";
-import { listUnitShopStays } from "./queries";
-import type { UnitShopStay } from "./types";
+import { getUnitTypes, listUnitShopStays } from "./queries";
+import { UNIT_TYPE_KEY, type UnitShopStay, type UnitTypeCatalog } from "./types";
 
 const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
 /** Del formulario (camelCase, strings) a columnas de la BD. */
-function toRow(unit: UnitInput) {
+function toRow(unit: UnitInput, types: UnitTypeCatalog) {
+  const type = types[unit.type];
   return {
     numero_economico: normalizeEconomicNumber(unit.economicNumber),
     tipo: unit.type,
-    operacion: unit.type === "camioneta" || unit.operation === "" ? null : unit.operation,
+    operacion: !type?.hasOperation || unit.operation === "" ? null : unit.operation,
     estatus: unit.status,
     chofer_id: emptyToNull(unit.driverId),
-    longitud_pies: unit.type === "caja" && unit.lengthFt ? Number(unit.lengthFt) : null,
+    longitud_pies: type?.hasLength && unit.lengthFt ? Number(unit.lengthFt) : null,
     placas: emptyToNull(unit.plates),
     marca: emptyToNull(unit.make),
     modelo: emptyToNull(unit.model),
     anio: unit.year ? Number(unit.year) : null,
     vin: emptyToNull(unit.vin),
     notas: emptyToNull(unit.notes),
+    // Lo pone la BD según el tipo (validar_tipo_de_unidad).
+    orden_tipo: 0,
   };
 }
 
@@ -50,6 +55,8 @@ function errorMessage(error: { code?: string; message?: string }) {
   }
   // El candado de taller (BD) explica qué hacer: "registra su entrada" / "dale salida desde Taller".
   if (error.code === "23514" && error.message?.includes("Taller")) return error.message;
+  // Las reglas del tipo (letra, local/foráneo, largo) ya vienen explicadas en español.
+  if (error.code === "23514" && error.message && !error.message.includes("violates")) return error.message;
   if (error.code === "23514") return "Revisa los datos: hay un campo que no cumple las reglas.";
   if (error.code === "23503") return "El chofer elegido ya no existe.";
   if (error.code === "42501") return "No tienes permiso para modificar unidades.";
@@ -57,7 +64,8 @@ function errorMessage(error: { code?: string; message?: string }) {
 }
 
 export async function createUnit(input: unknown): Promise<ActionResult<{ id: string }>> {
-  const parsed = unitSchema.safeParse(input);
+  const types = await getUnitTypes();
+  const parsed = makeUnitSchema(types).safeParse(input);
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
 
   const user = await requireRole("admin");
@@ -65,7 +73,7 @@ export async function createUnit(input: unknown): Promise<ActionResult<{ id: str
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("unidades")
-    .insert({ ...toRow(parsed.data), created_by: user.id })
+    .insert({ ...toRow(parsed.data, types), created_by: user.id })
     .select("id")
     .single();
   if (error) return fail(errorMessage(error));
@@ -76,7 +84,8 @@ export async function createUnit(input: unknown): Promise<ActionResult<{ id: str
 
 export async function updateUnit(id: string, input: unknown): Promise<ActionResult> {
   if (!isUuid(id)) return fail("Unidad no válida.");
-  const parsed = unitSchema.safeParse(input);
+  const types = await getUnitTypes();
+  const parsed = makeUnitSchema(types).safeParse(input);
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
 
   await requireRole("admin");
@@ -84,7 +93,7 @@ export async function updateUnit(id: string, input: unknown): Promise<ActionResu
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("unidades")
-    .update(toRow(parsed.data))
+    .update(toRow(parsed.data, types))
     .eq("id", id)
     .select("id");
   if (error) return fail(errorMessage(error));
@@ -221,5 +230,88 @@ export async function correctUnitMileage(id: string, input: unknown): Promise<Ac
   // El kilometraje mueve lo que falta de los mantenimientos (5F).
   revalidatePath("/mantenimientos");
   revalidatePath("/");
+  return ok();
+}
+
+// ---------------------------------------------------------------------------
+// Tipos de unidad (Catálogos, solo admin)
+// ---------------------------------------------------------------------------
+
+function unitTypeError(error: { code?: string; message?: string }) {
+  if (error.code === "23505") {
+    return error.message?.includes("prefijo")
+      ? "Esa letra ya la usa otro tipo de unidad."
+      : "Ya existe un tipo de unidad con ese nombre.";
+  }
+  if (error.code === "23514" && error.message && !error.message.includes("violates")) return error.message;
+  if (error.code === "42501") return "Solo un administrador puede cambiar los tipos de unidad.";
+  return "No se pudo guardar el tipo de unidad. Inténtalo de nuevo.";
+}
+
+/** Todo lo que muestra o pide tipos de unidad. */
+function revalidateUnitTypes() {
+  revalidatePath("/admin/catalogos");
+  revalidatePath("/", "layout");
+}
+
+export async function createUnitType(input: unknown): Promise<ActionResult<{ name: string; prefix: string }>> {
+  const parsed = unitTypeSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa los datos del tipo.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tipos_unidad")
+    .insert({
+      // La BD saca la clave del nombre y pone el orden.
+      clave: "nuevo",
+      orden: 0,
+      nombre: parsed.data.name,
+      prefijo: parsed.data.prefix.toUpperCase(),
+      lleva_kilometraje: parsed.data.hasOdometer,
+      lleva_largo: parsed.data.hasLength,
+      lleva_operacion: parsed.data.hasOperation,
+    })
+    .select("nombre, prefijo")
+    .single();
+  if (error) return fail(unitTypeError(error));
+
+  revalidateUnitTypes();
+  return ok({ name: data.nombre, prefix: data.prefijo });
+}
+
+export async function renameUnitType(key: string, input: unknown): Promise<ActionResult> {
+  if (!UNIT_TYPE_KEY.test(key)) return fail("Tipo de unidad no válido.");
+  const parsed = renameUnitTypeSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa el nombre.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tipos_unidad")
+    .update({ nombre: parsed.data.name })
+    .eq("clave", key)
+    .select("clave");
+  if (error) return fail(unitTypeError(error));
+  if (!data.length) return fail("No se encontró el tipo de unidad.");
+
+  revalidateUnitTypes();
+  return ok();
+}
+
+/** Desactivado: ya no se ofrece al dar de alta unidades; las que hay no cambian. */
+export async function setUnitTypeActive(key: string, active: boolean): Promise<ActionResult> {
+  if (!UNIT_TYPE_KEY.test(key)) return fail("Tipo de unidad no válido.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("tipos_unidad").update({ activo: active }).eq("clave", key).select("clave");
+  if (error) return fail(unitTypeError(error));
+  if (!data.length) return fail("No se encontró el tipo de unidad.");
+
+  revalidateUnitTypes();
   return ok();
 }

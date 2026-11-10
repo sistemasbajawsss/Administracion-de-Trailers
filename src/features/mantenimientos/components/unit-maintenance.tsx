@@ -50,7 +50,7 @@ import { UnitMultiPicker } from "./unit-multi-picker";
 type UnitMaintenanceProps = {
   unitId: string;
   economicNumber: string;
-  /** Las cajas solo llevan mantenimientos por meses. */
+  /** Sin odómetro (cajas, dollys, góndolas…): solo mantenimientos por meses. */
   isBox: boolean;
   currentKm: number | null;
   items: Maintenance[];
@@ -224,7 +224,7 @@ function MaintenanceDialog({
             </DialogTitle>
             <DialogDescription>
               {isBox
-                ? "Las cajas no tienen odómetro: se programan cada cierto número de meses."
+                ? "Esta unidad no tiene odómetro: se programa cada cierto número de meses."
                 : "Cada cuántos km, cada cuántos meses, o ambos (lo que pase primero)."}
             </DialogDescription>
           </DialogHeader>
@@ -393,10 +393,10 @@ function announce(name: string, outcomes: ApplyOutcome[]) {
   const of = (...results: ApplyOutcome["result"][]) => others.filter((o) => results.includes(o.result));
   const added = of("agregado", "solo_meses");
   const lines = [
-    of("solo_meses").length && `Solo por meses (caja o sin kilometraje): ${numbers(of("solo_meses"))}.`,
+    of("solo_meses").length && `Solo por meses (sin odómetro o sin kilometraje): ${numbers(of("solo_meses"))}.`,
     of("ya_tiene").length && `Ya lo tenían: ${numbers(of("ya_tiene"))}.`,
     of("sin_kilometraje").length && `No se agregó, no tienen kilometraje: ${numbers(of("sin_kilometraje"))}.`,
-    of("caja_solo_km").length && `No se agregó, las cajas no llevan km: ${numbers(of("caja_solo_km"))}.`,
+    of("caja_solo_km").length && `No se agregó, no llevan kilometraje: ${numbers(of("caja_solo_km"))}.`,
     of("retirada").length && `De baja o vendidas: ${numbers(of("retirada"))}.`,
   ].filter(Boolean);
   const total = added.length + 1;

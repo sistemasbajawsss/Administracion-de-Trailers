@@ -4,7 +4,6 @@ import { getReport, listExportRows } from "@/features/dashboard/queries";
 import { GROUP_LABELS, monthLongLabel, reportFiltersSchema, resolvePeriod } from "@/features/dashboard/schemas";
 import { SERVICE_KIND_LABELS, SERVICE_KINDS } from "@/features/dashboard/types";
 import { serviceTypeLabel, type ServiceType } from "@/features/servicios/types";
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { formatDate, formatDateTime, toCents, toRateUnits, todayInTijuana } from "@/lib/utils/format";
@@ -49,7 +48,7 @@ export async function GET(request: Request) {
     [{ value: "Reporte de gastos de la flotilla", fontWeight: "bold" }],
     ["Periodo", `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`],
     ["Grupo", filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos"],
-    ["Tipo de unidad", filters.tipo ? UNIT_TYPE_LABELS[filters.tipo] : "Todos"],
+    ["Tipo de unidad", filters.tipo ? (report.typeNames[filters.tipo] ?? filters.tipo) : "Todos"],
     ["Total invertido", money(report.total)],
     [`Periodo anterior (${formatDate(report.previousFrom)} al ${formatDate(report.previousTo)})`, money(report.previousTotal)],
     ["Servicios", report.services],
@@ -69,7 +68,7 @@ export async function GET(request: Request) {
     ...rows.map((row): Cell[] => [
       date(row.date),
       row.economicNumber,
-      UNIT_TYPE_LABELS[row.type],
+      report.typeNames[row.type] ?? row.type,
       GROUP_LABELS[row.group] ?? "",
       row.category,
       row.concept ?? "",
@@ -89,7 +88,7 @@ export async function GET(request: Request) {
     header("Unidad", "Tipo", "Grupo", "Servicios", "Total", "% del total"),
     ...report.byUnit.map((u): Cell[] => [
       u.economicNumber,
-      UNIT_TYPE_LABELS[u.type],
+      report.typeNames[u.type] ?? u.type,
       GROUP_LABELS[u.group] ?? "",
       u.services,
       money(u.total),

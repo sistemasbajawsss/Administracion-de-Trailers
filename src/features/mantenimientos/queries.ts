@@ -54,8 +54,12 @@ export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
   const supabase = await createClient();
   const [pending, units] = await Promise.all([
     supabase.rpc("mantenimientos_pendientes"),
-    // Mismo orden que la lista de unidades: por tipo (orden del enum) y número.
-    supabase.from("unidades").select("id, numero_economico, tipo, estatus").order("tipo").order("numero_orden"),
+    // Mismo orden que la lista de unidades: por tipo (orden del catálogo) y número.
+    supabase
+      .from("unidades")
+      .select("id, numero_economico, estatus, tipo_info:tipos_unidad(nombre)")
+      .order("orden_tipo")
+      .order("numero_orden"),
   ]);
   if (pending.error || units.error) throw new Error("No se pudieron cargar los mantenimientos");
 
@@ -65,7 +69,9 @@ export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
     .flatMap((row) => {
       const unit = unitById.get(row.unidad_id);
       if (!unit || isRetired(unit.estatus)) return [];
-      const item: FleetMaintenance = { ...toMaintenance(row), economicNumber: unit.numero_economico, unitType: unit.tipo };
+      const item: FleetMaintenance = { ...toMaintenance(row), economicNumber: unit.numero_economico,
+        unitTypeName: unit.tipo_info?.nombre ?? "",
+      };
       return [{ item, order: unit.index }];
     })
     .sort((a, b) => a.order - b.order || byUrgency(a.item, b.item))
@@ -85,9 +91,9 @@ export async function listMaintenanceTargets(exceptUnitId: string): Promise<Main
   const [units, mileage] = await Promise.all([
     supabase
       .from("unidades")
-      .select("id, numero_economico, tipo, operacion, estatus")
+      .select("id, numero_economico, tipo, operacion, estatus, tipo_info:tipos_unidad(nombre, lleva_kilometraje)")
       .neq("id", exceptUnitId)
-      .order("tipo")
+      .order("orden_tipo")
       .order("numero_orden"),
     supabase.rpc("kilometraje_unidades"),
   ]);
@@ -99,8 +105,9 @@ export async function listMaintenanceTargets(exceptUnitId: string): Promise<Main
     .map((u) => ({
       id: u.id,
       economicNumber: u.numero_economico,
-      type: u.tipo,
+      typeName: u.tipo_info?.nombre ?? u.tipo,
       operation: u.operacion,
-      hasKm: u.tipo !== "caja" && withKm.has(u.id),
+      hasOdometer: u.tipo_info?.lleva_kilometraje ?? true,
+      hasKm: (u.tipo_info?.lleva_kilometraje ?? true) && withKm.has(u.id),
     }));
 }

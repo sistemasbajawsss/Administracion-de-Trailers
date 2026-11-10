@@ -196,6 +196,7 @@ function ServiceFormBody({
             status: "baja" as const,
             detail: "Dada de baja o vendida",
             shopStay: null,
+            hasOdometer: service.unit.hasOdometer,
             mileage: null,
           },
         ]
@@ -204,7 +205,8 @@ function ServiceFormBody({
   const unitId = useWatch({ control: form.control, name: "unitId" });
   const expenses = useWatch({ control: form.control, name: "expenses" });
   const selectedUnit = unitOptions.find((u) => u.id === unitId);
-  const isBox = selectedUnit?.type === "caja";
+  // Sin odómetro: cajas, dollys, góndolas… (catálogo de tipos).
+  const isBox = selectedUnit ? !selectedUnit.hasOdometer : false;
   // Kilometraje (5F, D14): obligatorio al dar de alta (menos cajas). Al editar sigue
   // opcional para no trabar servicios de antes; la BD revisa que cuadre en ambos casos.
   const mileageRequired = !isEdit && !isBox;

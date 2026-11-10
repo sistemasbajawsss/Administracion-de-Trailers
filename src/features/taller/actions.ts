@@ -40,7 +40,7 @@ export async function registerShopEntry(input: unknown): Promise<ActionResult<{ 
     return fail("No se pudo registrar la entrada. Inténtalo de nuevo.");
   }
   if (!rule) return fail("La unidad no existe.");
-  const isBox = rule.type === "caja";
+  const isBox = !rule.hasOdometer;
   if (!isBox) {
     const kmProblem = mileageIssue(parsed.data.mileage, { required: true, last: rule.last, date: parsed.data.date });
     if (kmProblem) return fail(kmProblem);

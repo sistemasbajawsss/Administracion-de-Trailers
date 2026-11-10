@@ -14,15 +14,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { listUnits, UNITS_PAGE_SIZE } from "../queries";
+import { getUnitTypes, listUnits, UNITS_PAGE_SIZE } from "../queries";
 import type { UnitFilters } from "../schemas";
-import { isRetired, UNIT_GROUP_LABELS, UNIT_TYPE_LABELS, type UnitListItem } from "../types";
+import { isRetired, UNIT_GROUP_LABELS, unitTypeName, type UnitListItem, type UnitTypeCatalog } from "../types";
 
 import { UnitStatusBadge } from "./unit-status-badge";
 
 /** "Caja · 53 pies", "Camioneta · Ford F-150". */
-function unitDetail(unit: UnitListItem) {
-  const parts: string[] = [UNIT_TYPE_LABELS[unit.type]];
+function unitDetail(unit: UnitListItem, types: UnitTypeCatalog) {
+  const parts: string[] = [unitTypeName(types, unit.type)];
   if (unit.lengthFt) parts.push(`${unit.lengthFt} pies`);
   const makeModel = [unit.make, unit.model].filter(Boolean).join(" ");
   if (makeModel) parts.push(makeModel);
@@ -47,7 +47,7 @@ function DriverName({ name }: { name: string | null }) {
 }
 
 export async function UnitList({ filters, canEdit }: { filters: UnitFilters; canEdit: boolean }) {
-  const { units, total } = await listUnits(filters);
+  const [{ units, total }, types] = await Promise.all([listUnits(filters), getUnitTypes()]);
 
   if (units.length === 0) {
     const filtered = Boolean(filters.q || filters.tipo || filters.estatus || filters.sinChofer);
@@ -97,7 +97,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
                   </Link>
                 </TableCell>
                 <TableCell className="text-base">
-                  {unitDetail(unit)}
+                  {unitDetail(unit, types)}
                   {unit.notes && (
                     <p className="max-w-md text-sm text-muted-foreground">{unit.notes}</p>
                   )}
@@ -137,7 +137,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
                 <EconomicNumber value={unit.economicNumber} muted={isRetired(unit.status)} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block">{unitDetail(unit)}</span>
+                <span className="block">{unitDetail(unit, types)}</span>
                 <span className="block text-sm">
                   <DriverName name={unit.driverName} />
                 </span>

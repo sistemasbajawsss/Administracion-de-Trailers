@@ -34,7 +34,9 @@ export type UnitOption = {
   detail: string;
   /** Estancia abierta en taller (5E), si la unidad está en taller. */
   shopStay: ShopStay | null;
-  /** Última lectura del odómetro (5F); null si no tiene o es caja. */
+  /** Su tipo lleva kilometraje (las cajas, dollys y góndolas no). */
+  hasOdometer: boolean;
+  /** Última lectura del odómetro (5F); null si no tiene o su tipo no lleva. */
   mileage: LastMileage | null;
 };
 
@@ -55,7 +57,7 @@ export type ServiceListItem = {
   expenseCount: number;
   edited: boolean;
   description: string | null;
-  unit: { id: string; economicNumber: string; type: UnitType };
+  unit: { id: string; economicNumber: string; type: UnitType; typeName: string; hasOdometer: boolean };
   supplierName: string | null;
   /** null en servicios de antes de la 5F. */
   serviceType: ServiceType | null;
@@ -155,6 +157,7 @@ export type ServiceBrief = {
   total: string;
   economicNumber: string;
   unitType: UnitType;
+  unitTypeName: string;
   author: string | null;
   receiptCount: number;
   serviceType: ServiceType | null;

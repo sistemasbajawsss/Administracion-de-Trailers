@@ -1,7 +1,6 @@
 import "server-only";
 
 import type { ServiceType } from "@/features/servicios/types";
-import type { UnitType } from "@/features/unidades/types";
 import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,6 +13,14 @@ const text = (value: Json | undefined) => (value === null || value === undefined
 const num = (value: Json | undefined) => Number(value ?? 0);
 const orNull = (value: Json | undefined) => (value === null || value === undefined ? null : String(value));
 
+/** Tipos de unidad para el filtro y las etiquetas (nombre del catálogo), en su orden. */
+export async function listReportUnitTypes(): Promise<{ key: string; name: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("tipos_unidad").select("clave, nombre").order("orden");
+  if (error) throw new Error("No se pudieron cargar los tipos de unidad");
+  return data.map((t) => ({ key: t.clave, name: t.nombre }));
+}
+
 /**
  * Todos los agrupados de Reportes en una consulta (reporte_gastos). Las sumas
  * se hacen en Postgres; aquí solo se renombran campos. Solo admin y gerente.
@@ -24,15 +31,18 @@ export async function getReport(
   rankingSize = 10,
 ): Promise<Report> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("reporte_gastos", {
+  const [{ data, error }, typeNames] = await Promise.all([
+    supabase.rpc("reporte_gastos", {
     p_desde: period.from,
     p_hasta: period.to,
     p_grupo: (filters.grupo ?? null) as string,
-    p_tipo: (filters.tipo ?? null) as UnitType,
+    p_tipo: (filters.tipo ?? null) as string,
     p_limite_ranking: rankingSize,
     // Sin periodo anterior (rango libre), la BD usa los días previos del mismo largo.
     ...(period.previous ? { p_anterior_desde: period.previous.from, p_anterior_hasta: period.previous.to } : {}),
-  });
+    }),
+    listReportUnitTypes().then((types) => Object.fromEntries(types.map((t) => [t.key, t.name]))),
+  ]);
   if (error || !data || typeof data !== "object" || Array.isArray(data)) {
     throw new Error("No se pudo calcular el reporte");
   }
@@ -40,6 +50,7 @@ export async function getReport(
   const r = data as Row;
   const usd = (r.dolares && typeof r.dolares === "object" && !Array.isArray(r.dolares) ? r.dolares : {}) as Row;
   return {
+    typeNames,
     total: text(r.total),
     previousTotal: text(r.total_anterior),
     previousFrom: text(r.anterior_desde),
@@ -68,13 +79,13 @@ export async function getReport(
     byUnit: rows(r.por_unidad).map((u) => ({
       id: text(u.id),
       economicNumber: text(u.numero),
-      type: text(u.tipo) as UnitType,
+      type: text(u.tipo) as string,
       group: text(u.grupo) as Group,
       total: text(u.total),
       services: num(u.servicios),
     })),
     byGroup: rows(r.por_grupo).map((g) => ({ group: text(g.grupo) as Group, total: text(g.total) })),
-    byType: rows(r.por_tipo).map((t) => ({ type: text(t.tipo) as UnitType, total: text(t.total) })),
+    byType: rows(r.por_tipo).map((t) => ({ type: text(t.tipo) as string, total: text(t.total) })),
     byServiceType: rows(r.por_tipo_servicio).map((t) => ({
       type: orNull(t.tipo) as ServiceType | null,
       total: text(t.total),
@@ -99,7 +110,7 @@ export async function listExportRows(
     p_desde: period.from,
     p_hasta: period.to,
     p_grupo: (filters.grupo ?? null) as string,
-    p_tipo: (filters.tipo ?? null) as UnitType,
+    p_tipo: (filters.tipo ?? null) as string,
   });
   if (error) throw new Error("No se pudo preparar el Excel");
 

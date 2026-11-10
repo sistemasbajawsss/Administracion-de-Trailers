@@ -1,7 +1,6 @@
 import { ChevronRight, FileText } from "lucide-react";
 import Link from "next/link";
 
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 import { formatDate, formatMoney } from "@/lib/utils/format";
 
 import type { ServiceBrief } from "../types";
@@ -42,7 +41,7 @@ export function ServiceBriefList({
                 {service.serviceType && <ServiceTypeBadge type={service.serviceType} className="h-5 px-2" />}
               </span>
               <span className="block text-sm text-muted-foreground">
-                {UNIT_TYPE_LABELS[service.unitType]}
+                {service.unitTypeName}
                 {showAuthor && service.author && ` · ${service.author}`}
               </span>
               {showNoEntryReason && (

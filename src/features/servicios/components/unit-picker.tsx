@@ -17,8 +17,7 @@ import { UNIT_GROUP_LABELS, UNIT_GROUPS, type UnitGroup } from "@/features/unida
 import type { UnitOption } from "../types";
 
 function groupOf(unit: UnitOption): UnitGroup {
-  if (unit.type === "camioneta") return "camionetas";
-  return unit.operation === "foraneo" ? "foraneo" : "local";
+  return unit.operation ?? "camionetas";
 }
 
 /**
@@ -88,7 +87,7 @@ export function UnitPicker({
         ) : (
           <span className="flex-1">
             <span className="block font-heading text-2xl font-semibold">Elegir unidad</span>
-            <span className="block text-sm text-muted-foreground">Toca para ver trailers, cajas, rabones, pipas y camionetas</span>
+            <span className="block text-sm text-muted-foreground">Toca para ver todas las unidades</span>
           </span>
         )}
       </button>

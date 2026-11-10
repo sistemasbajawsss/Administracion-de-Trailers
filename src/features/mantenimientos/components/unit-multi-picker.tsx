@@ -6,14 +6,13 @@ import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { UNIT_GROUP_LABELS, UNIT_GROUPS, UNIT_TYPE_LABELS, type UnitGroup } from "@/features/unidades/types";
+import { UNIT_GROUP_LABELS, UNIT_GROUPS, type UnitGroup } from "@/features/unidades/types";
 import { cn } from "@/lib/utils";
 
 import type { MaintenanceTarget } from "../types";
 
 function groupOf(unit: MaintenanceTarget): UnitGroup {
-  if (unit.type === "camioneta") return "camionetas";
-  return unit.operation === "foraneo" ? "foraneo" : "local";
+  return unit.operation ?? "camionetas";
 }
 
 const unitsLabel = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
@@ -108,7 +107,7 @@ export function UnitMultiPicker({
         </div>
         {partial.length > 0 && (
           <p className="text-sm text-muted-foreground">
-            Sin kilometraje o caja, solo por meses: {partial.map((u) => u.economicNumber).join(", ")}.
+            Sin kilometraje o sin odómetro, solo por meses: {partial.map((u) => u.economicNumber).join(", ")}.
           </p>
         )}
       </div>
@@ -198,8 +197,8 @@ export function UnitMultiPicker({
                               {unit.economicNumber}
                             </span>
                             <span className="max-w-full px-1 text-xs opacity-75">
-                              {UNIT_TYPE_LABELS[unit.type]}
-                              {byKm && !unit.hasKm && unit.type !== "caja" ? " · sin km" : ""}
+                              {unit.typeName}
+                              {byKm && !unit.hasKm && unit.hasOdometer ? " · sin km" : ""}
                             </span>
                           </button>
                         </li>

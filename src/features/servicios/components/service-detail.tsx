@@ -1,5 +1,4 @@
 import { formatDate, formatKm, formatMoney, formatRate, formatUsd } from "@/lib/utils/format";
-import { UNIT_TYPE_LABELS } from "@/features/unidades/types";
 
 import type { ServiceDetail } from "../types";
 
@@ -55,7 +54,7 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
             {service.unit.economicNumber}
           </p>
           <p className="mt-2 text-muted-foreground">
-            {UNIT_TYPE_LABELS[service.unit.type]} · {formatDate(service.date)}
+            {service.unit.typeName} · {formatDate(service.date)}
           </p>
           {service.serviceType && (
             <p className="mt-2">
@@ -77,7 +76,7 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
         <div>
           <dt className="text-sm text-muted-foreground">Kilometraje</dt>
           <dd className="text-base tabular-nums">
-            {service.mileage != null ? formatKm(service.mileage) : service.unit.type === "caja" ? "No aplica" : "—"}
+            {service.mileage != null ? formatKm(service.mileage) : !service.unit.hasOdometer ? "No aplica" : "—"}
           </dd>
         </div>
         <div>
