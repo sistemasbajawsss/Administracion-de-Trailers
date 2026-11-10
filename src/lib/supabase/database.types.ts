@@ -535,10 +535,12 @@ export type Database = {
           fecha: string
           id: string
           kilometraje: number | null
+          lugar: Database["public"]["Enums"]["lugar_servicio"] | null
           mantenimientos: string[]
           motivo_sin_entrada: string | null
           proveedor_id: string | null
           sin_entrada_taller: boolean | null
+          taller_id: string | null
           tipo: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id: string
           updated_at: string
@@ -552,10 +554,12 @@ export type Database = {
           fecha: string
           id?: string
           kilometraje?: number | null
+          lugar?: Database["public"]["Enums"]["lugar_servicio"] | null
           mantenimientos?: string[]
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
+          taller_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id: string
           updated_at?: string
@@ -569,10 +573,12 @@ export type Database = {
           fecha?: string
           id?: string
           kilometraje?: number | null
+          lugar?: Database["public"]["Enums"]["lugar_servicio"] | null
           mantenimientos?: string[]
           motivo_sin_entrada?: string | null
           proveedor_id?: string | null
           sin_entrada_taller?: boolean | null
+          taller_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_servicio"] | null
           unidad_id?: string
           updated_at?: string
@@ -601,6 +607,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "servicios_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "servicios_unidad_id_fkey"
             columns: ["unidad_id"]
             isOneToOne: false
@@ -608,6 +621,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      talleres: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tipos_unidad: {
         Row: {
@@ -879,12 +919,14 @@ export type Database = {
           fecha: string | null
           id: string | null
           kilometraje: number | null
+          lugar: Database["public"]["Enums"]["lugar_servicio"] | null
           mantenimientos: string[] | null
           motivo_sin_entrada: string | null
           num_comprobantes: number | null
           num_gastos: number | null
           proveedor_id: string | null
           sin_entrada_taller: boolean | null
+          taller_id: string | null
           tipo: Database["public"]["Enums"]["tipo_servicio"] | null
           total: number | null
           unidad_id: string | null
@@ -911,6 +953,13 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicios_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
             referencedColumns: ["id"]
           },
           {
@@ -947,12 +996,14 @@ export type Database = {
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_lugar?: Database["public"]["Enums"]["lugar_servicio"]
           p_mantenimientos?: string[]
           p_motivo: string
           p_motivo_sin_entrada?: string
           p_proveedor_id: string
           p_salida_taller?: boolean
           p_servicio_id: string
+          p_taller_id?: string
           p_tipo?: Database["public"]["Enums"]["tipo_servicio"]
           p_unidad_id: string
         }
@@ -1194,10 +1245,12 @@ export type Database = {
           p_fecha: string
           p_gastos: Json
           p_kilometraje: number
+          p_lugar?: Database["public"]["Enums"]["lugar_servicio"]
           p_mantenimientos?: string[]
           p_motivo_sin_entrada?: string
           p_proveedor_id: string
           p_salida_taller?: boolean
+          p_taller_id?: string
           p_tipo?: Database["public"]["Enums"]["tipo_servicio"]
           p_unidad_id: string
         }
@@ -1255,6 +1308,7 @@ export type Database = {
     Enums: {
       accion_historial: "insert" | "update" | "delete"
       estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja" | "vendida"
+      lugar_servicio: "taller_propio" | "taller_externo" | "en_camino"
       moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
       rol_usuario: "admin" | "capturista" | "gerente"
@@ -1391,6 +1445,7 @@ export const Constants = {
     Enums: {
       accion_historial: ["insert", "update", "delete"],
       estatus_unidad: ["activo", "en_taller", "por_llegar", "baja", "vendida"],
+      lugar_servicio: ["taller_propio", "taller_externo", "en_camino"],
       moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
       rol_usuario: ["admin", "capturista", "gerente"],
