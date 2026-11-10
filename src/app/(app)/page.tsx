@@ -69,10 +69,21 @@ async function Welcome() {
           </>
         }
       />
+      {/* Dos columnas que se apilan en celular: a la izquierda (ancha) las listas de
+          servicios (sin factura, sin entrada a taller) y a la derecha lo de las
+          unidades (mantenimientos, en taller). Antes las tres de la derecha iban una
+          bajo otra y la izquierda quedaba con un hueco largo (lo reportó el usuario). */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
-        <Suspense fallback={<HomePanelSkeleton />}>
-          <PendingReceiptsPanel title="Servicios sin factura" showAuthor canUpload={user.role === "admin"} />
-        </Suspense>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <PendingReceiptsPanel title="Servicios sin factura" showAuthor canUpload={user.role === "admin"} />
+          </Suspense>
+          {user.role === "admin" && (
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <NoShopEntryPanel today={todayInTijuana()} />
+            </Suspense>
+          )}
+        </div>
         <div className="flex min-w-0 flex-col gap-6">
           <Suspense fallback={<HomePanelSkeleton />}>
             <MaintenanceDuePanel openUnits />
@@ -80,11 +91,6 @@ async function Welcome() {
           <Suspense fallback={<HomePanelSkeleton />}>
             <UnitsInShopPanel today={todayInTijuana()} />
           </Suspense>
-          {user.role === "admin" && (
-            <Suspense fallback={<HomePanelSkeleton />}>
-              <NoShopEntryPanel today={todayInTijuana()} />
-            </Suspense>
-          )}
         </div>
       </div>
     </>
