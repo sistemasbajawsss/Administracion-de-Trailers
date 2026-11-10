@@ -31,6 +31,8 @@ npx supabase db query --linked -f supabase/tests/<archivo>.sql
 | `mantenimientos-varias.sql` | Agregar un mantenimiento a varias unidades: desde hoy y su km, repetidos se saltan, cajas y sin km solo meses, todo o nada, permisos (5F) | 23/23 |
 | `tipos-unidad.sql` | Tipos de unidad como catálogo: alta de tipos, letra, kilometraje, largo, local/foráneo, Dolly y Góndola, reportes, permisos | 28/28 |
 | `reporte-mantenimiento.sql` | Reportes: gasto por mes partido por tipo de servicio, cuadra con el total y con por tipo (5F) | 6/6 |
+| `donde-se-hizo.sql` | ¿Dónde se hizo?: Taller Realso sin taller, fuera y en camino con taller, talleres desactivados, editar, restaurar, permisos de `talleres` (5G) | 21/21 |
+| `reporte-donde-se-hizo.sql` | Reportes y Excel: por lugar, por taller y columnas del Excel (5G) | 5/5 |
 | `mantenimientos-cumplidos.sql` | Un correctivo cumple mantenimientos y reinicia su contador: validaciones, edición, historial, eliminar y restaurar, mismo cálculo para los tres roles (5F) | 27/27 |
 
 Notas:
