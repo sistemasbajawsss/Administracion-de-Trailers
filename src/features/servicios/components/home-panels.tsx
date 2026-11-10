@@ -41,6 +41,8 @@ export async function PendingReceiptsPanel({
       footer={
         total > rows ? (
           <HomeListDialog
+            // Con datos nuevos (subieron una factura, capturaron otro) la ventana empieza de cero.
+            key={`${total}:${services.map((s) => s.id).join(",")}`}
             list="sin_factura"
             title={title}
             description={canUpload ? "Del capturado más reciente al más viejo. Toca uno para subirle su factura." : "Del capturado más reciente al más viejo. Toca uno para ver su detalle."}
@@ -84,6 +86,7 @@ export async function NoShopEntryPanel({ today }: { today: string }) {
       footer={
         total > HOME_ROWS ? (
           <HomeListDialog
+            key={`${total}:${services.map((s) => s.id).join(",")}`}
             list="sin_entrada"
             title="Sin entrada a taller"
             description={`Servicios de los últimos ${NO_ENTRY_DAYS} días que no pasaron por Taller, del más reciente al más viejo.`}

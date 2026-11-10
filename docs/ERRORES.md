@@ -99,6 +99,9 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 
 ## 8. Next.js
 
+- **Mantenimientos usaba `toSorted()` y `.at(-1)` en el navegador: en iPhones con iOS viejo (antes de 16) la página tronaba.** — **Regla:** en componentes de cliente, nada de `toSorted`, `toReversed`, `at`, `findLast`, `Object.groupBy`: usar `slice().sort()` y `[length - 1]`. — Revisión 2026-11-10.
+- **La ventana "Ver los N" guardaba la lista de la primera vez: después de subir una factura seguía mostrando ese servicio.** — **Regla:** un componente de cliente que copia datos del servidor a su estado lleva un `key` con la firma de esos datos, para empezar de cero cuando cambian. — Revisión 2026-11-10.
+
 - **`Date.now()` en prerender.** — **Regla:** leer Supabase al momento de la petición (`connection()`). — commit 5942e69.
 - **`usePathname` fuera de Suspense ("blocking route").** — **Regla:** dentro de Suspense. — commit 210d20f.
 
