@@ -67,7 +67,11 @@ export async function updateUser(id: string, input: unknown): Promise<ActionResu
     return fail(parsed.error?.issues[0]?.message ?? "Revisa los datos del usuario.");
   }
 
-  await requireRole("admin");
+  const me = await requireRole("admin");
+  // El propio rol no se cambia (la BD tampoco deja que un admin se quite su acceso).
+  if (id === me.id && parsed.data.role !== me.role) {
+    return fail("Tu propio rol no se puede cambiar desde tu cuenta. Si hace falta, otro administrador puede cambiarlo.");
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase

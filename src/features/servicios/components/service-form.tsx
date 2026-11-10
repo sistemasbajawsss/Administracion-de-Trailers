@@ -426,7 +426,10 @@ function ServiceFormBody({
 
   const isSubmitting = form.formState.isSubmitting;
   const inputClass = "h-12 bg-white text-base";
-  const confirmLeave = useUnsavedChanges((form.formState.isDirty || receipts.length > 0) && !saved && !isSubmitting);
+  const { confirmLeave, leaveDialog } = useUnsavedChanges(
+    (form.formState.isDirty || receipts.length > 0) && !saved && !isSubmitting,
+    onSaved,
+  );
 
   return (
     <form
@@ -871,7 +874,7 @@ function ServiceFormBody({
             type="button"
             variant="ghost"
             size="touch"
-            onClick={() => confirmLeave() && goBack(service ? `/servicios/${service.id}` : "/servicios")}
+            onClick={() => confirmLeave(() => goBack(service ? `/servicios/${service.id}` : "/servicios"))}
             className="hidden sm:inline-flex"
           >
             Cancelar
@@ -882,6 +885,7 @@ function ServiceFormBody({
           </Button>
         </div>
       </div>
+      {leaveDialog}
     </form>
   );
 }

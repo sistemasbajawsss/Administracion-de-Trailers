@@ -4,6 +4,7 @@ Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ti
 
 ## Antes de empezar cualquier tarea
 
+0. Lee completo `docs/ERRORES.md` (errores que ya pasaron y su regla). Al terminar la tarea, vuélvelo a leer y revisa lo hecho contra cada regla antes de decir que está listo. Todo error nuevo que se corrija se agrega ahí.
 1. Lee `docs/ESTADO.md` para saber en qué sección vamos y qué ya existe.
 2. Lee la sección correspondiente en `docs/PLAN.md`.
 3. Respeta la estructura y reglas de `docs/ARQUITECTURA.md`. Ningún archivo se crea fuera de ella; si algo no encaja, pregunta antes.
@@ -60,10 +61,12 @@ Sistema web para registrar reparaciones, gastos y comprobantes (PDF / foto de ti
 - Texto escrito por usuarios nunca debe salirse de su contenedor ni crear scroll lateral (pasó en la línea de cambios con un motivo largo sin espacios). Reglas:
   - `body` tiene `overflow-wrap: anywhere` en `globals.css` (red de seguridad heredada a toda la app). No quitarla ni poner `overflow-wrap: normal` / `break-normal` en contenedores de texto libre.
   - **Nunca cortar texto con "…"** (lo prohibió el usuario): nada de `truncate`, `line-clamp`, `text-ellipsis` ni `text-overflow: ellipsis`. El texto libre o de catálogo (descripción, falla, motivo, concepto, notas, nombres de proveedor/chofer/categoría/usuario, archivos, correos, placas, VIN) se muestra completo y baja de renglón; su contenedor flex/grid lleva `min-w-0`. Las listas desplegables (Select) también: su regla está en `globals.css`, fuera de `@layer`.
-  - **Nunca un cuadro con scroll propio dentro de la página** (lo pidió el usuario): en el celular atrapa el dedo y ya no se puede regresar hasta arriba. Las listas largas cargan por tandas (scroll infinito) con el scroll normal de la página (`IntersectionObserver` sin `root`), como Gastos y las estancias en taller de la ficha; las tarjetas de Inicio muestran los N más recientes. Dentro de ventanas u hojas que se abren encima (diálogos, selector de unidad, visor) sí puede haber scroll propio.
+  - **Nunca un cuadro con scroll propio dentro de la página** (lo pidió el usuario): en el celular atrapa el dedo y ya no se puede regresar hasta arriba. Única excepción, pedida por el usuario el 2026-11-10: los gastos de la ficha de la unidad (cuadro de unos 10 renglones, máximo 60 % de la pantalla, sin `overscroll-contain`). Las listas largas cargan por tandas (scroll infinito) con el scroll normal de la página (`IntersectionObserver` sin `root`), como Gastos y las estancias en taller de la ficha; las tarjetas de Inicio muestran los N más recientes. Dentro de ventanas u hojas que se abren encima (diálogos, selector de unidad, visor) sí puede haber scroll propio.
   - Cifras y montos que no deben partirse: `whitespace-nowrap` (o `shrink-0` si están en una fila flex).
   - Nunca scroll lateral (lo prohibió el usuario): `html` y `body` llevan `overflow-x: clip`, así que lo que se pase se recorta y no se ve. Toda cuadrícula responsiva lleva `grid-cols-1` en celular (sin él, la columna crece con su contenido y empuja gráficas y tarjetas fuera de la pantalla); columnas a medida con `minmax(0,1fr)`, no `1fr`; tarjetas con gráfica, `min-w-0`; nada de filas con `overflow-x-auto` (usar `flex-wrap` o repartir el ancho).
   - Probar cada pantalla nueva con un texto de 200 caracteres sin espacios, en 360 px y en escritorio.
+- **Nunca `window.confirm`, `alert` ni `prompt`**: los avisos son diálogos de la app (`AlertDialog`) y dicen exactamente lo que va a pasar (ver `useUnsavedChanges`).
+- Si la BD o el servidor siempre rechazan algo, la pantalla no lo ofrece: se deshabilita con la explicación.
 - **Prohibido usar emojis** (lo pidió el usuario): ni en la interfaz (textos, botones, avisos, toasts, estados vacíos) ni en el código (comentarios, mensajes de commit, nombres, logs, SQL, documentación). Para lo visual se usan los íconos de `lucide-react`. Símbolos tipográficos como "→", "·" o "…" en texto normal no son emojis.
 
 ## Git y cierre de sección

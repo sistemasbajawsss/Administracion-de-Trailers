@@ -147,7 +147,7 @@ function UnitFormBody({ unit, drivers, types, onSaved }: UnitFormProps & { onSav
 
   const isSubmitting = form.formState.isSubmitting;
   const inputClass = "h-11 bg-white text-base";
-  const confirmLeave = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting);
+  const { confirmLeave, leaveDialog } = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting, onSaved);
 
   return (
     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl">
@@ -425,7 +425,7 @@ function UnitFormBody({ unit, drivers, types, onSaved }: UnitFormProps & { onSav
             type="button"
             variant="outline"
             size="touch"
-            onClick={() => confirmLeave() && goBack(unit ? `/unidades/${unit.id}` : "/unidades")}
+            onClick={() => confirmLeave(() => goBack(unit ? `/unidades/${unit.id}` : "/unidades"))}
           >
             Cancelar
           </Button>
@@ -435,6 +435,7 @@ function UnitFormBody({ unit, drivers, types, onSaved }: UnitFormProps & { onSav
           </Button>
         </div>
       </FieldGroup>
+      {leaveDialog}
     </form>
   );
 }

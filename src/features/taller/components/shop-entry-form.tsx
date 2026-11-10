@@ -80,7 +80,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
   }
 
   const isSubmitting = form.formState.isSubmitting;
-  const confirmLeave = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting);
+  const { confirmLeave, leaveDialog } = useUnsavedChanges(form.formState.isDirty && !saved && !isSubmitting, onSaved);
 
   return (
     <form
@@ -180,7 +180,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
             type="button"
             variant="ghost"
             size="touch"
-            onClick={() => confirmLeave() && goBack("/taller")}
+            onClick={() => confirmLeave(() => goBack("/taller"))}
           >
             Cancelar
           </Button>
@@ -190,6 +190,7 @@ function ShopEntryFormBody({ units, today, initialUnitId, onSaved }: ShopEntryFo
           </Button>
         </div>
       </FieldGroup>
+      {leaveDialog}
     </form>
   );
 }

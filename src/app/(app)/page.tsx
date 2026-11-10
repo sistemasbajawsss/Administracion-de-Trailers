@@ -31,16 +31,23 @@ async function Welcome() {
       <>
         <PageHeader title={`Hola, ${firstName}`} description="Registra los servicios con su comprobante." />
         {newServiceLink("mb-6 h-14 w-full px-6 text-lg sm:w-auto")}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-          <Suspense fallback={<HomePanelSkeleton />}>
-            <PendingReceiptsPanel title="Te falta subir factura" showAuthor={false} />
-          </Suspense>
-          <Suspense fallback={<HomePanelSkeleton />}>
-            <RecentServicesPanel />
-          </Suspense>
-          <Suspense fallback={<HomePanelSkeleton />}>
-            <MaintenanceDuePanel openUnits={false} />
-          </Suspense>
+        {/* Dos columnas como el Inicio del admin: lo suyo (facturas y últimos) a la
+            izquierda y Mantenimientos a la derecha. Con tres tarjetas sueltas en una
+            cuadrícula de dos, la tercera quedaba sola y desfasada (lo reportó el usuario). */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+          <div className="flex min-w-0 flex-col gap-6">
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <PendingReceiptsPanel title="Te falta subir factura" showAuthor={false} />
+            </Suspense>
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <RecentServicesPanel />
+            </Suspense>
+          </div>
+          <div className="flex min-w-0 flex-col gap-6">
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <MaintenanceDuePanel openUnits={false} />
+            </Suspense>
+          </div>
         </div>
       </>
     );

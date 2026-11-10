@@ -14,10 +14,16 @@ import type { ExpenseListItem } from "../types";
 type Filters = Pick<ServiceFilters, "q" | "buscar" | "desde" | "hasta">;
 
 /**
- * Gastos con el scroll normal de la página (sin cuadro con scroll propio: en el
- * celular atrapaba el dedo y no se podía regresar hasta arriba). Al acercarse al
- * final de la lista se pide la siguiente tanda. Se reinicia cuando cambian los
- * filtros (quien lo usa le pone key con los filtros).
+ * Gastos por tandas: al acercarse al final de la lista se pide la siguiente.
+ * Se reinicia cuando cambian los filtros (quien lo usa le pone key con los filtros).
+ *
+ * - Página Gastos: con el scroll normal de la página.
+ * - Ficha de la unidad (`scrollBox`): un cuadro con su propio scroll, del alto de
+ *   unos 10 renglones, para no tener que bajar toda la lista para llegar a lo que
+ *   sigue en la ficha (lo pidió el usuario el 2026-11-10). Para no atrapar el dedo
+ *   en el celular: el cuadro nunca pasa de 60 % de la pantalla (siempre queda
+ *   página para deslizar) y al llegar a su orilla el scroll sigue con la página
+ *   (sin overscroll-contain).
  */
 export function ExpenseFeed({
   initialItems,
@@ -26,6 +32,7 @@ export function ExpenseFeed({
   filters,
   unitId,
   showUnit,
+  scrollBox = false,
 }: {
   initialItems: ExpenseListItem[];
   totalCount: number;
@@ -33,12 +40,14 @@ export function ExpenseFeed({
   filters: Filters;
   unitId?: string;
   showUnit: boolean;
+  scrollBox?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
   const [done, setDone] = useState(initialItems.length >= totalCount || initialItems.length < batchSize);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   const loadMore = useCallback(async () => {
     if (loading || done) return;
@@ -72,23 +81,28 @@ export function ExpenseFeed({
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) void loadMore();
       },
-      // Pide la siguiente tanda un poco antes de llegar al final (scroll de la página).
-      { rootMargin: "0px 0px 400px 0px" },
+      // Pide la siguiente tanda un poco antes de llegar al final (del cuadro o de la página).
+      { root: scrollBox ? boxRef.current : null, rootMargin: "0px 0px 400px 0px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore, done, error]);
+  }, [loadMore, done, error, scrollBox]);
 
   const columns = showUnit
     ? "md:grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_8.5rem_10rem]"
     : "md:grid-cols-[6.5rem_minmax(0,1fr)_8.5rem_10rem]";
 
   return (
-    <div aria-label="Gastos" className="rounded-xl border bg-white">
-      {/* Encabezado fijo al bajar: debajo de la barra superior (md) o arriba de la ventana (lg). */}
+    <div
+      ref={boxRef}
+      aria-label="Gastos"
+      tabIndex={scrollBox ? 0 : undefined}
+      className={`rounded-xl border bg-white ${scrollBox ? "max-h-[min(36rem,60dvh)] overflow-y-auto outline-none focus-visible:ring-3 focus-visible:ring-ring/50" : ""}`}
+    >
+      {/* Encabezado fijo al bajar: arriba del cuadro (ficha), o debajo de la barra superior (md) o arriba de la ventana (lg). */}
       <div
         aria-hidden="true"
-        className={`sticky top-16 z-10 hidden items-center gap-4 rounded-t-xl border-b bg-muted/95 px-5 py-2.5 text-sm font-medium text-muted-foreground backdrop-blur md:grid lg:top-0 ${columns}`}
+        className={`sticky z-10 hidden items-center gap-4 rounded-t-xl border-b bg-muted/95 px-5 py-2.5 text-sm font-medium text-muted-foreground backdrop-blur md:grid ${scrollBox ? "top-0" : "top-16 lg:top-0"} ${columns}`}
       >
         <span>Fecha</span>
         {showUnit && <span>Unidad</span>}
