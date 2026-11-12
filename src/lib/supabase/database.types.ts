@@ -770,6 +770,97 @@ export type Database = {
         }
         Relationships: []
       }
+      tickets_taller: {
+        Row: {
+          atendido_at: string | null
+          atendido_by: string | null
+          atendido_nombre: string | null
+          cancelado_at: string | null
+          cancelado_by: string | null
+          cancelado_nombre: string | null
+          creador_nombre: string | null
+          created_at: string
+          created_by: string | null
+          enterado_at: string | null
+          entrada_id: string | null
+          estatus: Database["public"]["Enums"]["estatus_ticket"]
+          falla: string
+          folio: number
+          id: string
+          motivo_cancelacion: string | null
+          motivo_rechazo: string | null
+          prioridad: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id: string
+          updated_at: string
+        }
+        Insert: {
+          atendido_at?: string | null
+          atendido_by?: string | null
+          atendido_nombre?: string | null
+          cancelado_at?: string | null
+          cancelado_by?: string | null
+          cancelado_nombre?: string | null
+          creador_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          enterado_at?: string | null
+          entrada_id?: string | null
+          estatus?: Database["public"]["Enums"]["estatus_ticket"]
+          falla: string
+          folio?: never
+          id?: string
+          motivo_cancelacion?: string | null
+          motivo_rechazo?: string | null
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id: string
+          updated_at?: string
+        }
+        Update: {
+          atendido_at?: string | null
+          atendido_by?: string | null
+          atendido_nombre?: string | null
+          cancelado_at?: string | null
+          cancelado_by?: string | null
+          cancelado_nombre?: string | null
+          creador_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          enterado_at?: string | null
+          entrada_id?: string | null
+          estatus?: Database["public"]["Enums"]["estatus_ticket"]
+          falla?: string
+          folio?: never
+          id?: string
+          motivo_cancelacion?: string | null
+          motivo_rechazo?: string | null
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_taller_entrada_id_fkey"
+            columns: ["entrada_id"]
+            isOneToOne: true
+            referencedRelation: "entradas_taller"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_taller_entrada_id_fkey"
+            columns: ["entrada_id"]
+            isOneToOne: true
+            referencedRelation: "entradas_taller_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_taller_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tipos_unidad: {
         Row: {
           activo: boolean
@@ -1111,6 +1202,10 @@ export type Database = {
       }
     }
     Functions: {
+      aceptar_ticket_taller: {
+        Args: { p_kilometraje?: number; p_ticket_id: string }
+        Returns: string
+      }
       actualizar_servicio: {
         Args: {
           p_descripcion: string
@@ -1160,6 +1255,10 @@ export type Database = {
         Args: { p_dias: number[] }
         Returns: undefined
       }
+      cancelar_ticket_taller: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
       copiar_mantenimientos: {
         Args: { p_destino: string; p_origen: string }
@@ -1177,6 +1276,14 @@ export type Database = {
       corregir_lectura_kilometraje: {
         Args: { p_kilometraje: number; p_lectura_id: string; p_motivo?: string }
         Returns: undefined
+      }
+      crear_ticket_taller: {
+        Args: {
+          p_falla: string
+          p_prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
+          p_unidad_id: string
+        }
+        Returns: string
       }
       dar_salida_taller: {
         Args: {
@@ -1372,6 +1479,10 @@ export type Database = {
           unidad_id: string
         }[]
       }
+      marcar_ticket_enterado: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       marcar_unidad_vendida: {
         Args: { p_fecha: string; p_nota?: string; p_unidad_id: string }
         Returns: undefined
@@ -1387,6 +1498,10 @@ export type Database = {
       }
       quitar_lectura_kilometraje: {
         Args: { p_lectura_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      rechazar_ticket_taller: {
+        Args: { p_motivo: string; p_ticket_id: string }
         Returns: undefined
       }
       registrar_entrada_taller: {
@@ -1459,6 +1574,37 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       tipo_lleva_kilometraje: { Args: { p_tipo: string }; Returns: boolean }
+      tomar_ticket_pendiente: {
+        Args: { p_ticket_id: string }
+        Returns: {
+          atendido_at: string | null
+          atendido_by: string | null
+          atendido_nombre: string | null
+          cancelado_at: string | null
+          cancelado_by: string | null
+          cancelado_nombre: string | null
+          creador_nombre: string | null
+          created_at: string
+          created_by: string | null
+          enterado_at: string | null
+          entrada_id: string | null
+          estatus: Database["public"]["Enums"]["estatus_ticket"]
+          falla: string
+          folio: number
+          id: string
+          motivo_cancelacion: string | null
+          motivo_rechazo: string | null
+          prioridad: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets_taller"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       validar_kilometraje: {
         Args: {
           p_entrada_id?: string
@@ -1477,10 +1623,12 @@ export type Database = {
     }
     Enums: {
       accion_historial: "insert" | "update" | "delete"
+      estatus_ticket: "pendiente" | "aceptado" | "rechazado" | "cancelado"
       estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja" | "vendida"
       lugar_servicio: "taller_propio" | "taller_externo" | "en_camino"
       moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
+      prioridad_ticket: "urgente" | "normal" | "baja"
       rol_usuario: "admin" | "capturista" | "gerente"
       tipo_servicio: "preventivo" | "correctivo" | "servicio"
     }
@@ -1614,10 +1762,12 @@ export const Constants = {
   public: {
     Enums: {
       accion_historial: ["insert", "update", "delete"],
+      estatus_ticket: ["pendiente", "aceptado", "rechazado", "cancelado"],
       estatus_unidad: ["activo", "en_taller", "por_llegar", "baja", "vendida"],
       lugar_servicio: ["taller_propio", "taller_externo", "en_camino"],
       moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
+      prioridad_ticket: ["urgente", "normal", "baja"],
       rol_usuario: ["admin", "capturista", "gerente"],
       tipo_servicio: ["preventivo", "correctivo", "servicio"],
     },
