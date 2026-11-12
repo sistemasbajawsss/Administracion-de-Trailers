@@ -10,9 +10,9 @@ grant all on x to authenticated;
 insert into x values
   ('admin', (select id from public.perfiles where rol = 'admin' and activo order by created_at limit 1)),
   ('capt', (select id from public.perfiles where rol = 'capturista' and activo limit 1)),
-  ('ua', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1)),
-  ('ub', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 1)),
-  ('uc', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 2)),
+  ('ua', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1)),
+  ('ub', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1 offset 1)),
+  ('uc', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1 offset 2)),
   ('cat', (select id from public.categorias where activo and not requiere_concepto order by nombre limit 1));
 
 select set_config('request.jwt.claims', json_build_object('sub', (select v from x where k = 'capt'), 'role', 'authenticated')::text, true);

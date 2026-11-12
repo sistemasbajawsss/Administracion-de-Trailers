@@ -78,6 +78,7 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 - **Pruebas SQL después de las 17:00 de Tijuana fallaban por "fecha futura".** — Causa: la BD corre en UTC. — **Regla:** "hoy" = `(now() at time zone 'America/Tijuana')::date`. — README de pruebas.
 - **Pruebas que dependían de datos reales o de valores fijos (1000 km) dejaron de cuadrar.** — **Regla:** las pruebas crean sus propios datos. — ESTADO 5F.
 - **En una prueba PL/pgSQL, una variable llamada `k` chocaba con la columna `k` de la tabla temporal.** — **Regla:** nombres de variables que no existan como columna (`txt`, `v_...`). — 2026-11-10.
+- **Con los datos de prueba nuevos y los tipos Dolly y Góndola (2026-11-10), 6 baterías dejaron de pasar sin que la app fallara**: elegían "la unidad que no es caja" (salía un dolly sin odómetro), "el servicio más reciente del capturista" como si fuera de antes de la 5E, y quitaban el km a servicios que cumplen un mantenimiento por km. — **Regla:** las pruebas eligen sus datos por la regla (`tipo_lleva_kilometraje`, `sin_entrada_taller is null`) y limpian lo que traen los `[PRUEBA]` (mantenimientos). Al cambiar los datos de prueba, correr toda la regresión. — 2026-11-12.
 - **Falla conocida (no es error de la app):** `capturista.sql` 42/43, el caso del comprobante duplicado (los servicios `[PRUEBA]` comparten el mismo PDF). — README de pruebas.
 
 ## 6. Permisos, sesión y roles

@@ -13,14 +13,14 @@ grant all on h to authenticated;
 insert into x values
   ('admin', (select id from public.perfiles where rol = 'admin' and activo order by created_at limit 1)),
   ('capt', (select id from public.perfiles where rol = 'capturista' and activo limit 1)),
-  ('ua', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1)),
-  ('ub', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 1)),
-  ('uc', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 2)),
+  ('ua', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1)),
+  ('ub', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1 offset 1)),
+  ('uc', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1 offset 2)),
   ('cat', (select id from public.categorias where activo and not requiere_concepto order by nombre limit 1));
 -- Un servicio de antes de la 5E del capturista (para editarlo).
 insert into x values ('viejo', (
   select s.id from public.servicios s join public.unidades u on u.id = s.unidad_id
-  where s.created_by = (select v from x where k = 'capt') and u.estatus = 'activo'
+  where s.created_by = (select v from x where k = 'capt') and u.estatus = 'activo' and s.sin_entrada_taller is null
   order by s.created_at desc limit 1));
 
 insert into r(caso, ok, detalle)

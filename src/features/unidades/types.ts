@@ -160,4 +160,5 @@ export const MILEAGE_SOURCE_LABELS: Record<LastMileage["source"], string> = {
   servicio: "en un servicio",
   "entrada a taller": "en una entrada a taller",
   "corrección": "por corrección del administrador",
+  "lectura semanal": "en la lectura semanal",
 };

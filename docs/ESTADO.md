@@ -6,7 +6,8 @@
 **Salida a producción (2026-10-30).** Cerradas: 0, 1, 2, 2.5, 3 (con 3B), 4, 5A, 5B, 5C, 5D y 5E. La 5F (Mantenimientos) está terminada en su rama, esperando el visto bueno para subir. La app ya está publicada en Vercel (plan Hobby) con su dirección `.vercel.app`; variables, Site URL / Redirect URLs de Supabase y freno de login hechos.
 
 ### Próximos pasos para retomar
-- **Sección 5G (¿Dónde se hizo?): hecha en la rama `seccion-5g-donde-se-hizo` (2026-11-10), migraciones aplicadas, falta revisarla en pantalla y el visto bueno para subir a `main`.** La 5F ya está en `main` y en Vercel.
+- **Sección 5H (Kilometraje semanal y tickets de taller, D15 y D16): en curso en la rama `seccion-5h-tickets-y-kilometraje` (2026-11-12).** Etapa 1 (BD del kilometraje semanal) aplicada; siguen la Etapa 2 (página Kilometraje), 3 y 4 (tickets). Plan en `docs/PLAN.md` › 5H.
+- La 5G (¿Dónde se hizo?) ya está en `main` (0779698).
 - **Sección 5F (Mantenimientos): terminada en la rama `seccion-5f-mantenimientos` (2026-11-09), falta el visto bueno del usuario para el merge y push a `main`.** Pendiente del usuario: revisar en el iPhone (360 px) la ficha, Mantenimientos, el formulario de servicio e Inicio; capturar los intervalos reales de cada unidad (T-17 ya tiene "Cambio de aceite", 15,000 km o 6 meses, desde el 09/11/2026); registrar el primer correctivo real desde "Registrar" para ver que el contador se reinicie.
 - **Siguiente (a futuro):** Fase 2 (Almacén) cuando el almacén físico esté ordenado.
 0. **Probar en el navegador lo de la 5D** que depende de cómo navega Next (no se puede probar por SQL): guardar un servicio y volver a "Nuevo servicio" (debe salir vacío); eliminar o editar un servicio y regresar a la lista (debe actualizarse); "Nuevo proveedor" dentro del formulario (no debe guardar el servicio); escribir `1500,50` (debe quedar $1,500.50); salir de un formulario con cambios (debe avisar).
@@ -109,6 +110,11 @@
 - Buckets: `comprobantes` (privado; PDF, JPEG, PNG, WebP; 10 MB; ruta `servicio_id/comprobante_id.ext`; políticas en `storage.objects`).
 
 ## Historial de secciones
+
+### Sección 5H — Kilometraje semanal y tickets de taller (en curso, rama `seccion-5h-tickets-y-kilometraje`, pedida por el usuario el 2026-11-12)
+- Decisiones D15 (kilometraje semanal) y D16 (tickets) en `docs/PLAN.md` › 5H.
+- Etapa 1, BD del kilometraje semanal (`20261112185135_kilometraje_semanal.sql`, aplicada): tablas `lecturas_kilometraje` (una por unidad y semana; los tres roles leen; nadie escribe directo) y `cambios_lecturas_kilometraje` (correcciones y lecturas quitadas, con motivo). Funciones `inicio_semana()`, `es_dia_de_captura_semanal()` (lunes y martes), `registrar_lecturas_kilometraje(jsonb)` (varias; cada una se guarda o regresa su motivo; capturista lunes y martes, admin cualquier día; solo activas con odómetro), `corregir_lectura_kilometraje()` y `quitar_lectura_kilometraje()` (autor el mismo día; admin con motivo; interna `puede_cambiar_lectura()`), `lecturas_semana()` (lista de la semana con km actual y lectura). `validar_kilometraje()` gana `p_lectura_id` y compara contra las lecturas; `kilometraje_unidades()` las toma como fuente "lectura semanal" (Mantenimientos e Inicio se actualizan solos). App: solo la etiqueta de la fuente nueva.
+- Pruebas: `kilometraje-semanal.sql` 40/40 (ensayo y después de aplicar). Regresión completa en verde: se arreglaron 6 baterías que se habían roto por los datos de prueba del 10/11 y los tipos Dolly y Góndola, no por la app (ver ERRORES.md › 5). `capturista.sql` ahora da 43/43.
 
 ### Sección 5G — ¿Dónde se hizo? (2026-11-10, rama `seccion-5g-donde-se-hizo`, pedida por el usuario)
 - Qué: cada servicio dice dónde se hizo el trabajo: **Taller Realso** (el taller propio), **taller de fuera** o **en camino**; fuera y en camino dicen qué taller. El proveedor sigue siendo dónde se compran las piezas (el formulario dice "Proveedor de las piezas").

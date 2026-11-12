@@ -5,7 +5,7 @@ export type LastMileage = {
   km: number;
   /** aaaa-mm-dd */
   date: string;
-  source: "servicio" | "entrada a taller" | "corrección";
+  source: "servicio" | "entrada a taller" | "corrección" | "lectura semanal";
 };
 
 const MILEAGE_PATTERN = /^\d{1,7}$/;

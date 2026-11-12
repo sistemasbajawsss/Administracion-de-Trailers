@@ -87,6 +87,56 @@ export type Database = {
         }
         Relationships: []
       }
+      cambios_lecturas_kilometraje: {
+        Row: {
+          accion: string
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kilometraje_anterior: number
+          kilometraje_nuevo: number | null
+          lectura_id: string
+          motivo: string | null
+          semana: string
+          unidad_id: string
+        }
+        Insert: {
+          accion: string
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kilometraje_anterior: number
+          kilometraje_nuevo?: number | null
+          lectura_id: string
+          motivo?: string | null
+          semana: string
+          unidad_id: string
+        }
+        Update: {
+          accion?: string
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kilometraje_anterior?: number
+          kilometraje_nuevo?: number | null
+          lectura_id?: string
+          motivo?: string | null
+          semana?: string
+          unidad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cambios_lecturas_kilometraje_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias: {
         Row: {
           activo: boolean
@@ -409,6 +459,53 @@ export type Database = {
           tabla?: string
         }
         Relationships: []
+      }
+      lecturas_kilometraje: {
+        Row: {
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          kilometraje: number
+          semana: string
+          unidad_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          id?: string
+          kilometraje: number
+          semana: string
+          unidad_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          kilometraje?: number
+          semana?: string
+          unidad_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecturas_kilometraje_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mantenimientos_unidad: {
         Row: {
@@ -1049,6 +1146,10 @@ export type Database = {
         }
         Returns: string
       }
+      corregir_lectura_kilometraje: {
+        Args: { p_kilometraje: number; p_lectura_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       dar_salida_taller: {
         Args: {
           p_entrada_id: string
@@ -1075,6 +1176,7 @@ export type Database = {
         Returns: string[]
       }
       es_admin: { Args: never; Returns: boolean }
+      es_dia_de_captura_semanal: { Args: { p_fecha: string }; Returns: boolean }
       exportar_gastos: {
         Args: {
           p_desde: string
@@ -1142,12 +1244,32 @@ export type Database = {
           unidad_id: string
         }[]
       }
+      inicio_semana: { Args: { p_fecha: string }; Returns: string }
       kilometraje_unidades: {
         Args: { p_unidad_id?: string }
         Returns: {
           fecha: string
           fuente: string
           kilometraje: number
+          unidad_id: string
+        }[]
+      }
+      lecturas_semana: {
+        Args: never
+        Returns: {
+          kilometraje: number
+          kilometraje_fecha: string
+          kilometraje_fuente: string
+          lectura_autor: string
+          lectura_created_at: string
+          lectura_created_by: string
+          lectura_id: string
+          lectura_kilometraje: number
+          numero_economico: string
+          numero_orden: number
+          operacion: Database["public"]["Enums"]["operacion_unidad"]
+          orden_tipo: number
+          tipo: string
           unidad_id: string
         }[]
       }
@@ -1227,11 +1349,16 @@ export type Database = {
       }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
+      puede_cambiar_lectura: { Args: { p_lectura_id: string }; Returns: string }
       puede_capturar: { Args: never; Returns: boolean }
       puede_ver_todo: { Args: never; Returns: boolean }
       quitar_comprobante: {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: string
+      }
+      quitar_lectura_kilometraje: {
+        Args: { p_lectura_id: string; p_motivo?: string }
+        Returns: undefined
       }
       registrar_entrada_taller: {
         Args: {
@@ -1241,6 +1368,14 @@ export type Database = {
           p_unidad_id: string
         }
         Returns: string
+      }
+      registrar_lecturas_kilometraje: {
+        Args: { p_lecturas: Json }
+        Returns: {
+          error: string
+          lectura_id: string
+          unidad_id: string
+        }[]
       }
       registrar_servicio: {
         Args: {
@@ -1300,6 +1435,7 @@ export type Database = {
           p_entrada_id?: string
           p_fecha: string
           p_kilometraje: number
+          p_lectura_id?: string
           p_servicio_id?: string
           p_unidad_id: string
         }
