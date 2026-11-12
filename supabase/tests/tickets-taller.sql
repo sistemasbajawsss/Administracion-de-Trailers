@@ -44,7 +44,7 @@ select (select v from x where k = 'ue'),
 on conflict (unidad_id, semana) do update set kilometraje = 100000;
 
 -- Contador de avisos al empezar (para ver que sube con cada cambio).
-create temp table aviso0 as select version as v_inicio from public.tickets_avisos where id = 1;
+create temp table aviso0 as select version as v_inicio, creados as c_inicio, urgentes as u_inicio from public.tickets_avisos where id = 1;
 
 -- ubaja: dada de baja (solo en esta transacción).
 update public.unidades set estatus = 'baja' where id = (select v from x where k = 'ubaja');
@@ -367,6 +367,12 @@ reset role;
 insert into r(caso, ok, detalle)
 select 'Cada cambio sube el contador de avisos', version >= (select v_inicio from aviso0) + 10 and tipo = 'update' and prioridad = 'normal',
        (version - (select v_inicio from aviso0))::text || ' cambios'
+from public.tickets_avisos where id = 1;
+-- En esta prueba se levantan 7 tickets (admin 3, gerente 3, admin 1 de uv); uno urgente (del gerente).
+insert into r(caso, ok, detalle)
+select 'El contador cuenta cada ticket creado y los urgentes',
+       creados - (select c_inicio from aviso0) = 7 and urgentes - (select u_inicio from aviso0) = 1,
+       (creados - (select c_inicio from aviso0))::text || ' creados, ' || (urgentes - (select u_inicio from aviso0))::text || ' urgentes'
 from public.tickets_avisos where id = 1;
 insert into r(caso, ok, detalle)
 select 'Realtime escucha el contador, no los tickets',
