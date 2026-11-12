@@ -12,14 +12,16 @@ insert into x values
   ('admin', (select id from public.perfiles where rol = 'admin' and activo order by created_at limit 1)),
   ('capt', (select id from public.perfiles where rol = 'capturista' and activo limit 1)),
   ('ger', (select id from public.perfiles where rol = 'gerente' and activo limit 1)),
-  ('ua', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1)),
-  ('ub', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 1)),
+  ('ua', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1)),
+  ('ub', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1 offset 1)),
   ('caja', (select id from public.unidades where estatus = 'activo' and tipo = 'caja' order by numero_orden limit 1)),
   ('cat', (select id from public.categorias where activo and not requiere_concepto order by nombre limit 1));
 
 -- Kilometraje conocido: ua sin lecturas de prueba y con una de 100,000 hoy.
 select set_config('app.motivo', 'Prueba de mantenimientos', true);
-update public.servicios set kilometraje = null where unidad_id in (select v from x where k in ('ua', 'ub'));
+update public.servicios set kilometraje = null, mantenimientos = '{}' where unidad_id in (select v from x where k in ('ua', 'ub'));
+-- Sin los mantenimientos [PRUEBA] que ya traen (los conteos de copiar empiezan de cero).
+update public.mantenimientos_unidad set activo = false where unidad_id in (select v from x where k in ('ua', 'ub', 'caja'));
 select set_config('app.motivo', '', true);
 
 select set_config('request.jwt.claims', json_build_object('sub', (select v from x where k = 'admin'), 'role', 'authenticated')::text, true);

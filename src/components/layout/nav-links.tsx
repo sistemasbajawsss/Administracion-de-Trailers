@@ -50,11 +50,27 @@ export function NavLinks({
                 />
               )}
               <NavIcon name={item.icon} className="size-5 shrink-0" />
-              {item.label}
+              <span className="min-w-0 flex-1">{item.label}</span>
+              {item.badge ? <NavBadge count={item.badge} /> : null}
             </Link>
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/** Número rojo junto al enlace (p. ej. tickets por atender). */
+export function NavBadge({ count, className }: { count: number; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex min-w-6 shrink-0 items-center justify-center rounded-full bg-red-700 px-1.5 text-sm leading-6 font-bold text-white tabular-nums",
+        className,
+      )}
+    >
+      {count > 99 ? "99+" : count}
+      <span className="sr-only"> por atender</span>
+    </span>
   );
 }

@@ -1,3 +1,4 @@
+import type { StayTicket } from "@/features/tickets/types";
 import type { Database } from "@/lib/supabase/database.types";
 import type { LastMileage } from "@/lib/utils/mileage";
 
@@ -128,6 +129,8 @@ export type UnitShopStay = {
   /** Servicio que le dio la salida (casilla "sale de taller"); null si salió con "Dar salida" o por venta. */
   exitServiceId: string | null;
   services: { id: string; date: string; total: string; description: string | null; supplier: string | null }[];
+  /** Ticket de taller que la abrió al aceptarlo (5H, D16); null si fue entrada directa. */
+  ticket: StayTicket | null;
 };
 
 /** Venta vigente de una unidad (Sección 5E). */
@@ -160,4 +163,5 @@ export const MILEAGE_SOURCE_LABELS: Record<LastMileage["source"], string> = {
   servicio: "en un servicio",
   "entrada a taller": "en una entrada a taller",
   "corrección": "por corrección del administrador",
+  "lectura semanal": "en la lectura semanal",
 };

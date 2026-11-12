@@ -4,7 +4,8 @@ import { ChevronDown, ChevronRight, DoorOpen, LoaderCircle } from "lucide-react"
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { formatDate, formatMoney } from "@/lib/utils/format";
+import { PRIORITY_LABELS } from "@/features/tickets/types";
+import { formatDate, formatDateTime, formatElapsed, formatMoney } from "@/lib/utils/format";
 import { useToday } from "@/components/shared/use-today";
 
 import { loadMoreShopStays } from "../actions";
@@ -122,6 +123,12 @@ export function ShopStays({
                       {open ? `Lleva ${dayLabel(days)}` : `Estuvo ${dayLabel(days)}`} · {serviceLabel(stay.serviceCount)}
                     </span>
                     <span className="mt-1 block whitespace-pre-line">{stay.fault}</span>
+                    {stay.ticket?.attendedAt && (
+                      <span className="mt-1 block text-sm text-muted-foreground">
+                        Ticket {stay.ticket.folio} ({PRIORITY_LABELS[stay.ticket.priority]}), lo aceptaron en{" "}
+                        <span className="font-medium text-foreground">{formatElapsed(stay.ticket.createdAt, stay.ticket.attendedAt)}</span>
+                      </span>
+                    )}
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span className="font-heading text-lg font-semibold whitespace-nowrap tabular-nums">{formatMoney(stay.total)}</span>
@@ -165,10 +172,12 @@ export function ShopStays({
                       })}
                     </ul>
                   )}
-                  {(stay.reportedBy || (!stay.exitServiceId && stay.exitNote)) && (
+                  {(stay.ticket || stay.reportedBy || (!stay.exitServiceId && stay.exitNote)) && (
                     <p className="pt-2 text-sm text-muted-foreground">
                       {[
-                        stay.reportedBy && `Reportó ${stay.reportedBy}`,
+                        stay.ticket
+                          ? `Ticket levantado por ${stay.ticket.creatorName ?? "alguien"} el ${formatDateTime(stay.ticket.createdAt)}${stay.ticket.attendedAt ? `, aceptado por ${stay.ticket.attendedName ?? "un capturista"} el ${formatDateTime(stay.ticket.attendedAt)}` : ""}`
+                          : stay.reportedBy && `Reportó ${stay.reportedBy}`,
                         // La nota automática del servicio ya se ve como "Salió de taller con este servicio".
                         !stay.exitServiceId && stay.exitNote && `Salida: ${stay.exitNote}`,
                       ]

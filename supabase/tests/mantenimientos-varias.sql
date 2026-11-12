@@ -11,15 +11,15 @@ grant all on x to authenticated, anon;
 insert into x values
   ('admin', (select id from public.perfiles where rol = 'admin' and activo order by created_at limit 1)),
   ('capt', (select id from public.perfiles where rol = 'capturista' and activo limit 1)),
-  ('ua', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1)),
-  ('ub', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 1)),
-  ('uc', (select id from public.unidades where estatus = 'activo' and tipo <> 'caja' order by numero_orden limit 1 offset 2)),
+  ('ua', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1)),
+  ('ub', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1 offset 1)),
+  ('uc', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden limit 1 offset 2)),
   ('caja', (select id from public.unidades where estatus = 'activo' and tipo = 'caja' order by numero_orden limit 1)),
   ('cat', (select id from public.categorias where activo and not requiere_concepto order by nombre limit 1));
 
 -- Kilometraje conocido: ua y ub con una lectura hoy, uc sin lecturas.
 select set_config('app.motivo', 'Prueba de mantenimientos a varias', true);
-update public.servicios set kilometraje = null where unidad_id in (select v from x where k in ('ua', 'ub', 'uc'));
+update public.servicios set kilometraje = null, mantenimientos = '{}' where unidad_id in (select v from x where k in ('ua', 'ub', 'uc'));
 update public.entradas_taller set kilometraje = null where unidad_id in (select v from x where k in ('ua', 'ub', 'uc'));
 delete from public.correcciones_kilometraje where unidad_id in (select v from x where k in ('ua', 'ub', 'uc'));
 select set_config('app.motivo', '', true);

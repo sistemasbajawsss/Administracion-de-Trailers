@@ -138,7 +138,44 @@ export function todayInTijuana() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tijuana" }).format(new Date());
 }
 
+/** Fecha en Tijuana ("aaaa-mm-dd") de un momento de auditoría (timestamptz). */
+export function dateInTijuana(value: string) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tijuana" }).format(new Date(value));
+}
+
+/** "2026-11-12" + 4 → "2026-11-16" (sin zonas horarias). */
+export function addDays(date: string, days: number) {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Días completos entre dos fechas "aaaa-mm-dd" (sin zonas horarias). */
+export function daysBetween(from: string, to: string) {
+  const [fy, fm, fd] = from.split("-").map(Number) as [number, number, number];
+  const [ty, tm, td] = to.split("-").map(Number) as [number, number, number];
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
 /** 250000 → "250,000 km". */
 export function formatKm(value: number) {
   return `${new Intl.NumberFormat("es-MX").format(value)} km`;
+}
+
+/**
+ * Tiempo entre dos momentos (timestamptz), corto y sin decimales:
+ * "menos de 1 min", "25 min", "1 h 20 min", "2 días 3 h".
+ */
+export function formatElapsed(from: string, to: string) {
+  const minutes = Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 60_000));
+  if (minutes < 1) return "menos de 1 min";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const rest = minutes % 60;
+    return rest ? `${hours} h ${rest} min` : `${hours} h`;
+  }
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  const dayText = days === 1 ? "1 día" : `${days} días`;
+  return restHours ? `${dayText} ${restHours} h` : dayText;
 }

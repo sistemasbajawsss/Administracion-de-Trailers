@@ -15,6 +15,9 @@
 | Eliminar registros | Sí | No | No |
 | Ver historial de cambios de un registro | Todos | Solo de los propios | Todos |
 | Dashboard y reportes | Sí | No | Sí |
+| Crear y cancelar tickets de taller (D16) | Sí | No | Sí (único permiso de escritura) |
+| Aceptar o rechazar tickets de taller (D16) | Sí | Sí | No |
+| Kilometraje semanal (D15) | Sí, cualquier día; elige los días de registro | Sí, en los días de registro (lunes y martes al empezar) | Solo ve |
 | Gestionar usuarios | Sí | No | No |
 
 ## Decisiones tomadas
@@ -367,6 +370,43 @@ Decisiones del usuario (D14, 2026-11-06), con sus nombres para los tipos:
 - Lo pendiente cuadra con los intervalos: por km, por tiempo y "lo que pase primero"; las cajas, solo por tiempo.
 - Los totales de Reportes son iguales antes y después; el gasto por tipo suma el total del periodo.
 - Las baterías anteriores siguen pasando; Mantenimientos e Inicio responden en menos de ~1 s con volumen.
+
+### 5H — Kilometraje semanal y tickets de taller (acordada 2026-11-12, el usuario dijo "empieza")
+**D15 — Kilometraje semanal** (decisiones del usuario, 2026-11-12):
+- Cada lunes los choferes mandan foto del tablero (por fuera de la app, p. ej. WhatsApp) y un capturista escribe el número en la página **Kilometraje**. La app no guarda la foto. Sin rol nuevo: lo hace un capturista (puede haber uno solo para esto).
+- Se piden las unidades con estatus **activo** cuyo tipo lleva kilometraje. En taller, vendidas, de baja o por llegar no se piden.
+- La captura semanal se abre **lunes y martes** (hora de Tijuana). Los demás días queda cerrada para el capturista; la unidad sin lectura queda "Sin lectura esa semana". El admin puede capturar cualquier día.
+- **Días de registro configurables** (pedido del usuario, 2026-11-12, para probar antes de los datos reales): el admin elige en la página Kilometraje uno o dos días de la semana; se repiten cada semana (`ajustes_kilometraje`). Empieza en lunes y martes.
+- Una lectura por unidad por semana (la semana empieza el lunes).
+- Lectura menor que la anterior: no se guarda y avisa ("T-17 tiene menos kilometraje que la semana pasada"). Las demás de la lista sí se guardan.
+- Salto grande: pregunta "¿Seguro que T-17 recorrió N km esta semana?" si pasa de **3,000 km** (local) o **7,000 km** (foráneo y sin operación).
+- Corregir: quien la capturó, el mismo día; después solo el admin, desde la ficha de la unidad, con motivo (queda registrado). La corrección de km del admin (5F) sigue igual.
+- Lunes y martes, tarjeta roja "Actualizar kilometraje" en el Inicio de admin y capturista con las unidades pendientes.
+- Las lecturas son una fuente más del km actual: Mantenimientos e Inicio se actualizan solos.
+
+**D16 — Tickets de taller** (decisiones del usuario, 2026-11-12):
+- **Crean:** admin y gerente (único permiso de escritura del gerente). Unidad, falla y prioridad (**Urgente / Normal / Baja**). Sin fecha límite.
+- No se crea si la unidad está en taller, vendida, de baja o ya tiene un ticket pendiente.
+- **Llegan a todos los capturistas**; el primero que acepta se lo queda. El admin también acepta y rechaza.
+- **Aceptar** pide el kilometraje y crea la entrada a taller en automático (falla del ticket, fecha de hoy); desde ahí cuentan los días en taller. Se mide también cuánto tardaron en aceptarlo.
+- **Rechazar** exige motivo. Quien lo levantó ve el aviso con el motivo en su Inicio hasta que toque "Enterado", y siempre en la página Tickets.
+- **Cancelar:** quien lo levantó o el admin, mientras siga pendiente.
+- Entrada directa a taller (capturista y admin) sin ticket, como hoy, **salvo** si la unidad tiene un ticket pendiente: entonces se acepta desde Tickets.
+- Aviso: número de pendientes en el menú y tarjeta en el Inicio que se actualizan solos (Supabase Realtime).
+- Detalles de la Etapa 3 (decisiones propias, 2026-11-12): los tres roles ven todos los tickets (Realtime solo avisa de lo que el usuario puede ver); aceptar exige km si el tipo lleva odómetro; si la unidad se vende o se da de baja, su ticket pendiente se cancela solo. Etapa 4: el admin ve los tickets como renglones arriba de su cuadrícula (ya tiene 4 tarjetas); capturista y gerente, como tarjeta.
+
+**Etapas** (mismas reglas de la 5E/5F: BD compatible con la app publicada, ensayo en `begin … rollback`, regresión de `supabase/tests`, revisión en navegador y celular)
+- **Etapa 1 — Kilometraje semanal, BD:** tabla `lecturas_kilometraje` (RLS; una por unidad y semana), funciones para registrar varias, corregir (autor el mismo día; admin con motivo) y listar pendientes de la semana; las lecturas entran a `kilometraje_unidades()` y `validar_kilometraje()`.
+- **Etapa 2 — Kilometraje semanal, pantallas:** página `/kilometraje`, tarjeta roja en Inicio, lecturas en la ficha con "Corregir".
+- **Etapa 3 — Tickets, BD:** enums de prioridad y estatus, tabla `tickets_taller` con la entrada que generó, funciones crear / aceptar / rechazar / cancelar / enterado; `registrar_entrada_taller()` rechaza unidades con ticket pendiente; publicación de Realtime; pruebas del gerente actualizadas.
+- **Etapa 4 — Tickets, pantallas:** página `/tickets` con número en el menú, tarjetas de Inicio (reacomodo 2 x 2 de los tres roles), tiempo de aceptación en la estancia de la ficha.
+
+**Terminado cuando**
+- Una lectura menor, de una unidad no activa, repetida en la semana o del capturista fuera de lunes y martes no se guarda, ni por API directa.
+- Mantenimientos por km cambia con una lectura semanal sin registrar servicio.
+- El gerente crea y cancela tickets y no puede escribir nada más; el capturista acepta (se crea la entrada a taller con su km) o rechaza con motivo; nadie acepta un ticket ya atendido.
+- Las tarjetas de tickets cambian sin recargar.
+- Las baterías anteriores siguen pasando.
 
 ### Fase 2 — Almacén (a futuro, cuando el almacén físico esté ordenado)
 Decisiones del usuario (2026-11-06):

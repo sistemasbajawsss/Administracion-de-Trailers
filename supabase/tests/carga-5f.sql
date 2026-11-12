@@ -107,7 +107,7 @@ declare
   g jsonb := jsonb_build_array(jsonb_build_object('categoria_id', (select id from public.categorias where activo and not requiere_concepto limit 1), 'monto', '100.00'));
 begin
   select u.id into v_u from public.unidades u
-  where u.estatus = 'activo' and u.tipo <> 'caja' order by u.numero_orden desc limit 1;
+  where u.estatus = 'activo' and u.public.tipo_lleva_kilometraje(tipo) order by u.numero_orden desc limit 1;
   select id into v_plan from public.mantenimientos_unidad where unidad_id = v_u and activo and nombre = '[CARGA] Aceite';
 
   for r in select * from quien_rol loop

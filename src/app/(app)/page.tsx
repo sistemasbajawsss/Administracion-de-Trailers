@@ -10,6 +10,8 @@ import {
   PendingReceiptsPanel,
   RecentServicesPanel,
 } from "@/features/servicios/components/home-panels";
+import { WeeklyMileageBanner } from "@/features/kilometraje/components/weekly-mileage-banner";
+import { AdminTicketsBanner, TicketsHomePanel } from "@/features/tickets/components/tickets-home";
 import { MaintenanceDuePanel } from "@/features/mantenimientos/components/maintenance-due-panel";
 import { UnitsInShopPanel } from "@/features/unidades/components/units-in-shop";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
@@ -25,24 +27,33 @@ const newServiceLink = (className = "") => (
 async function Welcome() {
   const user = await getCurrentUser();
   const firstName = user.name.split(" ")[0];
+  const now = new Date().toISOString();
 
   if (user.role === "capturista") {
     return (
       <>
         <PageHeader title={`Hola, ${firstName}`} description="Registra los servicios con su comprobante." />
         {newServiceLink("mb-6 h-14 w-full px-6 text-lg sm:w-auto")}
+        {/* En los días de registro del kilometraje, mientras falten unidades (5H): arriba de la cuadrícula, sin moverla. */}
+        <Suspense fallback={null}>
+          <WeeklyMileageBanner />
+        </Suspense>
         {/* Cuadrícula de 2 x 2 sin scroll en la computadora (lo pidió el usuario):
-            lo suyo (facturas y últimos) a la izquierda y Mantenimientos a la derecha,
-            de los dos renglones de alto y con más renglones para llenarla. */}
+            lo suyo (facturas y últimos) a la izquierda; a la derecha, Tickets de
+            taller (5H) arriba y Mantenimientos abajo. En celular, Tickets va
+            segundo, después de las facturas. */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Suspense fallback={<HomePanelSkeleton />}>
             <PendingReceiptsPanel title="Te falta subir factura" showAuthor={false} />
           </Suspense>
           <Suspense fallback={<HomePanelSkeleton />}>
-            <MaintenanceDuePanel openUnits={false} rows={7} className="lg:row-span-2" />
+            <TicketsHomePanel user={user} now={now} />
           </Suspense>
           <Suspense fallback={<HomePanelSkeleton />}>
             <RecentServicesPanel />
+          </Suspense>
+          <Suspense fallback={<HomePanelSkeleton />}>
+            <MaintenanceDuePanel openUnits={false} />
           </Suspense>
         </div>
       </>
@@ -70,8 +81,19 @@ async function Welcome() {
           "Ver los N" queda alineado abajo; lo demás, en esa ventana o página.
           Izquierda, servicios (sin factura, sin entrada a taller); derecha,
           unidades (mantenimientos, en taller). El gerente no ve "Sin entrada a
-          taller": su tarjeta de facturas ocupa los dos renglones. En celular,
-          una columna. */}
+          taller": en su lugar, Tickets de taller (5H). En celular, una columna. */}
+      {/* En los días de registro del kilometraje, mientras falten unidades (5H, solo admin): arriba de la cuadrícula, sin moverla. */}
+      {user.role === "admin" && (
+        <Suspense fallback={null}>
+          <WeeklyMileageBanner />
+        </Suspense>
+      )}
+      {/* Admin: tickets pendientes y sus rechazos sin ver, en renglones arriba de la cuadrícula (ya tiene 4 tarjetas). */}
+      {user.role === "admin" && (
+        <Suspense fallback={null}>
+          <AdminTicketsBanner user={user} />
+        </Suspense>
+      )}
       <div className="grid grid-cols-1 gap-6 lg:grid-flow-col lg:grid-cols-2 lg:grid-rows-2">
         {user.role === "admin" ? (
           <>
@@ -83,9 +105,14 @@ async function Welcome() {
             </Suspense>
           </>
         ) : (
-          <Suspense fallback={<HomePanelSkeleton />}>
-            <PendingReceiptsPanel title="Servicios sin factura" showAuthor canUpload={false} rows={7} className="lg:row-span-2" />
-          </Suspense>
+          <>
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <PendingReceiptsPanel title="Servicios sin factura" showAuthor canUpload={false} />
+            </Suspense>
+            <Suspense fallback={<HomePanelSkeleton />}>
+              <TicketsHomePanel user={user} now={now} />
+            </Suspense>
+          </>
         )}
         <Suspense fallback={<HomePanelSkeleton />}>
           <MaintenanceDuePanel openUnits />

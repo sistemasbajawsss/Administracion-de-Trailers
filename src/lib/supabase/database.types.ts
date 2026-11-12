@@ -39,6 +39,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajustes_kilometraje: {
+        Row: {
+          created_at: string
+          dias_captura: number[]
+          id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          dias_captura?: number[]
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          dias_captura?: number[]
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bitacora_eliminaciones: {
         Row: {
           autor_nombre: string | null
@@ -86,6 +110,56 @@ export type Database = {
           unidad_id?: string
         }
         Relationships: []
+      }
+      cambios_lecturas_kilometraje: {
+        Row: {
+          accion: string
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kilometraje_anterior: number
+          kilometraje_nuevo: number | null
+          lectura_id: string
+          motivo: string | null
+          semana: string
+          unidad_id: string
+        }
+        Insert: {
+          accion: string
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kilometraje_anterior: number
+          kilometraje_nuevo?: number | null
+          lectura_id: string
+          motivo?: string | null
+          semana: string
+          unidad_id: string
+        }
+        Update: {
+          accion?: string
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kilometraje_anterior?: number
+          kilometraje_nuevo?: number | null
+          lectura_id?: string
+          motivo?: string | null
+          semana?: string
+          unidad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cambios_lecturas_kilometraje_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categorias: {
         Row: {
@@ -410,6 +484,53 @@ export type Database = {
         }
         Relationships: []
       }
+      lecturas_kilometraje: {
+        Row: {
+          autor_nombre: string | null
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          kilometraje: number
+          semana: string
+          unidad_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          id?: string
+          kilometraje: number
+          semana: string
+          unidad_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          autor_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          kilometraje?: number
+          semana?: string
+          unidad_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecturas_kilometraje_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mantenimientos_unidad: {
         Row: {
           activo: boolean
@@ -648,6 +769,124 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tickets_avisos: {
+        Row: {
+          creado_por: string | null
+          id: number
+          prioridad: Database["public"]["Enums"]["prioridad_ticket"] | null
+          tipo: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          creado_por?: string | null
+          id?: number
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"] | null
+          tipo?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          creado_por?: string | null
+          id?: number
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"] | null
+          tipo?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      tickets_taller: {
+        Row: {
+          atendido_at: string | null
+          atendido_by: string | null
+          atendido_nombre: string | null
+          cancelado_at: string | null
+          cancelado_by: string | null
+          cancelado_nombre: string | null
+          creador_nombre: string | null
+          created_at: string
+          created_by: string | null
+          enterado_at: string | null
+          entrada_id: string | null
+          estatus: Database["public"]["Enums"]["estatus_ticket"]
+          falla: string
+          folio: number
+          id: string
+          motivo_cancelacion: string | null
+          motivo_rechazo: string | null
+          prioridad: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id: string
+          updated_at: string
+        }
+        Insert: {
+          atendido_at?: string | null
+          atendido_by?: string | null
+          atendido_nombre?: string | null
+          cancelado_at?: string | null
+          cancelado_by?: string | null
+          cancelado_nombre?: string | null
+          creador_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          enterado_at?: string | null
+          entrada_id?: string | null
+          estatus?: Database["public"]["Enums"]["estatus_ticket"]
+          falla: string
+          folio?: never
+          id?: string
+          motivo_cancelacion?: string | null
+          motivo_rechazo?: string | null
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id: string
+          updated_at?: string
+        }
+        Update: {
+          atendido_at?: string | null
+          atendido_by?: string | null
+          atendido_nombre?: string | null
+          cancelado_at?: string | null
+          cancelado_by?: string | null
+          cancelado_nombre?: string | null
+          creador_nombre?: string | null
+          created_at?: string
+          created_by?: string | null
+          enterado_at?: string | null
+          entrada_id?: string | null
+          estatus?: Database["public"]["Enums"]["estatus_ticket"]
+          falla?: string
+          folio?: never
+          id?: string
+          motivo_cancelacion?: string | null
+          motivo_rechazo?: string | null
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_taller_entrada_id_fkey"
+            columns: ["entrada_id"]
+            isOneToOne: true
+            referencedRelation: "entradas_taller"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_taller_entrada_id_fkey"
+            columns: ["entrada_id"]
+            isOneToOne: true
+            referencedRelation: "entradas_taller_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_taller_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tipos_unidad: {
         Row: {
@@ -990,6 +1229,10 @@ export type Database = {
       }
     }
     Functions: {
+      aceptar_ticket_taller: {
+        Args: { p_kilometraje?: number; p_ticket_id: string }
+        Returns: string
+      }
       actualizar_servicio: {
         Args: {
           p_descripcion: string
@@ -1035,6 +1278,14 @@ export type Database = {
           servicio_id: string
         }[]
       }
+      cambiar_dias_captura_kilometraje: {
+        Args: { p_dias: number[] }
+        Returns: undefined
+      }
+      cancelar_ticket_taller: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
       copiar_mantenimientos: {
         Args: { p_destino: string; p_origen: string }
@@ -1045,6 +1296,18 @@ export type Database = {
           p_fecha: string
           p_kilometraje: number
           p_motivo: string
+          p_unidad_id: string
+        }
+        Returns: string
+      }
+      corregir_lectura_kilometraje: {
+        Args: { p_kilometraje: number; p_lectura_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      crear_ticket_taller: {
+        Args: {
+          p_falla: string
+          p_prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
           p_unidad_id: string
         }
         Returns: string
@@ -1062,6 +1325,7 @@ export type Database = {
         Args: { p_motivo: string; p_unidad_id: string }
         Returns: undefined
       }
+      dias_captura_kilometraje: { Args: never; Returns: number[] }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
         Returns: undefined
@@ -1075,6 +1339,7 @@ export type Database = {
         Returns: string[]
       }
       es_admin: { Args: never; Returns: boolean }
+      es_dia_de_captura_semanal: { Args: { p_fecha: string }; Returns: boolean }
       exportar_gastos: {
         Args: {
           p_desde: string
@@ -1142,12 +1407,32 @@ export type Database = {
           unidad_id: string
         }[]
       }
+      inicio_semana: { Args: { p_fecha: string }; Returns: string }
       kilometraje_unidades: {
         Args: { p_unidad_id?: string }
         Returns: {
           fecha: string
           fuente: string
           kilometraje: number
+          unidad_id: string
+        }[]
+      }
+      lecturas_semana: {
+        Args: never
+        Returns: {
+          kilometraje: number
+          kilometraje_fecha: string
+          kilometraje_fuente: string
+          lectura_autor: string
+          lectura_created_at: string
+          lectura_created_by: string
+          lectura_id: string
+          lectura_kilometraje: number
+          numero_economico: string
+          numero_orden: number
+          operacion: Database["public"]["Enums"]["operacion_unidad"]
+          orden_tipo: number
+          tipo: string
           unidad_id: string
         }[]
       }
@@ -1221,17 +1506,30 @@ export type Database = {
           unidad_id: string
         }[]
       }
+      marcar_ticket_enterado: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       marcar_unidad_vendida: {
         Args: { p_fecha: string; p_nota?: string; p_unidad_id: string }
         Returns: undefined
       }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
+      puede_cambiar_lectura: { Args: { p_lectura_id: string }; Returns: string }
       puede_capturar: { Args: never; Returns: boolean }
       puede_ver_todo: { Args: never; Returns: boolean }
       quitar_comprobante: {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: string
+      }
+      quitar_lectura_kilometraje: {
+        Args: { p_lectura_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      rechazar_ticket_taller: {
+        Args: { p_motivo: string; p_ticket_id: string }
+        Returns: undefined
       }
       registrar_entrada_taller: {
         Args: {
@@ -1241,6 +1539,14 @@ export type Database = {
           p_unidad_id: string
         }
         Returns: string
+      }
+      registrar_lecturas_kilometraje: {
+        Args: { p_lecturas: Json }
+        Returns: {
+          error: string
+          lectura_id: string
+          unidad_id: string
+        }[]
       }
       registrar_servicio: {
         Args: {
@@ -1295,11 +1601,43 @@ export type Database = {
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
       tipo_lleva_kilometraje: { Args: { p_tipo: string }; Returns: boolean }
+      tomar_ticket_pendiente: {
+        Args: { p_ticket_id: string }
+        Returns: {
+          atendido_at: string | null
+          atendido_by: string | null
+          atendido_nombre: string | null
+          cancelado_at: string | null
+          cancelado_by: string | null
+          cancelado_nombre: string | null
+          creador_nombre: string | null
+          created_at: string
+          created_by: string | null
+          enterado_at: string | null
+          entrada_id: string | null
+          estatus: Database["public"]["Enums"]["estatus_ticket"]
+          falla: string
+          folio: number
+          id: string
+          motivo_cancelacion: string | null
+          motivo_rechazo: string | null
+          prioridad: Database["public"]["Enums"]["prioridad_ticket"]
+          unidad_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets_taller"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       validar_kilometraje: {
         Args: {
           p_entrada_id?: string
           p_fecha: string
           p_kilometraje: number
+          p_lectura_id?: string
           p_servicio_id?: string
           p_unidad_id: string
         }
@@ -1312,10 +1650,12 @@ export type Database = {
     }
     Enums: {
       accion_historial: "insert" | "update" | "delete"
+      estatus_ticket: "pendiente" | "aceptado" | "rechazado" | "cancelado"
       estatus_unidad: "activo" | "en_taller" | "por_llegar" | "baja" | "vendida"
       lugar_servicio: "taller_propio" | "taller_externo" | "en_camino"
       moneda: "MXN" | "USD"
       operacion_unidad: "local" | "foraneo"
+      prioridad_ticket: "urgente" | "normal" | "baja"
       rol_usuario: "admin" | "capturista" | "gerente"
       tipo_servicio: "preventivo" | "correctivo" | "servicio"
     }
@@ -1449,10 +1789,12 @@ export const Constants = {
   public: {
     Enums: {
       accion_historial: ["insert", "update", "delete"],
+      estatus_ticket: ["pendiente", "aceptado", "rechazado", "cancelado"],
       estatus_unidad: ["activo", "en_taller", "por_llegar", "baja", "vendida"],
       lugar_servicio: ["taller_propio", "taller_externo", "en_camino"],
       moneda: ["MXN", "USD"],
       operacion_unidad: ["local", "foraneo"],
+      prioridad_ticket: ["urgente", "normal", "baja"],
       rol_usuario: ["admin", "capturista", "gerente"],
       tipo_servicio: ["preventivo", "correctivo", "servicio"],
     },

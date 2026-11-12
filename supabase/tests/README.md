@@ -33,9 +33,13 @@ npx supabase db query --linked -f supabase/tests/<archivo>.sql
 | `reporte-mantenimiento.sql` | Reportes: gasto por mes partido por tipo de servicio, cuadra con el total y con por tipo (5F) | 6/6 |
 | `donde-se-hizo.sql` | ¿Dónde se hizo?: Taller Realso sin taller, fuera y en camino con taller, talleres desactivados, editar, restaurar, permisos de `talleres` (5G) | 21/21 |
 | `reporte-donde-se-hizo.sql` | Reportes y Excel: por lugar, por taller y columnas del Excel (5G) | 5/5 |
+| `kilometraje-semanal.sql` | Kilometraje semanal: semana y días de captura, varias a la vez (las buenas se guardan), una por semana, solo activas con odómetro, revisión contra lecturas, corregir y quitar (autor el mismo día, admin con motivo), permisos de los tres roles (5H) | 40/40 (el caso del capturista cambia según el día: lunes y martes guarda, los demás rechaza) |
+| `dias-captura-kilometraje.sql` | Días de registro del kilometraje: el admin elige uno o dos, el capturista registra solo esos días, permisos (5H) | 13/13 |
+| `tickets-taller.sql` | Tickets de taller: crear (admin y gerente), aceptar (crea la entrada con km; si falla, todo se deshace), rechazar con motivo, cancelar (quien lo levantó o admin), Enterado, candados de unidad, entrada directa bloqueada con ticket pendiente, cancelación sola al dar de baja, permisos de los tres roles y anónimo, Realtime (5H) | 42/42 |
 | `mantenimientos-cumplidos.sql` | Un correctivo cumple mantenimientos y reinicia su contador: validaciones, edición, historial, eliminar y restaurar, mismo cálculo para los tres roles (5F) | 27/27 |
 
 Notas:
 - **Estas pruebas no ven la API (PostgREST).** Una llave foránea nueva entre dos tablas que la app ya anida (p. ej. `servicios` ↔ `entradas_taller`) crea una segunda relación y la API deja de saber cuál usar: las pruebas pasan y la pantalla falla (pasó el 2026-11-06). Antes de agregar una llave entre tablas que ya se anidan, buscar en `src` los `select` que las anidan y probar esas pantallas, o poner el nombre de la relación (`tabla!columna(...)`).
 - La BD corre en UTC: en las pruebas, "hoy" es `(now() at time zone 'America/Tijuana')::date`, no `current_date`.
+- Las pruebas eligen sus datos por la regla, no por suposición: unidades con odómetro con `public.tipo_lleva_kilometraje(tipo)` (no `tipo <> 'caja'`), servicios de antes de la 5E con `sin_entrada_taller is null`; y limpian lo que traen los datos `[PRUEBA]` (al quitar el km de un servicio, también `mantenimientos = '{}'`; mantenimientos que ya tiene la unidad).
 - Una prueba nueva va en su propio archivo con el mismo formato (`begin`, tabla temporal `r` con `caso` / `ok` / `detalle`, `rollback`).

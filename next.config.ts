@@ -7,6 +7,9 @@ const isDev = process.env.NODE_ENV !== "production";
 const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
   : "";
+// Realtime (tickets, 5H) abre un websocket al mismo servidor (wss://<ref>.supabase.co).
+// Va explícito porque Safari viejo no toma https: como permiso para wss:.
+const supabaseRealtime = supabaseOrigin.replace(/^http/, "ws");
 
 /**
  * Content-Security-Policy: qué puede cargar y a dónde puede enviar datos la página.
@@ -26,7 +29,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${supabaseOrigin}`,
   "font-src 'self'",
-  `connect-src 'self' ${supabaseOrigin}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${supabaseOrigin} ${supabaseRealtime}${isDev ? " ws:" : ""}`,
   "worker-src 'self' blob:",
   "frame-src 'none'",
   "object-src 'none'",

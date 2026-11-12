@@ -52,6 +52,23 @@ begin
   begin perform 1 from public.listar_usuarios();
     insert into r(caso, ok, detalle) values ('no lista usuarios', false, 'pudo');
   exception when others then insert into r(caso, ok, detalle) values ('no lista usuarios', true, sqlerrm); end;
+
+  -- 5H (D16): levantar tickets de taller es su único permiso de escritura.
+  select id into v_u from public.unidades u
+  where u.estatus = 'activo'
+    and not exists (select 1 from public.tickets_taller t where t.unidad_id = u.id and t.estatus = 'pendiente')
+  limit 1;
+  begin v_s := public.crear_ticket_taller(v_u, '[TEST gerente] falla', 'normal');
+    insert into r(caso, ok, detalle) values ('sí levanta tickets de taller', v_s is not null, '');
+  exception when others then insert into r(caso, ok, detalle) values ('sí levanta tickets de taller', false, sqlerrm); end;
+
+  begin perform public.aceptar_ticket_taller(v_s, 9000000);
+    insert into r(caso, ok, detalle) values ('no acepta tickets', false, 'pudo');
+  exception when others then insert into r(caso, ok, detalle) values ('no acepta tickets', sqlstate = '42501', sqlerrm); end;
+
+  begin perform public.registrar_entrada_taller(v_u, ((now() at time zone 'America/Tijuana')::date), 'x', 9000000);
+    insert into r(caso, ok, detalle) values ('no da entradas a taller', false, 'pudo');
+  exception when others then insert into r(caso, ok, detalle) values ('no da entradas a taller', sqlstate = '42501', sqlerrm); end;
 end $$;
 reset role;
 select caso, ok, detalle from r order by n;
