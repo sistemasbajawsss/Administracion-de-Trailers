@@ -393,7 +393,7 @@ Decisiones del usuario (D14, 2026-11-06), con sus nombres para los tipos:
 - **Cancelar:** quien lo levantó o el admin, mientras siga pendiente.
 - Entrada directa a taller (capturista y admin) sin ticket, como hoy, **salvo** si la unidad tiene un ticket pendiente: entonces se acepta desde Tickets.
 - Aviso: número de pendientes en el menú y tarjeta en el Inicio que se actualizan solos (Supabase Realtime).
-- Detalles de la Etapa 3 (decisiones propias, 2026-11-12): los tres roles ven todos los tickets (Realtime solo avisa de lo que el usuario puede ver); aceptar exige km si el tipo lleva odómetro; si la unidad se vende o se da de baja, su ticket pendiente se cancela solo.
+- Detalles de la Etapa 3 (decisiones propias, 2026-11-12): los tres roles ven todos los tickets (Realtime solo avisa de lo que el usuario puede ver); aceptar exige km si el tipo lleva odómetro; si la unidad se vende o se da de baja, su ticket pendiente se cancela solo. Etapa 4: el admin ve los tickets como renglones arriba de su cuadrícula (ya tiene 4 tarjetas); capturista y gerente, como tarjeta.
 
 **Etapas** (mismas reglas de la 5E/5F: BD compatible con la app publicada, ensayo en `begin … rollback`, regresión de `supabase/tests`, revisión en navegador y celular)
 - **Etapa 1 — Kilometraje semanal, BD:** tabla `lecturas_kilometraje` (RLS; una por unidad y semana), funciones para registrar varias, corregir (autor el mismo día; admin con motivo) y listar pendientes de la semana; las lecturas entran a `kilometraje_unidades()` y `validar_kilometraje()`.
