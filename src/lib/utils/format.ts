@@ -160,3 +160,22 @@ export function daysBetween(from: string, to: string) {
 export function formatKm(value: number) {
   return `${new Intl.NumberFormat("es-MX").format(value)} km`;
 }
+
+/**
+ * Tiempo entre dos momentos (timestamptz), corto y sin decimales:
+ * "menos de 1 min", "25 min", "1 h 20 min", "2 días 3 h".
+ */
+export function formatElapsed(from: string, to: string) {
+  const minutes = Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 60_000));
+  if (minutes < 1) return "menos de 1 min";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    const rest = minutes % 60;
+    return rest ? `${hours} h ${rest} min` : `${hours} h`;
+  }
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  const dayText = days === 1 ? "1 día" : `${days} días`;
+  return restHours ? `${dayText} ${restHours} h` : dayText;
+}

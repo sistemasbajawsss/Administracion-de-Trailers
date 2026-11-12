@@ -6,6 +6,7 @@ import {
   Hammer,
   House,
   Tags,
+  TicketCheck,
   Truck,
   UsersRound,
   Wrench,
@@ -17,6 +18,7 @@ import type { NavIcon as NavIconName } from "./navigation";
 const ICONS: Record<NavIconName, LucideIcon> = {
   inicio: House,
   taller: Hammer,
+  tickets: TicketCheck,
   unidades: Truck,
   servicios: Wrench,
   mantenimientos: CalendarClock,

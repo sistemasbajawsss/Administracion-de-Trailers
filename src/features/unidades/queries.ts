@@ -227,6 +227,28 @@ export async function listUnitShopStays(
         >()
     : { data: [], error: null };
   if (services.error) throw new Error("No se pudieron cargar los servicios de las estancias");
+
+  // El ticket que abrió cada estancia (5H): quién lo levantó y cuánto tardaron en aceptarlo.
+  const tickets = ids.length
+    ? await supabase
+        .from("tickets_taller")
+        .select("entrada_id, folio, prioridad, creador_nombre, created_at, atendido_at, atendido_nombre")
+        .in("entrada_id", ids)
+    : { data: [], error: null };
+  if (tickets.error) throw new Error("No se pudieron cargar los tickets de las estancias");
+  const ticketByEntry = new Map(
+    tickets.data.map((t) => [
+      t.entrada_id,
+      {
+        folio: t.folio,
+        priority: t.prioridad,
+        creatorName: t.creador_nombre,
+        createdAt: t.created_at,
+        attendedAt: t.atendido_at,
+        attendedName: t.atendido_nombre,
+      },
+    ]),
+  );
   return {
     stays: stays.data.map((row) => ({
       id: row.id,
@@ -241,6 +263,7 @@ export async function listUnitShopStays(
       services: services.data
         .filter((s) => s.entrada_taller_id === row.id)
         .map((s) => ({ id: s.id, date: s.fecha, total: s.total, description: s.descripcion, supplier: s.proveedor?.nombre ?? null })),
+      ticket: ticketByEntry.get(row.id) ?? null,
     })),
     total: stays.count ?? 0,
   };

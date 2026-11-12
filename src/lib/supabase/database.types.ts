@@ -770,6 +770,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tickets_avisos: {
+        Row: {
+          creado_por: string | null
+          id: number
+          prioridad: Database["public"]["Enums"]["prioridad_ticket"] | null
+          tipo: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          creado_por?: string | null
+          id?: number
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"] | null
+          tipo?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          creado_por?: string | null
+          id?: number
+          prioridad?: Database["public"]["Enums"]["prioridad_ticket"] | null
+          tipo?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       tickets_taller: {
         Row: {
           atendido_at: string | null

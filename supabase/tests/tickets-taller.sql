@@ -43,6 +43,9 @@ select (select v from x where k = 'ue'),
        100000, (select v from x where k = 'admin'), 'Admin', now() - interval '7 days'
 on conflict (unidad_id, semana) do update set kilometraje = 100000;
 
+-- Contador de avisos al empezar (para ver que sube con cada cambio).
+create temp table aviso0 as select version as v_inicio from public.tickets_avisos where id = 1;
+
 -- ubaja: dada de baja (solo en esta transacción).
 update public.unidades set estatus = 'baja' where id = (select v from x where k = 'ubaja');
 
@@ -360,8 +363,32 @@ begin
 end $$;
 reset role;
 
+-- Aviso al momento (20261112225715): el contador sin datos sube con cada cambio.
 insert into r(caso, ok, detalle)
-select 'Tabla en la publicación de Realtime', exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'tickets_taller'), '';
+select 'Cada cambio sube el contador de avisos', version >= (select v_inicio from aviso0) + 10 and tipo = 'update' and prioridad = 'normal',
+       (version - (select v_inicio from aviso0))::text || ' cambios'
+from public.tickets_avisos where id = 1;
+insert into r(caso, ok, detalle)
+select 'Realtime escucha el contador, no los tickets',
+       exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'tickets_avisos')
+       and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'tickets_taller'), '';
+set local role anon;
+do $$
+begin
+  begin
+    perform 1 from public.tickets_avisos;
+    insert into r(caso, ok, detalle) values ('Anónimo lee el contador (sin datos de tickets)', true, '');
+  exception when others then
+    insert into r(caso, ok, detalle) values ('Anónimo lee el contador (sin datos de tickets)', false, sqlerrm);
+  end;
+  begin
+    update public.tickets_avisos set version = 0;
+    insert into r(caso, ok, detalle) values ('Nadie cambia el contador directo', false, 'pudo');
+  exception when others then
+    insert into r(caso, ok, detalle) values ('Nadie cambia el contador directo', sqlstate = '42501', sqlerrm);
+  end;
+end $$;
+reset role;
 
 select caso, ok, detalle from r order by n;
 rollback;
