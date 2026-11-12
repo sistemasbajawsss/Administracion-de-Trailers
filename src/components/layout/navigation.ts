@@ -6,6 +6,7 @@ export type NavIcon =
   | "unidades"
   | "servicios"
   | "mantenimientos"
+  | "kilometraje"
   | "registrar"
   | "reportes"
   | "catalogos"
@@ -24,6 +25,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { href: "/unidades", label: "Unidades", icon: "unidades" },
     { href: "/servicios", label: "Servicios", icon: "servicios" },
     { href: "/mantenimientos", label: "Mantenimientos", icon: "mantenimientos" },
+    { href: "/kilometraje", label: "Kilometraje", icon: "kilometraje" },
     { href: "/dashboard", label: "Reportes", icon: "reportes" },
     { href: "/admin/catalogos", label: "Catálogos", icon: "catalogos" },
     { href: "/admin/usuarios", label: "Usuarios", icon: "usuarios" },
@@ -34,6 +36,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { href: "/servicios/nuevo", label: "Registrar servicio", icon: "registrar" },
     { href: "/servicios", label: "Mis servicios", icon: "servicios" },
     { href: "/mantenimientos", label: "Mantenimientos", icon: "mantenimientos" },
+    { href: "/kilometraje", label: "Kilometraje", icon: "kilometraje" },
   ],
   gerente: [
     { href: "/", label: "Inicio", icon: "inicio" },
@@ -41,6 +44,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { href: "/unidades", label: "Unidades", icon: "unidades" },
     { href: "/servicios", label: "Servicios", icon: "servicios" },
     { href: "/mantenimientos", label: "Mantenimientos", icon: "mantenimientos" },
+    { href: "/kilometraje", label: "Kilometraje", icon: "kilometraje" },
     { href: "/dashboard", label: "Reportes", icon: "reportes" },
   ],
 };

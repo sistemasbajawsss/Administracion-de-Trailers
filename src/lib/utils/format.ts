@@ -138,6 +138,24 @@ export function todayInTijuana() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tijuana" }).format(new Date());
 }
 
+/** Fecha en Tijuana ("aaaa-mm-dd") de un momento de auditoría (timestamptz). */
+export function dateInTijuana(value: string) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tijuana" }).format(new Date(value));
+}
+
+/** "2026-11-12" + 4 → "2026-11-16" (sin zonas horarias). */
+export function addDays(date: string, days: number) {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Días completos entre dos fechas "aaaa-mm-dd" (sin zonas horarias). */
+export function daysBetween(from: string, to: string) {
+  const [fy, fm, fd] = from.split("-").map(Number) as [number, number, number];
+  const [ty, tm, td] = to.split("-").map(Number) as [number, number, number];
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
 /** 250000 → "250,000 km". */
 export function formatKm(value: number) {
   return `${new Intl.NumberFormat("es-MX").format(value)} km`;

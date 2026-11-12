@@ -2,7 +2,7 @@
 -- Semana y días de captura, alta de varias, una por semana, solo activas con
 -- odómetro, revisión contra lecturas anteriores, kilometraje actual, corregir y
 -- quitar (autor el mismo día, admin con motivo), permisos de los tres roles.
--- Corre con la migración 20261112185135_kilometraje_semanal ya aplicada.
+-- Corre con las migraciones 20261112185135_kilometraje_semanal y 20261112192726_dias_captura_kilometraje ya aplicadas.
 -- La captura del capturista depende del día: lunes y martes se guarda; los demás
 -- días se rechaza (las dos ramas se revisan según el día en que se corra).
 begin;
@@ -26,6 +26,9 @@ insert into x values
 -- Una unidad que no está activa (se pone en "por llegar" solo en esta transacción).
 insert into x values ('inact', (select id from public.unidades where estatus = 'activo' and public.tipo_lleva_kilometraje(tipo) order by numero_orden, numero_economico limit 1 offset 4));
 update public.unidades set estatus = 'por_llegar' where id = (select v from x where k = 'inact');
+
+-- Días de registro: lunes y martes, como al principio (los elige el admin; ver dias-captura-kilometraje.sql).
+update public.ajustes_kilometraje set dias_captura = '{1,2}' where id = 1;
 
 -- Las unidades de prueba empiezan sin lecturas (los [PRUEBA] traen km al azar).
 select set_config('app.motivo', 'Prueba de kilometraje semanal', true);

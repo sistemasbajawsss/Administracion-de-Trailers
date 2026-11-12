@@ -39,6 +39,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajustes_kilometraje: {
+        Row: {
+          created_at: string
+          dias_captura: number[]
+          id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          dias_captura?: number[]
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          dias_captura?: number[]
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bitacora_eliminaciones: {
         Row: {
           autor_nombre: string | null
@@ -1132,6 +1156,10 @@ export type Database = {
           servicio_id: string
         }[]
       }
+      cambiar_dias_captura_kilometraje: {
+        Args: { p_dias: number[] }
+        Returns: undefined
+      }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
       copiar_mantenimientos: {
         Args: { p_destino: string; p_origen: string }
@@ -1163,6 +1191,7 @@ export type Database = {
         Args: { p_motivo: string; p_unidad_id: string }
         Returns: undefined
       }
+      dias_captura_kilometraje: { Args: never; Returns: number[] }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
         Returns: undefined

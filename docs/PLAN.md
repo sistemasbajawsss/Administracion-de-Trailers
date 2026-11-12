@@ -17,7 +17,7 @@
 | Dashboard y reportes | Sí | No | Sí |
 | Crear y cancelar tickets de taller (D16) | Sí | No | Sí (único permiso de escritura) |
 | Aceptar o rechazar tickets de taller (D16) | Sí | Sí | No |
-| Kilometraje semanal (D15) | Sí, cualquier día | Sí, lunes y martes | Solo ve |
+| Kilometraje semanal (D15) | Sí, cualquier día; elige los días de registro | Sí, en los días de registro (lunes y martes al empezar) | Solo ve |
 | Gestionar usuarios | Sí | No | No |
 
 ## Decisiones tomadas
@@ -375,7 +375,8 @@ Decisiones del usuario (D14, 2026-11-06), con sus nombres para los tipos:
 **D15 — Kilometraje semanal** (decisiones del usuario, 2026-11-12):
 - Cada lunes los choferes mandan foto del tablero (por fuera de la app, p. ej. WhatsApp) y un capturista escribe el número en la página **Kilometraje**. La app no guarda la foto. Sin rol nuevo: lo hace un capturista (puede haber uno solo para esto).
 - Se piden las unidades con estatus **activo** cuyo tipo lleva kilometraje. En taller, vendidas, de baja o por llegar no se piden.
-- La captura semanal se abre **lunes y martes** (hora de Tijuana). Miércoles a domingo queda cerrada para el capturista; la unidad sin lectura queda "Sin lectura esa semana". El admin puede capturar cualquier día.
+- La captura semanal se abre **lunes y martes** (hora de Tijuana). Los demás días queda cerrada para el capturista; la unidad sin lectura queda "Sin lectura esa semana". El admin puede capturar cualquier día.
+- **Días de registro configurables** (pedido del usuario, 2026-11-12, para probar antes de los datos reales): el admin elige en la página Kilometraje uno o dos días de la semana; se repiten cada semana (`ajustes_kilometraje`). Empieza en lunes y martes.
 - Una lectura por unidad por semana (la semana empieza el lunes).
 - Lectura menor que la anterior: no se guarda y avisa ("T-17 tiene menos kilometraje que la semana pasada"). Las demás de la lista sí se guardan.
 - Salto grande: pregunta "¿Seguro que T-17 recorrió N km esta semana?" si pasa de **3,000 km** (local) o **7,000 km** (foráneo y sin operación).

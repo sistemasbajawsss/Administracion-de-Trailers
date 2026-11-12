@@ -34,6 +34,7 @@ npx supabase db query --linked -f supabase/tests/<archivo>.sql
 | `donde-se-hizo.sql` | ¿Dónde se hizo?: Taller Realso sin taller, fuera y en camino con taller, talleres desactivados, editar, restaurar, permisos de `talleres` (5G) | 21/21 |
 | `reporte-donde-se-hizo.sql` | Reportes y Excel: por lugar, por taller y columnas del Excel (5G) | 5/5 |
 | `kilometraje-semanal.sql` | Kilometraje semanal: semana y días de captura, varias a la vez (las buenas se guardan), una por semana, solo activas con odómetro, revisión contra lecturas, corregir y quitar (autor el mismo día, admin con motivo), permisos de los tres roles (5H) | 40/40 (el caso del capturista cambia según el día: lunes y martes guarda, los demás rechaza) |
+| `dias-captura-kilometraje.sql` | Días de registro del kilometraje: el admin elige uno o dos, el capturista registra solo esos días, permisos (5H) | 13/13 |
 | `mantenimientos-cumplidos.sql` | Un correctivo cumple mantenimientos y reinicia su contador: validaciones, edición, historial, eliminar y restaurar, mismo cálculo para los tres roles (5F) | 27/27 |
 
 Notas:

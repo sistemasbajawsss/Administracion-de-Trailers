@@ -16,6 +16,8 @@ import { DeleteUnitZone } from "@/features/unidades/components/delete-unit-zone"
 import { ShopStays } from "@/features/unidades/components/shop-stays";
 import { SellUnitZone, SoldBanner } from "@/features/unidades/components/unit-sale";
 import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badge";
+import { UnitReadings } from "@/features/kilometraje/components/unit-readings";
+import { listRemovedReadings, listUnitReadings, UNIT_READINGS_BATCH_SIZE } from "@/features/kilometraje/queries";
 import { UnitMaintenance } from "@/features/mantenimientos/components/unit-maintenance";
 import { listMaintenanceTargets, listUnitMaintenance } from "@/features/mantenimientos/queries";
 import { UnitMileageActions } from "@/features/unidades/components/unit-mileage";
@@ -47,7 +49,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [user, unit, totals, sale, shopStays, mileage, maintenance, maintenanceTargets, types] = await Promise.all([
+  const [user, unit, totals, sale, shopStays, mileage, maintenance, maintenanceTargets, types, readings, removedReadings] = await Promise.all([
     getCurrentUser(),
     getUnit(id),
     getUnitTotals(id),
@@ -57,6 +59,8 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
     listUnitMaintenance(id),
     listMaintenanceTargets(id),
     getUnitTypes(),
+    listUnitReadings(id),
+    listRemovedReadings(id),
   ]);
   if (!unit) notFound();
   const isAdmin = user.role === "admin";
@@ -149,6 +153,22 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
           </div>
         )}
       </dl>
+
+      {hasOdometer && (
+        <UnitReadings
+          // key: al actualizar la pantalla la lista empieza de nuevo con los datos frescos.
+          key={`${readings.total}|${readings.readings.map((r) => `${r.id}:${r.km}:${r.changes.length}`).join(",")}|${removedReadings.length}`}
+          unitId={unit.id}
+          economicNumber={unit.economicNumber}
+          initialReadings={readings.readings}
+          total={readings.total}
+          batchSize={UNIT_READINGS_BATCH_SIZE}
+          removed={removedReadings}
+          user={{ id: user.id, role: user.role }}
+          canChange={isAdmin && !isRetired(unit.status)}
+          today={todayInTijuana()}
+        />
+      )}
 
       <UnitMaintenance
         unitId={unit.id}
