@@ -1615,6 +1615,19 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["rol_usuario"]
       }
+      servicios_parecidos: {
+        Args: { p_fecha: string; p_unidad_id: string }
+        Returns: {
+          autor_nombre: string
+          categorias: string
+          created_at: string
+          descripcion: string
+          fecha: string
+          id: string
+          misma_estancia: boolean
+          total: number
+        }[]
+      }
       tipo_lleva_kilometraje: { Args: { p_tipo: string }; Returns: boolean }
       tomar_ticket_pendiente: {
         Args: { p_ticket_id: string }

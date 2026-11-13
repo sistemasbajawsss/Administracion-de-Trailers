@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { buttonVariants } from "@/components/ui/button";
+import { AdminDecisionBand } from "@/features/tickets/components/ticket-item";
 import { UNIT_GROUP_LABELS } from "@/features/unidades/types";
 import { formatDate } from "@/lib/utils/format";
 
@@ -25,7 +26,8 @@ function groupLabel(entry: ShopEntry) {
 }
 
 /**
- * Unidades en taller, la que lleva más tiempo primero. Cada tarjeta: número
+ * Unidades en taller: primero las que aprobó un administrador (5H, destacadas
+ * con su franja), luego la que lleva más tiempo. Cada tarjeta: número
  * económico, días en taller, falla y quién la reportó. Admin y capturista tienen
  * "Registrar servicio" y "Dar salida"; el gerente solo ve.
  */
@@ -57,7 +59,22 @@ export function ShopBoard({
         const days = daysBetween(entry.entryDate, today);
         const longStay = days >= LONG_STAY_DAYS;
         return (
-          <li key={entry.id} className="flex min-w-0 flex-col rounded-xl border bg-white">
+          <li
+            key={entry.id}
+            className={`flex min-w-0 flex-col rounded-xl border bg-white ${entry.approval ? "border-2 border-brand-ink" : ""}`}
+          >
+            {entry.approval && (
+              <div className="px-4 sm:px-5">
+                <AdminDecisionBand
+                  ticket={{
+                    status: "aceptado",
+                    attendedByAdmin: true,
+                    attendedName: entry.approval.approverName,
+                    approvalReason: entry.approval.reason,
+                  }}
+                />
+              </div>
+            )}
             <div className="flex items-start gap-4 p-4 sm:p-5">
               <div className="min-w-0 flex-1">
                 <p className="font-heading text-4xl leading-none font-bold tracking-wide text-brand-ink tabular-nums">

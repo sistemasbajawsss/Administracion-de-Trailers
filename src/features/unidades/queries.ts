@@ -145,27 +145,39 @@ export async function getUnit(id: string): Promise<UnitDetail | null> {
 
 /**
  * Unidades en taller ahora mismo (Inicio del admin y el gerente), de sus entradas
- * abiertas (5E): la que lleva más días primero, con su falla.
+ * abiertas (5E): primero las que aprobó un admin (5H), luego la que lleva más días.
  */
 export async function listUnitsInShop(): Promise<UnitInShop[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("entradas_taller")
-    .select("fecha_entrada, falla, unidad:unidades!inner(id, numero_economico, tipo, operacion)")
+    .select("id, fecha_entrada, falla, unidad:unidades!inner(id, numero_economico, tipo, operacion)")
     .is("fecha_salida", null)
     // Mismo orden que la página Taller (con dos del mismo día, el que entró primero).
     .order("fecha_entrada", { ascending: true })
     .order("created_at", { ascending: true });
 
   if (error) throw new Error("No se pudieron cargar las unidades en taller");
-  return data.map((row) => ({
+
+  // Las que aprobó un admin con un ticket van primero (5H), igual que en Taller.
+  const ids = data.map((row) => row.id);
+  const approvals = ids.length
+    ? await supabase.from("tickets_taller").select("entrada_id, atendido_nombre").in("entrada_id", ids).eq("atendido_por_admin", true)
+    : { data: [], error: null };
+  if (approvals.error) throw new Error("No se pudieron revisar los tickets aprobados");
+  const approvedBy = new Map(approvals.data.map((t) => [t.entrada_id, t.atendido_nombre]));
+
+  const units = data.map((row) => ({
     id: row.unidad.id,
     economicNumber: row.unidad.numero_economico,
     type: row.unidad.tipo,
     operation: row.unidad.operacion,
     entryDate: row.fecha_entrada,
     fault: row.falla,
+    approved: approvedBy.has(row.id),
+    approvedBy: approvedBy.get(row.id) ?? null,
   }));
+  return [...units.filter((u) => u.approved), ...units.filter((u) => !u.approved)];
 }
 
 /** Estancias por tanda en la ficha (scroll infinito con el scroll de la página). */

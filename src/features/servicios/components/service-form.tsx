@@ -10,6 +10,15 @@ import { toast } from "sonner";
 import { useGoBack } from "@/components/shared/go-back";
 import { useRemountAfterSave } from "@/components/shared/use-remount-after-save";
 import { useUnsavedChanges } from "@/components/shared/use-unsaved-changes";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -41,6 +50,8 @@ import type { Maintenance } from "@/features/mantenimientos/types";
 import {
   formatCents,
   formatDate,
+  formatDateTime,
+  formatMoney,
   formatRate,
   formatUsd,
   toCents,
@@ -50,7 +61,7 @@ import {
 import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
 import { useToday } from "@/components/shared/use-today";
 
-import { createService, suggestExchangeRate, updateService } from "../actions";
+import { createService, findSimilarServices, suggestExchangeRate, updateService, type SimilarService } from "../actions";
 import {
   placeIssues,
   serviceEditSchema,
@@ -183,6 +194,8 @@ function ServiceFormBody({
   // Guardado con éxito: el botón queda deshabilitado mientras carga la siguiente
   // pantalla (con señal lenta, un segundo toque duplicaba el servicio).
   const [saved, setSaved] = useState(false);
+  // Posible duplicado (5H): servicios de la misma unidad ese día o en la misma estancia.
+  const [similar, setSimilar] = useState<SimilarService[] | null>(null);
 
   const form = useForm<ServiceEditInput>({
     // En alta no hay motivo: se valida con el schema sin "reason".
@@ -361,7 +374,10 @@ function ServiceFormBody({
     markMileageProblem(values);
   }
 
-  async function onSubmit(values: ServiceEditInput) {
+  const onSubmit = (values: ServiceEditInput) => submit(values, false);
+
+  /** skipSimilar: ya confirmó que es otro gasto (aviso de posible duplicado). */
+  async function submit(values: ServiceEditInput, skipSimilar: boolean) {
     // "Otros (especificar)" exige concepto (la BD también lo valida).
     let missingConcept = false;
     values.expenses.forEach((expense, index) => {
@@ -413,6 +429,17 @@ function ServiceFormBody({
       maintenanceIds: values.maintenanceIds.filter((id) => maintenanceChoices.some((c) => c.id === id)),
     };
     const number = selectedUnit?.economicNumber ?? "la unidad";
+
+    // Alta: si ya hay servicios de la unidad ese día o en la misma estancia, preguntar
+    // antes de guardar (otro pudo capturar el mismo gasto). Si la revisión falla, se guarda.
+    if (!service && !skipSimilar) {
+      try {
+        const found = await findSimilarServices(clean.unitId, clean.date);
+        if (found.ok && found.data.length > 0) return void setSimilar(found.data);
+      } catch {
+        // Sin conexión, el guardado de abajo avisa.
+      }
+    }
 
     try {
       if (service) {
@@ -989,6 +1016,45 @@ function ServiceFormBody({
         </div>
       </div>
       {leaveDialog}
+      <AlertDialog open={similar !== null} onOpenChange={(open) => !open && setSimilar(null)}>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {selectedUnit?.economicNumber ?? "Esta unidad"} ya tiene {similar && similar.length === 1 ? "un servicio" : "servicios"} así
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Revisa que no sea el mismo gasto capturado por otra persona. ¿El que vas a guardar es otro gasto distinto?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="grid gap-2">
+            {(similar ?? []).map((item) => (
+              <li key={item.id} className="min-w-0 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+                <p className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <span className="font-medium">{item.description ?? item.categories ?? "Sin descripción"}</span>
+                  <span className="font-heading text-base font-semibold whitespace-nowrap tabular-nums">{formatMoney(item.total)}</span>
+                </p>
+                {item.description && item.categories && <p className="text-muted-foreground">{item.categories}</p>}
+                <p className="text-muted-foreground">
+                  {item.sameStay ? "En esta misma estancia en taller" : `Del ${formatDate(item.date)}`}, capturado por {item.author ?? "alguien"} el{" "}
+                  {formatDateTime(item.createdAt)}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="min-h-11">No, revisar</AlertDialogCancel>
+            <Button
+              className="min-h-11"
+              onClick={() => {
+                setSimilar(null);
+                void form.handleSubmit((values) => submit(values, true), () => markExtraProblems(form.getValues()))();
+              }}
+            >
+              Sí, es otro, guardar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }

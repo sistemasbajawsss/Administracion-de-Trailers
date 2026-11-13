@@ -113,6 +113,9 @@ export type UnitInShop = {
   operation: UnitOperation | null;
   entryDate: string;
   fault: string;
+  /** Nombre del admin que aprobó su ticket (5H): va primero. null si entró de otra forma. */
+  approvedBy: string | null;
+  approved: boolean;
 };
 
 /** Una estancia en taller de la unidad (ficha, 5E). exitDate null = sigue en taller. */

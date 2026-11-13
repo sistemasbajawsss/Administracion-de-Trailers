@@ -15,4 +15,6 @@ export type ShopEntry = {
   reportedBy: string | null;
   /** Servicios registrados en la estancia. Sin ninguno, "Dar salida" exige motivo. */
   serviceCount: number;
+  /** Entró por un ticket que aprobó un administrador (5H): va primero y destacada. */
+  approval: { approverName: string | null; reason: string | null } | null;
 };

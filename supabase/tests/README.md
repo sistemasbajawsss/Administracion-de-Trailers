@@ -35,7 +35,8 @@ npx supabase db query --linked -f supabase/tests/<archivo>.sql
 | `reporte-donde-se-hizo.sql` | Reportes y Excel: por lugar, por taller y columnas del Excel (5G) | 5/5 |
 | `kilometraje-semanal.sql` | Kilometraje semanal: semana y días de captura, varias a la vez (las buenas se guardan), una por semana, solo activas con odómetro, revisión contra lecturas, corregir y quitar (autor el mismo día, admin con motivo), permisos de los tres roles (5H) | 40/40 (el caso del capturista cambia según el día: lunes y martes guarda, los demás rechaza) |
 | `dias-captura-kilometraje.sql` | Días de registro del kilometraje: el admin elige uno o dos, el capturista registra solo esos días, permisos (5H) | 13/13 |
-| `tickets-taller.sql` | Tickets de taller: crear (admin y gerente), aceptar (crea la entrada con km; si falla, todo se deshace), rechazar con motivo, cancelar (quien lo levantó o admin), Enterado, candados de unidad, entrada directa bloqueada con ticket pendiente, cancelación sola al dar de baja, permisos de los tres roles y anónimo, Realtime (5H) | 42/42 |
+| `tickets-taller.sql` | Tickets de taller: crear (admin y gerente), aceptar (crea la entrada con km; si falla, todo se deshace), rechazar con motivo, cancelar (quien lo levantó o admin), Enterado, candados de unidad, entrada directa bloqueada con ticket pendiente, cancelación sola al dar de baja, permisos de los tres roles y anónimo, Realtime (5H) | 48/48 (con aprobación de admin, aceptar sin km y el contador de avisos) |
+| `servicios-parecidos.sql` | Aviso de posible servicio duplicado: mismo día o misma estancia, el capturista ve también los de otros (solo lo necesario), gerente y anónimo no (5H) | 5/5 |
 | `mantenimientos-cumplidos.sql` | Un correctivo cumple mantenimientos y reinicia su contador: validaciones, edición, historial, eliminar y restaurar, mismo cálculo para los tres roles (5F) | 27/27 |
 
 Notas:

@@ -334,3 +334,40 @@ export async function loadMoreServicesOfType(input: unknown): Promise<ActionResu
     return fail("No se pudieron cargar más servicios. Inténtalo de nuevo.");
   }
 }
+
+/** Un servicio de la misma unidad, el mismo día o en la misma estancia (aviso de posible duplicado, 5H). */
+export type SimilarService = {
+  id: string;
+  date: string;
+  description: string | null;
+  categories: string | null;
+  total: string;
+  author: string | null;
+  createdAt: string;
+  sameStay: boolean;
+};
+
+/**
+ * Antes de guardar un servicio nuevo: ¿ya hay servicios de esta unidad ese día o
+ * en la misma estancia en taller? (pedido del usuario, 2026-11-12). No bloquea:
+ * la pantalla pregunta si es otro gasto. Si la revisión falla, se guarda sin aviso.
+ */
+export async function findSimilarServices(unitId: unknown, date: unknown): Promise<ActionResult<SimilarService[]>> {
+  if (!isUuid(unitId) || typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return ok([]);
+  await requireRole(CAPTURE_ROLES);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("servicios_parecidos", { p_unidad_id: unitId, p_fecha: date });
+  if (error) return ok([]);
+  return ok(
+    data.map((s) => ({
+      id: s.id,
+      date: s.fecha,
+      description: s.descripcion,
+      categories: s.categorias,
+      total: String(s.total),
+      author: s.autor_nombre,
+      createdAt: s.created_at,
+      sameStay: s.misma_estancia,
+    })),
+  );
+}

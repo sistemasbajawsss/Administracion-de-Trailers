@@ -55,6 +55,11 @@ export async function UnitsInShopPanel({ today, rows = 3, className }: { today: 
                       </span>
                       {/* Completa, sin "…": baja de renglón si no cabe. */}
                       <span className="block whitespace-pre-line text-muted-foreground">{unit.fault}</span>
+                      {unit.approved && (
+                        <span className="mt-1 inline-flex rounded bg-brand-ink px-2 py-0.5 text-xs font-bold tracking-wide text-white">
+                          APROBADA POR {(unit.approvedBy ?? "un administrador").toUpperCase()}
+                        </span>
+                      )}
                     </span>
                     <span
                       className={`shrink-0 text-right text-sm font-semibold whitespace-nowrap tabular-nums ${days >= 7 ? "text-amber-800" : ""}`}
