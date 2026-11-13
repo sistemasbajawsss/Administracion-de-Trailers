@@ -73,6 +73,7 @@ import {
 import type { WorkshopOption } from "@/features/catalogos/types";
 
 import {
+  placeHasSupplier,
   placeNeedsWorkshop,
   type CategoryOption,
   type ServiceDetail,
@@ -425,6 +426,7 @@ function ServiceFormBody({
       ...values,
       mileage: isBox ? "" : values.mileage,
       workshopId: placeNeedsWorkshop(values.place) ? values.workshopId : "",
+      supplierId: placeHasSupplier(values.place) ? values.supplierId : "",
       // Solo los de la unidad elegida (lo que se marcó con otra unidad no cuenta).
       maintenanceIds: values.maintenanceIds.filter((id) => maintenanceChoices.some((c) => c.id === id)),
     };
@@ -699,6 +701,7 @@ function ServiceFormBody({
               />
             )}
 
+            {placeHasSupplier(place) && (
             <Controller
               name="supplierId"
               control={form.control}
@@ -734,6 +737,7 @@ function ServiceFormBody({
                 </Field>
               )}
             />
+            )}
 
             <Controller
               name="description"

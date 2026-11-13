@@ -126,6 +126,7 @@
   - Mantenimientos de una sola forma: por km o por meses; los que tenían las dos quedaron por km (misma migración, trigger `mantenimiento_una_forma`).
   - Aviso de posible servicio duplicado al guardar (mismo día o misma estancia), con `servicios_parecidos()` (`20261113001804_servicios_parecidos.sql`; prueba `servicios-parecidos.sql` 5/5).
   - Regresión completa en verde (las pruebas que dan entradas cancelan dentro de su transacción los tickets pendientes reales).
+- Cambio pedido por el usuario (2026-11-13): un servicio "En camino" no lleva proveedor de las piezas (las pone el taller). El formulario oculta el campo, el servidor manda `p_proveedor_id` nulo y el detalle dice "Las puso el taller". Solo en la app (`placeHasSupplier` en `servicios/types.ts`); la BD no lo exige, así que los "en camino" de antes conservan su proveedor hasta que se editen.
 
 ### Sección 5G — ¿Dónde se hizo? (2026-11-10, rama `seccion-5g-donde-se-hizo`, pedida por el usuario)
 - Qué: cada servicio dice dónde se hizo el trabajo: **Taller Realso** (el taller propio), **taller de fuera** o **en camino**; fuera y en camino dicen qué taller. El proveedor sigue siendo dónde se compran las piezas (el formulario dice "Proveedor de las piezas").

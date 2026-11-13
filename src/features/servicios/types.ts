@@ -46,6 +46,12 @@ export const NO_PLACE_LABEL = "Sin dato";
 /** Fuera y en camino dicen qué taller lo hizo; Taller Realso, no. */
 export const placeNeedsWorkshop = (place: ServicePlace | "" | null) => place === "taller_externo" || place === "en_camino";
 
+/**
+ * En camino, el taller que lo arregla pone las piezas: no se pide proveedor
+ * (pedido del usuario, 2026-11-13). Realso, fuera y los de antes sí lo llevan.
+ */
+export const placeHasSupplier = (place: ServicePlace | "" | null) => place !== "en_camino";
+
 /** "Taller Realso", "Taller Pérez", "Taller Pérez, en camino"; null si es de antes. */
 export function describePlace(place: ServicePlace | null, workshop: string | null): string | null {
   if (!place) return null;

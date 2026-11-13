@@ -35,7 +35,7 @@ import {
   serviceSchema,
   type ServiceInput,
 } from "./schemas";
-import { placeNeedsWorkshop, SERVICE_TYPES, type ExpenseListItem, type ServiceBrief, type ShopStay } from "./types";
+import { placeHasSupplier, placeNeedsWorkshop, SERVICE_TYPES, type ExpenseListItem, type ServiceBrief, type ShopStay } from "./types";
 
 /** Los tipos generados marcan los argumentos de las funciones como no nulos, pero aceptan null. */
 const nullable = <T,>(value: T | null) => value as T;
@@ -47,7 +47,8 @@ function toArgs(service: ServiceInput) {
     p_unidad_id: service.unitId,
     p_fecha: service.date,
     p_kilometraje: nullable(service.mileage ? Number(service.mileage.replace(/,/g, "")) : null),
-    p_proveedor_id: nullable(emptyToNull(service.supplierId)),
+    // En camino no lleva proveedor: el taller pone las piezas.
+    p_proveedor_id: nullable(placeHasSupplier(service.place) ? emptyToNull(service.supplierId) : null),
     p_descripcion: nullable(emptyToNull(service.description)),
     // Vacío (servicio de antes sin clasificar): la BD conserva el que tenía.
     p_tipo: service.serviceType || undefined,
