@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Phone, Plus } from "lucide-react";
+import { Merge, Pencil, Phone, Plus } from "lucide-react";
 import { useOptimistic, useState, useTransition } from "react";
 import { cn } from "cn";
 import { toast } from "sonner";
@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
 import { setCatalogItemActive } from "../actions";
-import { CATALOG_LABELS, type CatalogItem, type CatalogKind } from "../types";
+import { CATALOG_LABELS, isMergeableKind, type CatalogItem, type CatalogKind } from "../types";
 
 import { CatalogItemDialog } from "./catalog-item-dialog";
+import { MergeCatalogDialog } from "./merge-catalog-dialog";
 
 /**
  * Lista de un catálogo con alta, edición y activar / desactivar.
@@ -21,6 +22,8 @@ import { CatalogItemDialog } from "./catalog-item-dialog";
 export function CatalogManager({ kind, items }: { kind: CatalogKind; items: CatalogItem[] }) {
   const labels = CATALOG_LABELS[kind];
   const [dialog, setDialog] = useState<{ open: boolean; item?: CatalogItem }>({ open: false });
+  // Proveedores y talleres (5I): el repetido que se va a unir con otro.
+  const [merging, setMerging] = useState<CatalogItem | null>(null);
   const [, startTransition] = useTransition();
 
   const [optimisticItems, setOptimisticActive] = useOptimistic(
@@ -92,6 +95,17 @@ export function CatalogManager({ kind, items }: { kind: CatalogKind; items: Cata
                 </span>
                 <Switch checked={item.active} onCheckedChange={(checked) => toggle(item, checked)} />
               </label>
+              {isMergeableKind(kind) && (
+                <Button
+                  variant="ghost"
+                  size="icon-touch"
+                  aria-label={`Unir ${item.name} con otro ${labels.singular}`}
+                  title="Unir con otro (repetido)"
+                  onClick={() => setMerging(item)}
+                >
+                  <Merge />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon-touch"
@@ -111,6 +125,15 @@ export function CatalogManager({ kind, items }: { kind: CatalogKind; items: Cata
         open={dialog.open}
         onOpenChange={(open) => setDialog((current) => ({ ...current, open }))}
       />
+      {isMergeableKind(kind) && (
+        <MergeCatalogDialog
+          key={merging?.id ?? "cerrado"}
+          kind={kind}
+          item={merging}
+          candidates={items.filter((candidate) => candidate.active)}
+          onOpenChange={(open) => !open && setMerging(null)}
+        />
+      )}
     </section>
   );
 }

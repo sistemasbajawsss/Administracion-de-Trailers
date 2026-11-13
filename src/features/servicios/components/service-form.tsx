@@ -76,6 +76,7 @@ import {
 import type { WorkshopOption } from "@/features/catalogos/types";
 
 import {
+  placeAsksPartsBy,
   placeHasSupplier,
   placeNeedsWorkshop,
   type CategoryOption,
@@ -86,6 +87,7 @@ import {
 } from "../types";
 
 import { ServiceMaintenancePicker, type MaintenanceChoice } from "./service-maintenance-picker";
+import { ServicePartsPicker } from "./service-parts-picker";
 import { ServicePlacePicker } from "./service-place-picker";
 import { ServiceShopPanel, shopState } from "./service-shop-panel";
 import { ServiceTypePicker } from "./service-type-picker";
@@ -115,6 +117,8 @@ function toFormValues(
     supplierId: service?.supplierId ?? "",
     place: service?.place ?? "",
     workshopId: service?.workshopId ?? "",
+    // De fuera: si ya llevaba proveedor, "nosotros llevamos piezas"; si no, "todo lo hizo el taller".
+    partsBy: service?.place === "taller_externo" ? (service.supplierId ? "nosotros" : "taller") : "",
     description: service?.description ?? "",
     // En dólares, el formulario edita la cantidad en dólares; los pesos los calcula la BD.
     expenses: service?.expenses.map((e) => ({
@@ -263,6 +267,7 @@ function ServiceFormBody({
   // Al editar, lo que ya tenía marcado se ofrece aunque después se haya quitado.
   const serviceType = useWatch({ control: form.control, name: "serviceType" });
   const place = useWatch({ control: form.control, name: "place" });
+  const partsBy = useWatch({ control: form.control, name: "partsBy" });
   const scheduled = maintenanceByUnit[unitId] ?? [];
   const maintenanceChoices: MaintenanceChoice[] = [
     ...scheduled.map((m) => ({ id: m.id, name: m.name, current: m })),
@@ -375,7 +380,7 @@ function ServiceFormBody({
   }
 
   /** ¿Dónde se hizo? (5G): obligatorio en alta; fuera o en camino, con su taller. */
-  function markPlaceProblem(values: Pick<ServiceEditInput, "place" | "workshopId">) {
+  function markPlaceProblem(values: Pick<ServiceEditInput, "place" | "workshopId" | "partsBy">) {
     const problems = placeIssues(values, { required: !isEdit });
     for (const problem of problems) form.setError(problem.path, { message: problem.message });
     return problems[0] ?? null;
@@ -439,7 +444,8 @@ function ServiceFormBody({
       ...values,
       mileage: isBox ? "" : values.mileage,
       workshopId: placeNeedsWorkshop(values.place) ? values.workshopId : "",
-      supplierId: placeHasSupplier(values.place) ? values.supplierId : "",
+      supplierId: placeHasSupplier(values.place, values.partsBy) ? values.supplierId : "",
+      partsBy: placeAsksPartsBy(values.place) ? values.partsBy : "",
       // Solo los de la unidad elegida (lo que se marcó con otra unidad no cuenta).
       maintenanceIds: values.maintenanceIds.filter((id) => maintenanceChoices.some((c) => c.id === id)),
     };
@@ -647,8 +653,11 @@ function ServiceFormBody({
                   <SupplierQuickAdd
                     kind="talleres"
                     onCreated={(workshop) => {
+                      // "Usar este" (5I) regresa uno que ya está en la lista: no se repite.
                       setWorkshops((current) =>
-                        [...current, workshop].sort((a, b) => a.name.localeCompare(b.name, "es")),
+                        current.some((w) => w.id === workshop.id)
+                          ? current
+                          : [...current, workshop].sort((a, b) => a.name.localeCompare(b.name, "es")),
                       );
                       field.onChange(workshop.id);
                       form.clearErrors("workshopId");
@@ -657,6 +666,28 @@ function ServiceFormBody({
                 </div>
                 <FieldError errors={[fieldState.error]} />
               </Field>
+            )}
+          />
+        )}
+
+        {placeAsksPartsBy(place) && (
+          <Controller
+            name="partsBy"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <FieldSet data-invalid={fieldState.invalid}>
+                <FieldLegend className="font-heading text-xl">¿Quién puso las piezas?</FieldLegend>
+                <ServicePartsPicker
+                  value={field.value}
+                  onChange={(value) => {
+                    field.onChange(value);
+                    form.clearErrors("partsBy");
+                  }}
+                  inputRef={field.ref}
+                  invalid={fieldState.invalid}
+                />
+                <FieldError errors={[fieldState.error]} />
+              </FieldSet>
             )}
           />
         )}
@@ -715,7 +746,7 @@ function ServiceFormBody({
               />
             )}
 
-            {placeHasSupplier(place) && (
+            {placeHasSupplier(place, partsBy) && (
             <Controller
               name="supplierId"
               control={form.control}
@@ -741,8 +772,11 @@ function ServiceFormBody({
                     </Select>
                     <SupplierQuickAdd
                       onCreated={(supplier) => {
+                        // "Usar este" (5I) regresa uno que ya está en la lista: no se repite.
                         setSuppliers((current) =>
-                          [...current, supplier].sort((a, b) => a.name.localeCompare(b.name, "es")),
+                          current.some((s) => s.id === supplier.id)
+                            ? current
+                            : [...current, supplier].sort((a, b) => a.name.localeCompare(b.name, "es")),
                         );
                         field.onChange(supplier.id);
                       }}

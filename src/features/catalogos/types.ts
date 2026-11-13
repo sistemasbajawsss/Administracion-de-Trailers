@@ -9,6 +9,13 @@ export type CatalogItem = {
   active: boolean;
 };
 
+/** Proveedores y talleres: los catálogos que se pueden repetir y unir (5I). */
+export type MergeableKind = "proveedores" | "talleres";
+export const isMergeableKind = (kind: string): kind is MergeableKind => kind === "proveedores" || kind === "talleres";
+
+/** Uno que ya existe con nombre parecido (5I). */
+export type SimilarCatalogItem = { id: string; name: string };
+
 export type DriverOption = { id: string; name: string };
 export type SupplierOption = { id: string; name: string };
 /** Taller de fuera (5G): quién hizo el trabajo si no fue en Taller Realso. */

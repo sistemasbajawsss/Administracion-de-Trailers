@@ -19,3 +19,15 @@ export const catalogItemSchema = z.object({
 });
 
 export type CatalogItemInput = z.infer<typeof catalogItemSchema>;
+
+/** Unir un proveedor o taller repetido en otro (5I, D18). */
+export const mergeCatalogSchema = z.object({
+  targetId: z.uuid("Elige con cuál se une"),
+  reason: z
+    .string()
+    .trim()
+    .min(5, "Explica por qué se unen (mínimo 5 letras)")
+    .max(500, "Motivo: máximo 500 caracteres"),
+});
+
+export type MergeCatalogInput = z.infer<typeof mergeCatalogSchema>;

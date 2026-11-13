@@ -47,8 +47,8 @@ function toArgs(service: ServiceInput) {
     p_unidad_id: service.unitId,
     p_fecha: service.date,
     p_kilometraje: nullable(service.mileage ? Number(service.mileage.replace(/,/g, "")) : null),
-    // En camino no lleva proveedor: el taller pone las piezas.
-    p_proveedor_id: nullable(placeHasSupplier(service.place) ? emptyToNull(service.supplierId) : null),
+    // En camino, o de fuera si todo lo hizo el taller: sin proveedor de las piezas.
+    p_proveedor_id: nullable(placeHasSupplier(service.place, service.partsBy) ? emptyToNull(service.supplierId) : null),
     p_descripcion: nullable(emptyToNull(service.description)),
     // Vacío (servicio de antes sin clasificar): la BD conserva el que tenía.
     p_tipo: service.serviceType || undefined,

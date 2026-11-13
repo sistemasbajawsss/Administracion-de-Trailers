@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { isRealDate, normalizeAmount, toCents, toRateUnits } from "@/lib/utils/format";
 
-import { placeNeedsWorkshop, SERVICE_PLACES, SERVICE_TYPES, type ShopStay } from "./types";
+import { PARTS_BY, placeAsksPartsBy, placeNeedsWorkshop, SERVICE_PLACES, SERVICE_TYPES, type ShopStay } from "./types";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -81,6 +81,8 @@ export const serviceSchema = z.object({
   place: z.union([z.literal(""), z.enum(SERVICE_PLACES)]),
   /** Qué taller lo hizo (fuera o en camino). */
   workshopId: z.union([z.literal(""), z.uuid()]),
+  /** Taller de fuera: ¿quién puso las piezas? (no se guarda; decide si lleva proveedor). */
+  partsBy: z.union([z.literal(""), z.enum(PARTS_BY)]),
   description: z.string().trim().max(1000, "Descripción: máximo 1000 caracteres"),
   expenses: z.array(expenseLineSchema).min(1, "Agrega al menos un gasto").max(50, "Máximo 50 gastos por servicio"),
   // ---- Taller (5E, D13) ----
@@ -109,14 +111,18 @@ export const NO_ENTRY_REASONS = ["Reparación en camino"] as const;
  * su taller.
  */
 export function placeIssues(
-  values: Pick<ServiceInput, "place" | "workshopId">,
+  values: Pick<ServiceInput, "place" | "workshopId" | "partsBy">,
   { required }: { required: boolean },
-): { path: "place" | "workshopId"; message: string }[] {
+): { path: "place" | "workshopId" | "partsBy"; message: string }[] {
   if (!values.place) return required ? [{ path: "place", message: "Elige dónde se hizo el servicio" }] : [];
+  const issues: ReturnType<typeof placeIssues> = [];
   if (placeNeedsWorkshop(values.place) && !values.workshopId) {
-    return [{ path: "workshopId", message: "Elige qué taller hizo el servicio" }];
+    issues.push({ path: "workshopId", message: "Elige qué taller hizo el servicio" });
   }
-  return [];
+  if (placeAsksPartsBy(values.place) && !values.partsBy) {
+    issues.push({ path: "partsBy", message: "Elige quién puso las piezas" });
+  }
+  return issues;
 }
 
 /** ¿El servicio queda dentro de la estancia abierta? (misma regla que preparar_servicio en la BD). */

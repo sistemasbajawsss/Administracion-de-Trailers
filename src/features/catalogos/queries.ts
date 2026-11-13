@@ -2,7 +2,15 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 
-import type { CatalogItem, CategoryOption, DriverOption, SupplierOption, WorkshopOption } from "./types";
+import type {
+  CatalogItem,
+  CategoryOption,
+  DriverOption,
+  MergeableKind,
+  SimilarCatalogItem,
+  SupplierOption,
+  WorkshopOption,
+} from "./types";
 
 /**
  * Los cuatro catálogos en paralelo (una sola espera para la pantalla de
@@ -51,6 +59,25 @@ export async function listCatalogs(): Promise<{
     })),
     talleres: workshops.data.map((w) => ({ id: w.id, name: w.nombre, phone: null, notes: null, active: w.activo })),
   };
+}
+
+/** Activos con nombre parecido, para no dar de alta un repetido (5I). Admin y capturista. */
+export async function findSimilarCatalogItems(kind: MergeableKind, name: string): Promise<SimilarCatalogItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("catalogo_parecidos", { p_catalogo: kind, p_nombre: name });
+  if (error) throw new Error("No se pudieron buscar los parecidos");
+  return data.map((row) => ({ id: row.id, name: row.nombre }));
+}
+
+/** Cuántos servicios usan un proveedor o taller (para explicar qué pasa al unirlo). */
+export async function countServicesUsing(kind: MergeableKind, id: string): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("servicios")
+    .select("id", { count: "exact", head: true })
+    .eq(kind === "proveedores" ? "proveedor_id" : "taller_id", id);
+  if (error) throw new Error("No se pudieron contar los servicios");
+  return count ?? 0;
 }
 
 /** Choferes activos para el selector del formulario de unidades. */

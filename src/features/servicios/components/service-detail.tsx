@@ -2,7 +2,7 @@ import { Wrench } from "lucide-react";
 
 import { formatDate, formatKm, formatMoney, formatRate, formatUsd } from "@/lib/utils/format";
 
-import { describePlace, placeHasSupplier, type ServiceDetail } from "../types";
+import { describePlace, type ServiceDetail } from "../types";
 
 import { EditedBadge } from "./edited-badge";
 import { ServiceTypeBadge } from "./service-type-badge";
@@ -82,7 +82,8 @@ export function ServiceDetailView({ service }: { service: ServiceDetail }) {
         <div>
           <dt className="text-sm text-muted-foreground">Proveedor de las piezas</dt>
           <dd className="text-base">
-            {service.supplierName ?? (placeHasSupplier(service.place) ? "Sin proveedor" : "Las puso el taller")}
+            {service.supplierName ??
+              (service.place === "en_camino" || service.place === "taller_externo" ? "Las puso el taller" : "Sin proveedor")}
           </dd>
         </div>
         <div>

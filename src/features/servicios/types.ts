@@ -47,10 +47,32 @@ export const NO_PLACE_LABEL = "Sin dato";
 export const placeNeedsWorkshop = (place: ServicePlace | "" | null) => place === "taller_externo" || place === "en_camino";
 
 /**
- * En camino, el taller que lo arregla pone las piezas: no se pide proveedor
- * (pedido del usuario, 2026-11-13). Realso, fuera y los de antes sí lo llevan.
+ * ¿Quién puso las piezas? Solo se pregunta con Taller de fuera (pedido del
+ * usuario, 2026-11-13). No se guarda aparte: "nosotros" = el servicio lleva
+ * proveedor de las piezas; "taller" = no lleva.
  */
-export const placeHasSupplier = (place: ServicePlace | "" | null) => place !== "en_camino";
+export const PARTS_BY = ["taller", "nosotros"] as const;
+export type PartsBy = (typeof PARTS_BY)[number];
+
+export const PARTS_BY_LABELS: Record<PartsBy, string> = {
+  taller: "Todo lo hizo el taller",
+  nosotros: "Nosotros llevamos piezas",
+};
+
+export const PARTS_BY_HINTS: Record<PartsBy, string> = {
+  taller: "El taller puso las piezas y la mano de obra.",
+  nosotros: "Compramos piezas y se las llevamos.",
+};
+
+export const placeAsksPartsBy = (place: ServicePlace | "" | null) => place === "taller_externo";
+
+/**
+ * ¿Se pide "Proveedor de las piezas"? (pedido del usuario, 2026-11-13)
+ * En camino, no: el taller las pone. Taller de fuera, solo si nosotros llevamos
+ * piezas. Taller Realso y los de antes, sí.
+ */
+export const placeHasSupplier = (place: ServicePlace | "" | null, partsBy: PartsBy | "" = "") =>
+  place === "en_camino" ? false : place === "taller_externo" ? partsBy === "nosotros" : true;
 
 /** "Taller Realso", "Taller Pérez", "Taller Pérez, en camino"; null si es de antes. */
 export function describePlace(place: ServicePlace | null, workshop: string | null): string | null {

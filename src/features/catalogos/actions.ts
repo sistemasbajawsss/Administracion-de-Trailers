@@ -8,8 +8,9 @@ import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 
-import { catalogItemSchema, type CatalogItemInput } from "./schemas";
-import { CATALOG_KINDS, CATALOG_LABELS, type CatalogKind } from "./types";
+import { countServicesUsing, findSimilarCatalogItems } from "./queries";
+import { catalogItemSchema, mergeCatalogSchema, type CatalogItemInput } from "./schemas";
+import { CATALOG_KINDS, CATALOG_LABELS, isMergeableKind, type CatalogKind, type SimilarCatalogItem } from "./types";
 
 const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
 
@@ -126,6 +127,70 @@ export async function updateCatalogItem(
 
   revalidateCatalogs();
   return ok();
+}
+
+/**
+ * Antes de dar de alta un proveedor o taller: los activos con nombre parecido
+ * (5I). Si la búsqueda falla, regresa vacío y el alta sigue.
+ */
+export async function findSimilarCatalogAction(kind: unknown, name: unknown): Promise<ActionResult<SimilarCatalogItem[]>> {
+  if (typeof kind !== "string" || !isMergeableKind(kind)) return fail("Catálogo no válido.");
+  const parsed = catalogItemSchema.shape.name.safeParse(name);
+  if (!parsed.success) return ok([]);
+
+  await requireRole(CAPTURE_ROLES);
+
+  try {
+    return ok(await findSimilarCatalogItems(kind, parsed.data));
+  } catch {
+    return ok([]);
+  }
+}
+
+/** Cuántos servicios pasarían al unir (solo admin). */
+export async function getMergeUsage(kind: unknown, id: unknown): Promise<ActionResult<number>> {
+  if (typeof kind !== "string" || !isMergeableKind(kind) || !isUuid(id)) return fail("Datos no válidos.");
+
+  await requireRole("admin");
+
+  try {
+    return ok(await countServicesUsing(kind, id));
+  } catch {
+    return fail("No se pudieron contar sus servicios. Inténtalo de nuevo.");
+  }
+}
+
+/**
+ * Une un proveedor o taller repetido (`id`) en otro (5I, D18): sus servicios
+ * pasan al que se queda y el repetido se desactiva. Solo admin.
+ */
+export async function mergeCatalogItem(kind: unknown, id: unknown, input: unknown): Promise<ActionResult<{ services: number }>> {
+  if (typeof kind !== "string" || !isMergeableKind(kind) || !isUuid(id)) return fail("Datos no válidos.");
+  const parsed = mergeCatalogSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa los datos.");
+  if (parsed.data.targetId === id) return fail("Elige otro con el cual unirlo.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("unir_catalogo", {
+    p_catalogo: kind,
+    p_quitar: id,
+    p_queda: parsed.data.targetId,
+    p_motivo: parsed.data.reason,
+  });
+  if (error) {
+    if (["23514", "P0002"].includes(error.code ?? "") && error.message) return fail(`${error.message}.`);
+    if (error.code === "42501") return fail("Solo un administrador puede unir.");
+    return fail("No se pudieron unir. Inténtalo de nuevo.");
+  }
+
+  revalidateCatalogs();
+  revalidatePath("/servicios", "layout");
+  revalidatePath("/dashboard", "layout");
+  revalidatePath("/unidades", "layout");
+  revalidatePath("/");
+  return ok({ services: data });
 }
 
 export async function setCatalogItemActive(

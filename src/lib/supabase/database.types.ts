@@ -1023,6 +1023,45 @@ export type Database = {
           },
         ]
       }
+      uniones_catalogo: {
+        Row: {
+          catalogo: string
+          created_at: string
+          created_by: string
+          id: string
+          motivo: string
+          queda_id: string
+          queda_nombre: string
+          quitado_id: string
+          quitado_nombre: string
+          servicios: number
+        }
+        Insert: {
+          catalogo: string
+          created_at?: string
+          created_by: string
+          id?: string
+          motivo: string
+          queda_id: string
+          queda_nombre: string
+          quitado_id: string
+          quitado_nombre: string
+          servicios: number
+        }
+        Update: {
+          catalogo?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          motivo?: string
+          queda_id?: string
+          queda_nombre?: string
+          quitado_id?: string
+          quitado_nombre?: string
+          servicios?: number
+        }
+        Relationships: []
+      }
       ventas_unidades: {
         Row: {
           created_at: string
@@ -1302,6 +1341,14 @@ export type Database = {
         Args: { p_ticket_id: string }
         Returns: undefined
       }
+      catalogo_parecidos: {
+        Args: { p_catalogo: string; p_nombre: string }
+        Returns: {
+          id: string
+          nombre: string
+          similitud: number
+        }[]
+      }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
       copiar_mantenimientos: {
         Args: { p_destino: string; p_origen: string }
@@ -1531,6 +1578,10 @@ export type Database = {
         Returns: undefined
       }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
+      normalizar_nombre_catalogo: {
+        Args: { p_nombre: string }
+        Returns: string
+      }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
       puede_cambiar_lectura: { Args: { p_lectura_id: string }; Returns: string }
       puede_capturar: { Args: never; Returns: boolean }
@@ -1662,6 +1713,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      unir_catalogo: {
+        Args: {
+          p_catalogo: string
+          p_motivo: string
+          p_queda: string
+          p_quitar: string
+        }
+        Returns: number
       }
       validar_kilometraje: {
         Args: {
