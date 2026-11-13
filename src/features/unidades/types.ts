@@ -95,6 +95,8 @@ export type UnitListItem = {
 };
 
 export type UnitDetail = UnitListItem & {
+  /** `updated_at` tal como viene de la BD: versión para ediciones simultáneas (5I). */
+  version: string;
   driverId: string | null;
   year: number | null;
   vin: string | null;

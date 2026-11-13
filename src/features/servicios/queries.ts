@@ -108,14 +108,14 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
     supabase
       .from("servicios")
       .select(
-        "entrada_taller_id, sin_entrada_taller, motivo_sin_entrada, lugar, taller_id, entrada:entradas_taller(fecha_entrada, fecha_salida, falla), taller:talleres(nombre)",
+        "updated_at, entrada_taller_id, sin_entrada_taller, motivo_sin_entrada, lugar, taller_id, entrada:entradas_taller(fecha_entrada, fecha_salida, falla), taller:talleres(nombre)",
       )
       .eq("id", id)
       .maybeSingle(),
   ]);
 
   if (service.error || expenses.error || shop.error) throw new Error("No se pudo cargar el servicio");
-  if (!service.data) return null;
+  if (!service.data || !shop.data) return null;
 
   const row = service.data;
   // Nombres de los mantenimientos que cumplió (también los que después se quitaron).
@@ -125,6 +125,7 @@ export async function getService(id: string): Promise<ServiceDetail | null> {
   if (maintenance.error) throw new Error("No se pudo cargar el servicio");
   return {
     ...toListItem(row),
+    version: shop.data.updated_at,
     mileage: row.kilometraje,
     supplierId: row.proveedor_id,
     createdBy: row.created_by,

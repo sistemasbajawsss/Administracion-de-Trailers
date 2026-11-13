@@ -408,6 +408,25 @@ Decisiones del usuario (D14, 2026-11-06), con sus nombres para los tipos:
 - Las tarjetas de tickets cambian sin recargar.
 - Las baterías anteriores siguen pasando.
 
+### 5I — Datos confiables: ediciones simultáneas, catálogos sin repetidos y cierre de mes (acordada 2026-11-13, el usuario dijo "empieza")
+Salió de la revisión de riesgos del 2026-11-13 (puntos 5, 6 y 7). Decisiones del usuario:
+- **D17 — Cierre de mes:** las dos formas. Cada mes se cierra solo un día fijo del mes siguiente, y el admin además puede cerrarlo antes o reabrirlo con motivo. Cerrado: el capturista ya no agrega, edita ni cambia la fecha de servicios de ese mes; el admin sí, con motivo (como hoy).
+- **D18 — Unir proveedores y talleres repetidos:** el admin une el repetido en el que se queda; sus servicios pasan al que se queda y el repetido se desactiva (no se borra). Queda registrado quién unió cuál y cuándo.
+- Ediciones simultáneas: si otra persona guardó el servicio mientras se editaba, no se sobrescribe sin avisar.
+
+- Confirmado por el usuario (2026-11-13): el cierre automático es el **día 5** del mes siguiente (el admin lo cambia, como los días de kilometraje). En un mes cerrado los comprobantes **sí se pueden agregar** (las facturas llegan tarde y no cambian montos); **quitarlos, solo el admin**.
+
+**Etapas** (mismas reglas de la 5E-5H: BD compatible con la app publicada, ensayo en `begin … rollback`, regresión de `supabase/tests`, revisión en navegador y celular)
+- **Etapa 1 — Ediciones simultáneas:** `actualizar_servicio()` recibe el `updated_at` con que se abrió el formulario; si cambió, rechaza con quién y cuándo lo cambió. El formulario lo explica en un diálogo ("Edgar guardó este servicio a las 10:42 mientras lo editabas") con "Ver sus cambios" (recarga y se pierde lo escrito, y lo dice) o "Seguir editando". Lo mismo en Editar unidad.
+- **Etapa 2 — Proveedores y talleres repetidos:** al dar de alta uno nuevo (servicio y Catálogos) se muestran los parecidos que ya existen (sin acentos, mayúsculas ni puntos; similitud con `pg_trgm`) para elegir uno de ellos. En Catálogos, "Unir con…" (solo admin): función `unir_proveedores()` / `unir_talleres()` en una transacción, con bitácora `uniones_catalogo`; los servicios cambiados entran al historial con el motivo "Unión de proveedores". Reportes suma todo en el que se queda.
+- **Etapa 3 — Cierre de mes:** tabla `cierres_mes` (mes, cerrado o reabierto, quién, cuándo, motivo) y ajuste del día automático; función `mes_cerrado(fecha)` usada por `preparar_servicio()` y las de gastos y comprobantes (también por API directa). Pantallas: estado de cada mes con "Cerrar" / "Reabrir" (admin); en el formulario del capturista la fecha no acepta meses cerrados y lo explica; "Editar" deshabilitado con la explicación en servicios de meses cerrados.
+
+**Terminado cuando**
+- Dos sesiones editando el mismo servicio: la segunda en guardar recibe el aviso y nada se pierde sin que lo sepa.
+- Un proveedor unido no aparece para elegir y su gasto sale en el que se quedó; el total de Reportes no cambia al unir.
+- El capturista no puede agregar, editar ni mover servicios a un mes cerrado, ni por API; el admin sí, con motivo; reabrir queda registrado.
+- Las baterías anteriores siguen pasando.
+
 ### Fase 2 — Almacén (a futuro, cuando el almacén físico esté ordenado)
 Decisiones del usuario (2026-11-06):
 - Un solo almacén, con ubicaciones (pasillo / anaquel).

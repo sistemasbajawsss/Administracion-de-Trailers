@@ -134,6 +134,8 @@ export type ExpenseLine = {
 };
 
 export type ServiceDetail = ServiceListItem & {
+  /** `updated_at` tal como viene de la BD (con microsegundos): versión para ediciones simultáneas (5I). */
+  version: string;
   mileage: number | null;
   supplierId: string | null;
   createdBy: string;

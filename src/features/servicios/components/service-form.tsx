@@ -9,7 +9,10 @@ import { toast } from "sonner";
 
 import { useGoBack } from "@/components/shared/go-back";
 import { useRemountAfterSave } from "@/components/shared/use-remount-after-save";
+import { EditConflictDialog } from "@/components/shared/edit-conflict-dialog";
+import { useReloadForm } from "@/components/shared/use-reload-form";
 import { useUnsavedChanges } from "@/components/shared/use-unsaved-changes";
+import type { EditConflict } from "@/lib/action-result";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -164,7 +167,11 @@ type ServiceFormProps = {
 /** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
 export function ServiceForm(props: ServiceFormProps) {
   const { key, markSaved } = useRemountAfterSave();
-  return <ServiceFormBody key={key} {...props} onSaved={markSaved} />;
+  // Ediciones simultáneas (5I): "Cargar lo que guardó" monta el formulario con lo nuevo.
+  const { key: reloadKey, reload, reloading } = useReloadForm();
+  return (
+    <ServiceFormBody key={`${key}-${reloadKey}`} {...props} onSaved={markSaved} onReload={reload} reloading={reloading} />
+  );
 }
 
 /**
@@ -184,7 +191,9 @@ function ServiceFormBody({
   initialMaintenanceIds = [],
   maintenanceByUnit = {},
   onSaved,
-}: ServiceFormProps & { onSaved: () => void }) {
+  onReload,
+  reloading,
+}: ServiceFormProps & { onSaved: () => void; onReload: () => void; reloading: boolean }) {
   const today = useToday(serverToday);
   const router = useRouter();
   const goBack = useGoBack();
@@ -197,6 +206,10 @@ function ServiceFormBody({
   const [saved, setSaved] = useState(false);
   // Posible duplicado (5H): servicios de la misma unidad ese día o en la misma estancia.
   const [similar, setSimilar] = useState<SimilarService[] | null>(null);
+  // Ediciones simultáneas (5I): la versión es la de cuando se abrió el formulario,
+  // no la de una actualización sola de la página mientras se escribe.
+  const [version] = useState(service?.version ?? "");
+  const [conflict, setConflict] = useState<EditConflict | null>(null);
 
   const form = useForm<ServiceEditInput>({
     // En alta no hay motivo: se valida con el schema sin "reason".
@@ -445,7 +458,8 @@ function ServiceFormBody({
 
     try {
       if (service) {
-        const result = await updateService(service.id, service.unit.id, clean);
+        const result = await updateService(service.id, service.unit.id, clean, version);
+        if (!result.ok && result.conflict) return void setConflict(result.conflict);
         if (!result.ok) return void toast.error(result.error);
         setSaved(true);
         onSaved();
@@ -1020,6 +1034,13 @@ function ServiceFormBody({
         </div>
       </div>
       {leaveDialog}
+      <EditConflictDialog
+        conflict={conflict}
+        subject="Este servicio"
+        reloading={reloading}
+        onReload={onReload}
+        onClose={() => setConflict(null)}
+      />
       <AlertDialog open={similar !== null} onOpenChange={(open) => !open && setSimilar(null)}>
         <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
           <AlertDialogHeader>

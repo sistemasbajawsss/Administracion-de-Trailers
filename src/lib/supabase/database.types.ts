@@ -1264,6 +1264,7 @@ export type Database = {
           p_taller_id?: string
           p_tipo?: Database["public"]["Enums"]["tipo_servicio"]
           p_unidad_id: string
+          p_version?: string
         }
         Returns: undefined
       }

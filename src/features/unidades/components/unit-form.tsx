@@ -9,7 +9,10 @@ import { toast } from "sonner";
 
 import { useGoBack } from "@/components/shared/go-back";
 import { useRemountAfterSave } from "@/components/shared/use-remount-after-save";
+import { EditConflictDialog } from "@/components/shared/edit-conflict-dialog";
+import { useReloadForm } from "@/components/shared/use-reload-form";
 import { useUnsavedChanges } from "@/components/shared/use-unsaved-changes";
+import type { EditConflict } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -74,14 +77,26 @@ type UnitFormProps = { unit?: UnitDetail; drivers: DriverOption[]; types: UnitTy
 /** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
 export function UnitForm(props: UnitFormProps) {
   const { key, markSaved } = useRemountAfterSave();
-  return <UnitFormBody key={key} {...props} onSaved={markSaved} />;
+  // Ediciones simultáneas (5I): "Cargar lo que se guardó" monta el formulario con lo nuevo.
+  const { key: reloadKey, reload, reloading } = useReloadForm();
+  return <UnitFormBody key={`${key}-${reloadKey}`} {...props} onSaved={markSaved} onReload={reload} reloading={reloading} />;
 }
 
-function UnitFormBody({ unit, drivers, types, onSaved }: UnitFormProps & { onSaved: () => void }) {
+function UnitFormBody({
+  unit,
+  drivers,
+  types,
+  onSaved,
+  onReload,
+  reloading,
+}: UnitFormProps & { onSaved: () => void; onReload: () => void; reloading: boolean }) {
   const goBack = useGoBack();
   const isEdit = Boolean(unit);
   // Guardado con éxito: el botón queda deshabilitado mientras se regresa (sin doble envío).
   const [saved, setSaved] = useState(false);
+  // La versión con que se abrió (no la de una actualización sola de la página).
+  const [version] = useState(unit?.version ?? "");
+  const [conflict, setConflict] = useState<EditConflict | null>(null);
 
   const form = useForm<UnitInput>({
     resolver: zodResolver(makeUnitSchema(types)),
@@ -130,7 +145,11 @@ function UnitFormBody({ unit, drivers, types, onSaved }: UnitFormProps & { onSav
     const number = normalizeEconomicNumber(values.economicNumber);
 
     try {
-      const result = unit ? await updateUnit(unit.id, clean) : await createUnit(clean);
+      const result = unit ? await updateUnit(unit.id, clean, version) : await createUnit(clean);
+      if (!result.ok && result.conflict) {
+        setConflict(result.conflict);
+        return;
+      }
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -436,6 +455,13 @@ function UnitFormBody({ unit, drivers, types, onSaved }: UnitFormProps & { onSav
         </div>
       </FieldGroup>
       {leaveDialog}
+      <EditConflictDialog
+        conflict={conflict}
+        subject="Esta unidad"
+        reloading={reloading}
+        onReload={onReload}
+        onClose={() => setConflict(null)}
+      />
     </form>
   );
 }

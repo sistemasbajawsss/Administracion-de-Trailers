@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { fail, failConflict, ok, versionSchema, type ActionResult } from "@/lib/action-result";
 import { isUuid } from "@/lib/utils/ids";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
@@ -21,7 +21,7 @@ import {
   unitTypeSchema,
   type UnitInput,
 } from "./schemas";
-import { getUnitTypes, listUnitShopStays } from "./queries";
+import { getUnitTypes, getUnitVersion, listUnitShopStays } from "./queries";
 import { UNIT_TYPE_KEY, type UnitShopStay, type UnitTypeCatalog } from "./types";
 
 const emptyToNull = (value: string) => (value.trim() === "" ? null : value.trim());
@@ -82,8 +82,13 @@ export async function createUnit(input: unknown): Promise<ActionResult<{ id: str
   return ok({ id: data.id });
 }
 
-export async function updateUnit(id: string, input: unknown): Promise<ActionResult> {
-  if (!isUuid(id)) return fail("Unidad no válida.");
+/**
+ * `version`: `updated_at` de la unidad cuando se abrió el formulario (5I). Solo
+ * se guarda si nadie la cambió después (otro admin, una entrada o salida de
+ * taller, una venta); si no, se regresa `conflict` para explicarlo.
+ */
+export async function updateUnit(id: string, input: unknown, version: string): Promise<ActionResult> {
+  if (!isUuid(id) || !versionSchema.safeParse(version).success) return fail("Unidad no válida.");
   const types = await getUnitTypes();
   const parsed = makeUnitSchema(types).safeParse(input);
   if (!parsed.success) return fail("Revisa los datos de la unidad.");
@@ -95,9 +100,16 @@ export async function updateUnit(id: string, input: unknown): Promise<ActionResu
     .from("unidades")
     .update(toRow(parsed.data, types))
     .eq("id", id)
+    .eq("updated_at", version)
     .select("id");
   if (error) return fail(errorMessage(error));
-  if (!data.length) return fail("La unidad no existe o no tienes permiso para editarla.");
+  if (!data.length) {
+    const current = await getUnitVersion(id).catch(() => null);
+    if (current && current !== version) {
+      return failConflict("Esta unidad cambió mientras la editabas.", { by: null, at: current });
+    }
+    return fail("La unidad no existe o no tienes permiso para editarla.");
+  }
 
   revalidatePath("/unidades", "layout");
   return ok();

@@ -132,15 +132,23 @@ export async function getUnit(id: string): Promise<UnitDetail | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("unidades")
-    .select(`${LIST_COLUMNS}, chofer_id, anio, vin`)
+    .select(`${LIST_COLUMNS}, chofer_id, anio, vin, updated_at`)
     .eq("id", id)
-    .returns<(UnitRow & { chofer_id: string | null; anio: number | null; vin: string | null })[]>()
+    .returns<(UnitRow & { chofer_id: string | null; anio: number | null; vin: string | null; updated_at: string })[]>()
     .maybeSingle();
 
   if (error) throw new Error("No se pudo cargar la unidad");
   if (!data) return null;
 
-  return { ...toListItem(data), driverId: data.chofer_id, year: data.anio, vin: data.vin };
+  return { ...toListItem(data), version: data.updated_at, driverId: data.chofer_id, year: data.anio, vin: data.vin };
+}
+
+/** `updated_at` actual de la unidad (ediciones simultáneas, 5I). null si no existe o no se ve. */
+export async function getUnitVersion(id: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("unidades").select("updated_at").eq("id", id).maybeSingle();
+  if (error) throw new Error("No se pudo revisar la unidad");
+  return data?.updated_at ?? null;
 }
 
 /**

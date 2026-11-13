@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { fail, ok, type ActionResult } from "@/lib/action-result";
+import { fail, failConflict, ok, parseConflict, versionSchema, type ActionResult } from "@/lib/action-result";
 import { isUuid } from "@/lib/utils/ids";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
@@ -152,12 +152,19 @@ export async function createService(input: unknown): Promise<ActionResult<{ id: 
   return ok({ id: data });
 }
 
+/**
+ * `version`: `updated_at` del servicio cuando se abrió el formulario (5I). Si
+ * otra persona guardó después, la BD rechaza (PT409) y se regresa `conflict`
+ * con quién y cuándo, para que la pantalla lo explique.
+ */
 export async function updateService(
   id: string,
   previousUnitId: string,
   input: unknown,
+  version: string,
 ): Promise<ActionResult> {
   if (!isUuid(id) || !isUuid(previousUnitId)) return fail("Servicio no válido.");
+  if (!versionSchema.safeParse(version).success) return fail("Servicio no válido.");
   const parsed = serviceEditSchema.safeParse(input);
   if (!parsed.success) return fail("Revisa los datos del servicio.");
 
@@ -193,7 +200,11 @@ export async function updateService(
     p_motivo: values.reason,
     p_salida_taller: !legacy && linked && values.leavesShop,
     p_motivo_sin_entrada: !linked ? values.noEntryReason || undefined : undefined,
+    p_version: version,
   });
+  if (error?.code === "PT409") {
+    return failConflict("Otra persona guardó este servicio mientras lo editabas.", parseConflict(error.details));
+  }
   if (error) return fail(errorMessage(error, "No se pudieron guardar los cambios. Inténtalo de nuevo."));
 
   revalidateServices([previousUnitId, parsed.data.unitId]);
