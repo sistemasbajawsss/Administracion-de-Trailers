@@ -91,6 +91,7 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 - **Al abrir una pestaña sin sesión se alcanzaba a ver la app.** — **Regla (D9):** se oculta antes de pintar. — commit c1ebfed.
 - **El login no explicaba cuando el Firewall de Vercel frenaba intentos.** — commit d41a90d.
 - **Un usuario desactivado con token vigente todavía podía leer.** — **Regla:** toda política de lectura exige `rol_actual()` no nulo. — ESTADO › Seguridad.
+- **Cerrar y volver a abrir la app en el celular sacaba también la sesión de la computadora (y al revés).** — Causa: el cierre automático por pestaña sin marca (D9) usaba `signOut()`, que en Supabase cierra por defecto todas las sesiones del usuario en todos los aparatos; el otro aparato caía a `/login` al vencer su token (hasta una hora) y perdía lo que tuviera a medias. — **Regla:** el cierre automático cierra solo este aparato (`signOutThisDevice`, `scope: "local"`); el botón "Cerrar sesión" sí cierra todos (sirve para sacar una sesión olvidada). Antes de usar `signOut` decidir el alcance a propósito. — Usuario, 2026-11-13.
 - **Se construyó TOTP y el usuario no lo quería.** — **Regla (D6):** no proponer MFA. — memoria.
 
 ## 7. Reportes, PDF y Excel

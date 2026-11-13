@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { signOut } from "@/features/auth/actions";
+import { signOutThisDevice } from "@/features/auth/actions";
 
 import { TAB_SESSION_KEY } from "./tab-session-script";
 
@@ -19,6 +19,7 @@ export function markTabSession() {
  * La sesión termina al cerrar la pestaña: si esta pestaña no tiene la marca
  * (se cerró y se volvió a abrir, o es una pestaña nueva), cierra la sesión y
  * manda a /login. Recargar la página conserva la marca.
+ * Solo cierra la sesión de este aparato: los demás aparatos del usuario siguen.
  */
 export function TabSessionGuard() {
   useEffect(() => {
@@ -30,7 +31,7 @@ export function TabSessionGuard() {
     }
     if (marked) return;
 
-    void signOut()
+    void signOutThisDevice()
       .catch(() => undefined)
       .finally(() => window.location.replace("/login"));
   }, []);

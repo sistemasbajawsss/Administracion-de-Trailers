@@ -42,7 +42,22 @@ export async function signIn(input: unknown): Promise<ActionResult> {
 }
 
 /**
- * Cierra la sesión. No redirige desde el servidor: el cliente hace una
+ * Cierra solo la sesión de este aparato (la usa el cierre automático de
+ * TabSessionGuard). Las sesiones del mismo usuario en otros aparatos siguen:
+ * cerrar la app en el celular no saca de la computadora.
+ */
+export async function signOutThisDevice(): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  if (error) return fail("No se pudo cerrar la sesión. Inténtalo de nuevo.");
+  revalidatePath("/", "layout");
+  return ok();
+}
+
+/**
+ * Cierra la sesión en todos los aparatos del usuario (botón "Cerrar sesión":
+ * sirve para sacar una sesión olvidada en otra computadora).
+ * No redirige desde el servidor: el cliente hace una
  * navegación completa a /login para borrar de memoria las páginas que se
  * vieron con la sesión anterior (y el formulario de login empieza vacío).
  */
