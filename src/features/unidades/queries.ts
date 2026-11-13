@@ -232,7 +232,7 @@ export async function listUnitShopStays(
   const tickets = ids.length
     ? await supabase
         .from("tickets_taller")
-        .select("entrada_id, folio, prioridad, creador_nombre, created_at, atendido_at, atendido_nombre")
+        .select("entrada_id, folio, prioridad, creador_nombre, created_at, atendido_at, atendido_nombre, atendido_por_admin, motivo_aprobacion")
         .in("entrada_id", ids)
     : { data: [], error: null };
   if (tickets.error) throw new Error("No se pudieron cargar los tickets de las estancias");
@@ -246,6 +246,8 @@ export async function listUnitShopStays(
         createdAt: t.created_at,
         attendedAt: t.atendido_at,
         attendedName: t.atendido_nombre,
+        attendedByAdmin: t.atendido_por_admin,
+        approvalReason: t.motivo_aprobacion,
       },
     ]),
   );

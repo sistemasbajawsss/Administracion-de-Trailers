@@ -23,7 +23,7 @@ async function loadBadges(user: CurrentUser) {
 /** Escucha los tickets al momento (Realtime) para actualizar el menú, Inicio y Tickets. */
 async function LiveTickets() {
   const user = await getCurrentUser();
-  return <TicketsLive userId={user.id} notifyNew={canAttendTickets(user)} />;
+  return <TicketsLive userId={user.id} notifyNew={canAttendTickets(user)} notifyApprovals={user.role === "capturista"} />;
 }
 
 export default function AppLayout({ children }: LayoutProps<"/">) {

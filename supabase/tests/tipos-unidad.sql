@@ -83,8 +83,9 @@ begin
   end;
   select string_agg(resultado, ',' order by resultado) into txt
   from public.agregar_mantenimiento((select id from public.unidades where tipo = 'trailer' and estatus = 'activo' order by numero_orden limit 1),
-    'Prueba tipos', 10000, 6::smallint, hoy, 0, array[(select v from x where k = 'gondola')]);
-  insert into r(caso, ok, detalle) values ('Góndola recibe solo la parte por meses', txt like '%solo_meses%', txt);
+    'Prueba tipos', 10000, null, hoy, 0, array[(select v from x where k = 'gondola')]);
+  -- Una sola forma (5H): por km no pasa a la góndola (sin odómetro).
+  insert into r(caso, ok, detalle) values ('Góndola se salta un mantenimiento por km', txt like '%caja_solo_km%' or txt like '%sin_kilometraje%', txt);
   begin
     perform public.corregir_kilometraje((select v from x where k = 'dolly'), 100, hoy, 'Prueba');
     insert into r(caso, ok, detalle) values ('Dolly: corregir km rechazado', false, 'pudo');

@@ -37,8 +37,8 @@ begin
   perform public.registrar_servicio(p_unidad_id => ua, p_fecha => hoy - 5, p_kilometraje => 100000, p_proveedor_id => null,
     p_descripcion => 'Lectura', p_gastos => g, p_motivo_sin_entrada => 'Mantenimiento en patio', p_tipo => 'servicio');
 
-  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, cada_meses, desde_fecha, desde_km)
-  values (ua, 'Cambio de aceite', 15000, 6, hoy - 60, 90000) returning id into aceite;
+  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km)
+  values (ua, 'Cambio de aceite', 15000, hoy - 60, 90000) returning id into aceite;
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_meses, desde_fecha)
   values (ua, 'Filtro de cabina', 12, hoy - 30) returning id into filtro;
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_meses, desde_fecha, activo)
@@ -63,8 +63,8 @@ begin
   select * into p from public.mantenimientos_pendientes(ua) where id = aceite;
   insert into r(caso, ok, detalle) values ('El correctivo reinicia el contador',
     p.ultimo_servicio_id = s and p.ultima_fecha = hoy and p.ultimo_km = 101000 and p.proximo_km = 116000
-      and p.faltan_km = 15000 and p.proxima_fecha = (hoy + interval '6 months')::date,
-    p.ultimo_km || ' ' || p.proximo_km || ' ' || p.faltan_km || ' ' || p.proxima_fecha);
+      and p.faltan_km = 15000 and p.proxima_fecha is null,
+    p.ultimo_km || ' ' || p.proximo_km || ' ' || p.faltan_km || ' ' || coalesce(p.proxima_fecha::text, 'sin fecha'));
   select * into p from public.mantenimientos_pendientes(ua) where id = filtro;
   insert into r(caso, ok, detalle) values ('Los demás no cambian', p.ultimo_servicio_id is null, coalesce(p.ultimo_servicio_id::text, 'null'));
 

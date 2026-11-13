@@ -1,25 +1,8 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { toLastMileage, type LastMileage } from "@/lib/utils/mileage";
 
 import type { ShopEntry } from "./types";
-
-/**
- * Lo que el servidor necesita para validar el kilometraje de una entrada (5F): si
- * su tipo lleva kilometraje (las cajas, dollys y góndolas no) y su última lectura.
- */
-export async function getUnitMileageRule(unitId: string): Promise<{ hasOdometer: boolean; last: LastMileage | null } | null> {
-  const supabase = await createClient();
-  const [unit, mileage] = await Promise.all([
-    supabase.from("unidades").select("tipo_info:tipos_unidad(lleva_kilometraje)").eq("id", unitId).maybeSingle(),
-    supabase.rpc("kilometraje_unidades", { p_unidad_id: unitId }),
-  ]);
-  if (unit.error || mileage.error) throw new Error("No se pudo revisar el kilometraje de la unidad");
-  if (!unit.data) return null;
-  const row = mileage.data[0];
-  return { hasOdometer: unit.data.tipo_info?.lleva_kilometraje ?? true, last: row ? toLastMileage(row) : null };
-}
 
 /**
  * Unidades en taller ahora (entradas abiertas), la que lleva más días primero.

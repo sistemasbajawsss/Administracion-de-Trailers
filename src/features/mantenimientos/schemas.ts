@@ -17,8 +17,9 @@ const optionalWhole = (min: number, max: number, message: string) =>
     }, message);
 
 /**
- * Agregar o editar un mantenimiento de una unidad (solo admin). Cada cuántos km
- * y/o meses (al menos uno) y la última vez que se hizo. La BD vuelve a revisar
+ * Agregar o editar un mantenimiento de una unidad (solo admin). De una sola
+ * forma: cada cuántos km o cada cuántos meses (pedido del usuario, 2026-11-12),
+ * y la última vez que se hizo. La BD vuelve a revisar
  * todo (cajas solo por meses, fecha no futura, nombre repetido).
  */
 export const maintenanceSchema = z
@@ -34,6 +35,9 @@ export const maintenanceSchema = z
   .superRefine((value, ctx) => {
     if (!value.everyKm && !value.everyMonths) {
       ctx.addIssue({ code: "custom", path: ["everyMonths"], message: "Escribe cada cuántos km o cada cuántos meses" });
+    }
+    if (value.everyKm && value.everyMonths) {
+      ctx.addIssue({ code: "custom", path: ["everyMonths"], message: "Elige una sola forma: por kilometraje o por meses" });
     }
     if (value.everyKm && !value.lastKm) {
       ctx.addIssue({ code: "custom", path: ["lastKm"], message: "Escribe con cuántos km se hizo la última vez" });

@@ -2,6 +2,8 @@
 -- motivo, "se olvidó la entrada", edición, eliminar / restaurar y compatibilidad.
 -- Corre con la migración 20261106205646_servicios_taller ya aplicada.
 begin;
+-- 5H: los tickets pendientes de verdad bloquean la entrada directa; en esta prueba no cuentan (se deshace al final).
+update public.tickets_taller set estatus = 'cancelado', cancelado_at = now() where estatus = 'pendiente';
 set local lock_timeout = '5s';
 create temp table r (n serial, caso text, ok boolean, detalle text);
 grant all on r to authenticated; grant all on r_n_seq to authenticated;

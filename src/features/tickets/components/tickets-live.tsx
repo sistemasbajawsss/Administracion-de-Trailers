@@ -1,6 +1,6 @@
 "use client";
 
-import { TicketCheck } from "lucide-react";
+import { ShieldCheck, TicketCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -8,10 +8,14 @@ import { cn } from "cn";
 
 import { createClient } from "@/lib/supabase/client";
 
+import { getLatestAdminApprovals } from "../actions";
+import type { AdminApproval } from "../types";
+
 type Totals = { created: number; urgent: number };
-type Ping = { creados?: number; urgentes?: number; tipo?: string | null; creado_por?: string | null };
+type Ping = { creados?: number; urgentes?: number; aprobados_admin?: number; tipo?: string | null; creado_por?: string | null };
 
 const ALERT_ID = "ticket-nuevo";
+const APPROVAL_ID = "ticket-aprobado";
 
 /**
  * Tickets al momento (5H, D16). La BD sube un contador sin datos
@@ -26,14 +30,29 @@ const ALERT_ID = "ticket-nuevo";
  * cuentan todos. El aviso suma lo que va llegando ("Llegaron 3, 1 urgente"),
  * sigue rojo mientras haya un urgente sin ver y vuelve a cero al cerrarlo o al
  * tocar "Ver tickets" (pedido del usuario, 2026-11-12).
+ *
+ * Aprobaciones de admin (solo capturistas): el contador también suma las
+ * aprobaciones; con la diferencia se piden al servidor (con sesión) quién aprobó
+ * y qué unidad, y sale "Sistemas aprobó el ticket de T-17" hasta que lo cierren.
  */
-export function TicketsLive({ notifyNew, userId }: { notifyNew: boolean; userId: string }) {
+export function TicketsLive({
+  notifyNew,
+  notifyApprovals,
+  userId,
+}: {
+  notifyNew: boolean;
+  notifyApprovals: boolean;
+  userId: string;
+}) {
   const router = useRouter();
   const timer = useRef<number | null>(null);
   /** Totales de la BD la última vez que se vieron. */
   const seen = useRef<Totals | null>(null);
   /** Tickets nuevos que el aviso está mostrando (sin cerrar). */
   const unseen = useRef<Totals>({ created: 0, urgent: 0 });
+  /** Aprobaciones de admin: total visto y las que muestra el aviso. */
+  const seenApprovals = useRef<number | null>(null);
+  const approvals = useRef<AdminApproval[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -72,14 +91,51 @@ export function TicketsLive({ notifyNew, userId }: { notifyNew: boolean; userId:
       }
     };
 
+    const clearApprovals = () => {
+      approvals.current = [];
+      toast.dismiss(APPROVAL_ID);
+    };
+
+    const showApprovals = async (count: number) => {
+      try {
+        const result = await getLatestAdminApprovals(Math.min(count, 10));
+        if (!active || !result.ok || result.data.length === 0) return;
+        const known = new Set(approvals.current.map((a) => a.id));
+        approvals.current = [...result.data.filter((a) => !known.has(a.id)), ...approvals.current].slice(0, 10);
+      } catch {
+        return; // Sin conexión: la lista de Tickets ya se actualiza al volver.
+      }
+      const list = approvals.current;
+      toast.custom(
+        () => (
+          <ApprovalAlert
+            approvals={list}
+            onView={() => {
+              clearApprovals();
+              router.push("/tickets");
+            }}
+            onClose={clearApprovals}
+          />
+        ),
+        { id: APPROVAL_ID, duration: Infinity, onDismiss: () => (approvals.current = []) },
+      );
+      try {
+        navigator.vibrate?.([300, 150, 300]);
+      } catch {
+        // Sin vibración: solo el aviso.
+      }
+    };
+
     // Punto de partida: los totales de ahora (lo de antes de abrir la app no se avisa).
     void supabase
       .from("tickets_avisos")
-      .select("creados, urgentes")
+      .select("creados, urgentes, aprobados_admin")
       .eq("id", 1)
       .maybeSingle()
       .then(({ data }) => {
-        if (active && data && !seen.current) seen.current = { created: data.creados, urgent: data.urgentes };
+        if (!active || !data) return;
+        if (!seen.current) seen.current = { created: data.creados, urgent: data.urgentes };
+        if (seenApprovals.current === null) seenApprovals.current = data.aprobados_admin;
       });
 
     const channel = supabase
@@ -108,6 +164,15 @@ export function TicketsLive({ notifyNew, userId }: { notifyNew: boolean; userId:
             }
           }
         }
+        if (typeof ping.aprobados_admin === "number") {
+          const before = seenApprovals.current;
+          if (before === null) {
+            seenApprovals.current = ping.aprobados_admin;
+          } else if (ping.aprobados_admin > before) {
+            seenApprovals.current = ping.aprobados_admin;
+            if (notifyApprovals) void showApprovals(ping.aprobados_admin - before);
+          }
+        }
         refreshSoon();
       })
       .subscribe();
@@ -117,7 +182,7 @@ export function TicketsLive({ notifyNew, userId }: { notifyNew: boolean; userId:
       if (timer.current) window.clearTimeout(timer.current);
       void supabase.removeChannel(channel);
     };
-  }, [router, notifyNew, userId]);
+  }, [router, notifyNew, notifyApprovals, userId]);
 
   return null;
 }
@@ -178,6 +243,46 @@ function NewTicketAlert({
               "inline-flex min-h-12 items-center rounded-lg px-4 text-base font-medium outline-none hover:underline focus-visible:ring-3",
               isUrgent ? "text-white underline-offset-2 focus-visible:ring-white/60" : "text-amber-950 focus-visible:ring-amber-700/40",
             )}
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Aviso de aprobaciones de admin para los capturistas: quién aprobó qué, hasta que lo cierren. */
+function ApprovalAlert({ approvals, onView, onClose }: { approvals: AdminApproval[]; onView: () => void; onClose: () => void }) {
+  return (
+    <div
+      role="alert"
+      className="flex w-[min(92vw,28rem)] min-w-0 items-start gap-3 rounded-2xl border-2 border-brand-ink bg-brand-ink p-4 text-white shadow-xl"
+    >
+      <ShieldCheck className="mt-0.5 size-8 shrink-0" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <ul className="space-y-1">
+          {approvals.map((a) => (
+            <li key={a.id} className="text-lg leading-snug font-bold">
+              {a.approverName ?? "Un administrador"} aprobó el ticket de {a.economicNumber}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-0.5 text-base text-white/90">
+          {approvals.length === 1 ? "Ya entró a taller; no hay que aceptarlo." : "Ya entraron a taller; no hay que aceptarlos."}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onView}
+            className="inline-flex min-h-12 items-center rounded-lg bg-white px-5 text-base font-semibold text-brand-ink outline-none focus-visible:ring-3 focus-visible:ring-white/60"
+          >
+            Ver tickets
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-12 items-center rounded-lg px-4 text-base font-medium text-white outline-none hover:underline focus-visible:ring-3 focus-visible:ring-white/60"
           >
             Cerrar
           </button>

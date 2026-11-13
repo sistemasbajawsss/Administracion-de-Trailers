@@ -2,6 +2,8 @@
 -- Corre con las migraciones 20261106203640_estatus_vendida y
 -- 20261106203645_ventas_unidades ya aplicadas.
 begin;
+-- 5H: los tickets pendientes de verdad bloquean la entrada directa; en esta prueba no cuentan (se deshace al final).
+update public.tickets_taller set estatus = 'cancelado', cancelado_at = now() where estatus = 'pendiente';
 set local lock_timeout = '5s';
 create temp table r (n serial, caso text, ok boolean, detalle text);
 grant all on r to authenticated, anon; grant all on r_n_seq to authenticated, anon;

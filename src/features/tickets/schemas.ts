@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { isKmText } from "@/lib/utils/mileage";
-
 import { TICKET_PRIORITIES } from "./types";
 
 /** Levantar un ticket (admin y gerente). La BD vuelve a revisar la unidad. */
@@ -12,9 +10,20 @@ export const createTicketSchema = z.object({
 });
 export type CreateTicketInput = z.infer<typeof createTicketSchema>;
 
-/** Aceptar: el kilometraje (obligatorio si la unidad lleva odómetro; lo revisan el diálogo y el servidor). */
+/**
+ * Aceptar (capturista) o aprobar (admin). Ya no pide kilometraje (lo alimenta la
+ * captura semanal). El admin siempre dice por qué lo aprueba (lo revisan el
+ * servidor y la BD); el capturista no escribe nada.
+ */
 export const acceptTicketSchema = z.object({
-  mileage: z.string().trim().max(20).refine(isKmText, "Kilometraje: solo números"),
+  reason: z.string().trim().max(1000, "Motivo: máximo 1000 caracteres"),
+});
+export const approveTicketSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(5, "Escribe por qué lo apruebas (al menos 5 letras)")
+    .max(1000, "Motivo: máximo 1000 caracteres"),
 });
 export type AcceptTicketInput = z.infer<typeof acceptTicketSchema>;
 

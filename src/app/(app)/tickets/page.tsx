@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { TicketHistory, TicketList } from "@/features/tickets/components/ticket-history";
 import {
+  listAdminApprovals,
   listPendingTickets,
   listTicketHistory,
   listUnseenRejections,
@@ -19,17 +20,18 @@ import { ROLES, VIEW_ALL_ROLES } from "@/lib/auth/types";
 export const metadata: Metadata = { title: "Tickets de taller" };
 
 const DESCRIPTIONS = {
-  admin: "Levanta tickets para que una unidad entre a taller, y acepta o rechaza los pendientes.",
+  admin: "Levanta tickets para que una unidad entre a taller, y aprueba o rechaza los pendientes.",
   capturista: "Unidades que piden entrar a taller. El primero que acepta un ticket le da la entrada.",
   gerente: "Pide que una unidad entre a taller. Los capturistas lo aceptan o lo rechazan con un motivo.",
 } as const;
 
 async function Content() {
   const user = await requireRole(ROLES);
-  const [pending, rejected, history] = await Promise.all([
+  const [pending, rejected, history, approved] = await Promise.all([
     listPendingTickets(),
     canCreateTickets(user) ? listUnseenRejections(user.id) : Promise.resolve([]),
     listTicketHistory(),
+    listAdminApprovals(),
   ]);
   const now = new Date().toISOString();
   const viewer = { id: user.id, role: user.role };
@@ -74,6 +76,16 @@ async function Content() {
           <TicketList tickets={pending} viewer={viewer} now={now} linkUnit={linkUnit} label="Tickets pendientes" />
         )}
       </section>
+
+      {approved.length > 0 && (
+        <section aria-labelledby="tickets-aprobados" className="mb-10">
+          <h2 id="tickets-aprobados" className="mb-1 text-2xl font-semibold">Aprobados por administrador</h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {approved.length === 1 ? "El último que aprobó" : `Los últimos ${approved.length} que aprobó`} un administrador, con su motivo. Los anteriores están en el historial.
+          </p>
+          <TicketList tickets={approved} viewer={viewer} now={now} linkUnit={linkUnit} label="Tickets aprobados por administrador" />
+        </section>
+      )}
 
       <section aria-labelledby="tickets-historial">
         <h2 id="tickets-historial" className="mb-1 text-2xl font-semibold">

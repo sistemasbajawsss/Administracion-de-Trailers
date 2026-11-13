@@ -49,9 +49,9 @@ begin
   select count(*) into n from public.mantenimientos_unidad where unidad_id = ua and activo and nombre = 'Revisión general' and desde_fecha = hoy - 30;
   insert into r(caso, ok, detalle) values ('Nombre limpio y su fecha', n = 1, n::text);
 
-  -- Aceite (km y meses) a la ficha y a ub, uc, la caja y la misma ficha repetida.
+  -- Aceite (solo km: una sola forma, 5H) a la ficha y a ub, uc, la caja y la misma ficha repetida.
   create temp table res on commit drop as
-  select * from public.agregar_mantenimiento(ua, 'Cambio de aceite', 15000, 6::smallint, hoy - 60, 90000,
+  select * from public.agregar_mantenimiento(ua, 'Cambio de aceite', 15000, null, hoy - 60, 90000,
                                              array[ub, uc, caja, ua, ub]);
   select count(*) into n from res;
   insert into r(caso, ok, detalle) values ('Una fila por unidad (sin repetir la ficha)', n = 4, n::text);
@@ -63,20 +63,20 @@ begin
   select resultado into t from res where unidad_id = ub;
   insert into r(caso, ok, detalle) values ('Otra con km: agregado', t = 'agregado', t);
   select * into p from public.mantenimientos_unidad where unidad_id = ub and activo and nombre = 'Cambio de aceite';
-  insert into r(caso, ok, detalle) values ('Otra: desde hoy y su km actual', p.desde_fecha = hoy and p.desde_km = 250000 and p.cada_km = 15000 and p.cada_meses = 6,
+  insert into r(caso, ok, detalle) values ('Otra: desde hoy y su km actual', p.desde_fecha = hoy and p.desde_km = 250000 and p.cada_km = 15000 and p.cada_meses is null,
     p.desde_fecha || ' / ' || p.desde_km);
 
   select resultado into t from res where unidad_id = uc;
-  insert into r(caso, ok, detalle) values ('Sin kilometraje: solo meses', t = 'solo_meses', t);
-  select * into p from public.mantenimientos_unidad where unidad_id = uc and activo and nombre = 'Cambio de aceite';
-  insert into r(caso, ok, detalle) values ('Sin kilometraje: sin km', p.cada_km is null and p.desde_km is null and p.cada_meses = 6, coalesce(p.cada_km::text, 'null'));
+  insert into r(caso, ok, detalle) values ('Sin kilometraje: se salta', t = 'sin_kilometraje', t);
+  select count(*) into n from public.mantenimientos_unidad where unidad_id = uc and activo and nombre = 'Cambio de aceite';
+  insert into r(caso, ok, detalle) values ('Sin kilometraje: no se guardó', n = 0, n::text);
 
   select resultado into t from res where unidad_id = caja;
-  insert into r(caso, ok, detalle) values ('Caja: solo meses', t = 'solo_meses', t);
+  insert into r(caso, ok, detalle) values ('Caja: se salta (sin odómetro)', t = 'caja_solo_km', t);
 
   -- Otra vez: las que ya lo tienen se saltan; la ficha repetida falla todo.
   begin
-    perform public.agregar_mantenimiento(ua, 'cambio de aceite', 15000, 6::smallint, hoy, 100000, array[ub]);
+    perform public.agregar_mantenimiento(ua, 'cambio de aceite', 15000, null, hoy, 100000, array[ub]);
     insert into r(caso, ok, detalle) values ('Ficha con nombre repetido: rechazado', false, 'pudo');
   exception when others then
     insert into r(caso, ok, detalle) values ('Ficha con nombre repetido: rechazado', sqlstate = '23505', sqlerrm);

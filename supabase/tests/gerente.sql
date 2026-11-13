@@ -1,4 +1,6 @@
 begin;
+-- 5H: los tickets pendientes de verdad bloquean la entrada directa; en esta prueba no cuentan (se deshace al final).
+update public.tickets_taller set estatus = 'cancelado', cancelado_at = now() where estatus = 'pendiente';
 create temp table r (n serial, caso text, ok boolean, detalle text);
 grant all on r to authenticated; grant all on r_n_seq to authenticated;
 create temp table g as select id, activo from public.perfiles where rol = 'gerente' order by created_at desc limit 1;

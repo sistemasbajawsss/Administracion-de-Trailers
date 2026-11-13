@@ -1,6 +1,8 @@
 -- Ajuste de la 5E: servicio que dio la salida y total de cada estancia.
 -- Corre con la migración 20261106233851_salida_con_servicio ya aplicada.
 begin;
+-- 5H: los tickets pendientes de verdad bloquean la entrada directa; en esta prueba no cuentan (se deshace al final).
+update public.tickets_taller set estatus = 'cancelado', cancelado_at = now() where estatus = 'pendiente';
 set local lock_timeout = '5s';
 create temp table r (n serial, caso text, ok boolean, detalle text);
 grant all on r to authenticated, anon; grant all on r_n_seq to authenticated, anon;

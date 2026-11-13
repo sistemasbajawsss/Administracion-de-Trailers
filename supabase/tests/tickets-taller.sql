@@ -44,7 +44,7 @@ select (select v from x where k = 'ue'),
 on conflict (unidad_id, semana) do update set kilometraje = 100000;
 
 -- Contador de avisos al empezar (para ver que sube con cada cambio).
-create temp table aviso0 as select version as v_inicio, creados as c_inicio, urgentes as u_inicio from public.tickets_avisos where id = 1;
+create temp table aviso0 as select version as v_inicio, creados as c_inicio, urgentes as u_inicio, aprobados_admin as a_inicio from public.tickets_avisos where id = 1;
 
 -- ubaja: dada de baja (solo en esta transacción).
 update public.unidades set estatus = 'baja' where id = (select v from x where k = 'ubaja');
@@ -206,12 +206,6 @@ begin
     insert into r(caso, ok, detalle) values ('Entrada directa bloqueada con ticket pendiente', sqlstate = '23505' and sqlerrm like '%acéptalo desde Tickets%', sqlerrm);
   end;
 
-  begin
-    perform public.aceptar_ticket_taller((select v from x where k = 't_ger'), null);
-    insert into r(caso, ok, detalle) values ('Aceptar pide km si la unidad tiene odómetro', false, 'pudo');
-  exception when others then
-    insert into r(caso, ok, detalle) values ('Aceptar pide km si la unidad tiene odómetro', sqlstate = '23514' and sqlerrm like '%kilometraje%', sqlerrm);
-  end;
 
   begin
     perform public.aceptar_ticket_taller((select v from x where k = 't_ue'), 5);
@@ -231,6 +225,7 @@ begin
   insert into r(caso, ok, detalle)
   select 'Aceptar: ticket aceptado, ligado a su entrada, con quién y cuándo',
          t.estatus = 'aceptado' and t.entrada_id = v_entrada and t.atendido_by = (select v from x where k = 'capt')
+         and not t.atendido_por_admin and t.motivo_aprobacion is null
          and t.atendido_nombre is not null and t.atendido_at >= t.created_at,
          t.estatus::text
   from public.tickets_taller t where t.id = (select v from x where k = 't_ger');
@@ -244,6 +239,12 @@ begin
   select 'Aceptar: la unidad queda en taller', estatus = 'en_taller', estatus::text
   from public.unidades where id = (select v from x where k = 'ua');
 
+  -- Sin kilometraje: el capturista acepta y la entrada queda sin km.
+  v_entrada := public.aceptar_ticket_taller((select v from x where k = 't_ue'));
+  insert into r(caso, ok, detalle)
+  select 'Aceptar sin kilometraje: entrada sin km', e.kilometraje is null and t.estatus = 'aceptado', coalesce(e.kilometraje::text, 'sin km')
+  from public.entradas_taller e join public.tickets_taller t on t.entrada_id = e.id where e.id = v_entrada;
+
   begin
     perform public.rechazar_ticket_taller((select v from x where k = 't_admin'), 'no');
     insert into r(caso, ok, detalle) values ('Rechazar exige motivo de 5 letras', false, 'pudo');
@@ -255,7 +256,7 @@ begin
   insert into r(caso, ok, detalle)
   select 'Rechazar: guarda motivo, quién y cuándo',
          estatus = 'rechazado' and motivo_rechazo = 'No hay mecánico hoy' and atendido_by = (select v from x where k = 'capt')
-         and entrada_id is null and enterado_at is null,
+         and entrada_id is null and enterado_at is null and not atendido_por_admin,
          coalesce(motivo_rechazo, '')
   from public.tickets_taller where id = (select v from x where k = 't_admin');
   insert into r(caso, ok, detalle)
@@ -323,7 +324,20 @@ begin
     insert into r(caso, ok, detalle) values ('Enterado solo en rechazados', sqlstate = '23514', sqlerrm);
   end;
 
-  v_entrada := public.aceptar_ticket_taller((select v from x where k = 't_caja'), 12345);
+  begin
+    perform public.aceptar_ticket_taller((select v from x where k = 't_caja'), null, 'no');
+    insert into r(caso, ok, detalle) values ('El admin aprueba solo con motivo', false, 'pudo');
+  exception when others then
+    insert into r(caso, ok, detalle) values ('El admin aprueba solo con motivo', sqlstate = '23514' and sqlerrm like '%por qué lo apruebas%', sqlerrm);
+  end;
+
+  -- Sin kilometraje: aceptar ya no lo pide (5H).
+  v_entrada := public.aceptar_ticket_taller((select v from x where k = 't_caja'), null, '  Lo apruebo yo: hay que revisarla hoy  ');
+  insert into r(caso, ok, detalle)
+  select 'Aprobado por admin: marcado y con su motivo',
+         atendido_por_admin and motivo_aprobacion = 'Lo apruebo yo: hay que revisarla hoy' and estatus = 'aceptado',
+         coalesce(motivo_aprobacion, '')
+  from public.tickets_taller where id = (select v from x where k = 't_caja');
   insert into r(caso, ok, detalle)
   select 'Admin acepta; sin odómetro la entrada no guarda km', e.kilometraje is null and t.estatus = 'aceptado' and t.atendido_by = (select v from x where k = 'admin'), coalesce(e.kilometraje::text, 'sin km')
   from public.entradas_taller e join public.tickets_taller t on t.entrada_id = e.id
@@ -370,8 +384,9 @@ select 'Cada cambio sube el contador de avisos', version >= (select v_inicio fro
 from public.tickets_avisos where id = 1;
 -- En esta prueba se levantan 7 tickets (admin 3, gerente 3, admin 1 de uv); uno urgente (del gerente).
 insert into r(caso, ok, detalle)
-select 'El contador cuenta cada ticket creado y los urgentes',
-       creados - (select c_inicio from aviso0) = 7 and urgentes - (select u_inicio from aviso0) = 1,
+select 'El contador cuenta cada ticket creado, los urgentes y las aprobaciones de admin',
+       creados - (select c_inicio from aviso0) = 7 and urgentes - (select u_inicio from aviso0) = 1
+       and aprobados_admin - (select a_inicio from aviso0) = 1,
        (creados - (select c_inicio from aviso0))::text || ' creados, ' || (urgentes - (select u_inicio from aviso0))::text || ' urgentes'
 from public.tickets_avisos where id = 1;
 insert into r(caso, ok, detalle)

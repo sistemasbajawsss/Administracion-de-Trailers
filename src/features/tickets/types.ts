@@ -1,5 +1,4 @@
 import type { Database } from "@/lib/supabase/database.types";
-import type { LastMileage } from "@/lib/utils/mileage";
 import type { CurrentUser } from "@/lib/auth/types";
 
 export type TicketPriority = Database["public"]["Enums"]["prioridad_ticket"];
@@ -42,6 +41,10 @@ export type Ticket = {
   creatorName: string | null;
   attendedAt: string | null;
   attendedName: string | null;
+  /** Lo aceptó (aprobó) o lo rechazó un administrador: se destaca con su nombre. */
+  attendedByAdmin: boolean;
+  /** Por qué lo aprobó el admin (obligatorio al aprobar). */
+  approvalReason: string | null;
   entryId: string | null;
   rejectReason: string | null;
   acknowledgedAt: string | null;
@@ -50,8 +53,8 @@ export type Ticket = {
   cancelReason: string | null;
 };
 
-/** Ticket pendiente con lo que pide "Aceptar": si lleva km y su última lectura. */
-export type PendingTicket = Ticket & { hasOdometer: boolean; lastMileage: LastMileage | null };
+/** Ticket pendiente (aceptar ya no pide kilometraje: lo alimenta la captura semanal). */
+export type PendingTicket = Ticket;
 
 /** Ticket ligado a una estancia en taller (ficha de la unidad). */
 export type StayTicket = {
@@ -61,7 +64,12 @@ export type StayTicket = {
   createdAt: string;
   attendedAt: string | null;
   attendedName: string | null;
+  attendedByAdmin: boolean;
+  approvalReason: string | null;
 };
+
+/** Aprobación de un admin para el aviso de los capturistas. */
+export type AdminApproval = { id: string; economicNumber: string; approverName: string | null; reason: string | null };
 
 /** Pendientes primero los urgentes; dentro de cada prioridad, el más viejo primero. */
 const PRIORITY_ORDER: Record<TicketPriority, number> = { urgente: 0, normal: 1, baja: 2 };

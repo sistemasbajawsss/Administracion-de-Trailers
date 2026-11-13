@@ -6,13 +6,11 @@ import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES, ROLES, VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
-import { todayInTijuana } from "@/lib/utils/format";
 import { isUuid } from "@/lib/utils/ids";
-import { mileageIssue, parseKm } from "@/lib/utils/mileage";
 
-import { getTicketMileageRule, listTicketHistory } from "./queries";
-import { acceptTicketSchema, createTicketSchema, rejectTicketSchema } from "./schemas";
-import type { Ticket } from "./types";
+import { listLatestAdminApprovals, listTicketHistory } from "./queries";
+import { acceptTicketSchema, approveTicketSchema, createTicketSchema, rejectTicketSchema } from "./schemas";
+import type { AdminApproval, Ticket } from "./types";
 
 /** Los mensajes de las funciones de tickets ya vienen en español y dicen qué pasó. */
 function rpcErrorMessage(error: { code?: string; message?: string }, fallback: string) {
@@ -51,30 +49,21 @@ export async function createTicket(input: unknown): Promise<ActionResult<{ id: s
   return ok({ id: data });
 }
 
-/** Aceptar (capturista y admin): da la entrada a taller con el kilometraje. */
+/**
+ * Aceptar (capturista) o aprobar (admin): da la entrada a taller con fecha de
+ * hoy, sin kilometraje. El admin siempre dice por qué lo aprueba.
+ */
 export async function acceptTicket(id: unknown, input: unknown): Promise<ActionResult<{ entryId: string }>> {
   if (!isUuid(id)) return fail("Ticket no válido.");
-  const parsed = acceptTicketSchema.safeParse(input);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa el kilometraje.");
 
-  await requireRole(CAPTURE_ROLES);
-
-  let rule: Awaited<ReturnType<typeof getTicketMileageRule>>;
-  try {
-    rule = await getTicketMileageRule(id);
-  } catch {
-    return fail("No se pudo aceptar el ticket. Inténtalo de nuevo.");
-  }
-  if (!rule) return fail("El ticket ya no existe.");
-  if (rule.hasOdometer) {
-    const problem = mileageIssue(parsed.data.mileage, { required: true, last: rule.last, date: todayInTijuana() });
-    if (problem) return fail(problem);
-  }
+  const user = await requireRole(CAPTURE_ROLES);
+  const parsed = (user.role === "admin" ? approveTicketSchema : acceptTicketSchema).safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa el motivo.");
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("aceptar_ticket_taller", {
     p_ticket_id: id,
-    p_kilometraje: rule.hasOdometer ? (parseKm(parsed.data.mileage) ?? undefined) : undefined,
+    p_motivo: user.role === "admin" ? parsed.data.reason : undefined,
   });
   if (error) return fail(rpcErrorMessage(error, "No se pudo aceptar el ticket. Inténtalo de nuevo."));
 
@@ -138,5 +127,16 @@ export async function loadMoreTicketHistory(offset: unknown): Promise<ActionResu
     return ok((await listTicketHistory(offset)).tickets);
   } catch {
     return fail("No se pudieron cargar más tickets. Inténtalo de nuevo.");
+  }
+}
+
+/** Para el aviso de los capturistas: quién aprobó las últimas N (sin las del propio usuario). */
+export async function getLatestAdminApprovals(count: unknown): Promise<ActionResult<AdminApproval[]>> {
+  if (typeof count !== "number" || !Number.isInteger(count) || count < 1 || count > 10) return fail("Cantidad no válida.");
+  await requireRole(ROLES);
+  try {
+    return ok(await listLatestAdminApprovals(count));
+  } catch {
+    return fail("No se pudieron cargar las aprobaciones.");
   }
 }

@@ -65,8 +65,8 @@ begin
          case when u.tipo = 'caja' or p.cada_km is null then null
               else 1000000 + (((now() at time zone 'America/Tijuana')::date - 1100) - date '2020-01-01') * 300 end
   from public.unidades u
-  cross join (values ('Aceite', 15000, 6), ('Filtros', 30000, null), ('Engrasado', 10000, 3),
-                     ('Revisión de frenos', null, 12), ('Anticongelante', 60000, 24)) p(nombre, cada_km, cada_meses)
+  cross join (values ('Aceite', 15000, null), ('Filtros', 30000, null), ('Engrasado', null, 3),
+                     ('Revisión de frenos', null, 12), ('Anticongelante', 60000, null)) p(nombre, cada_km, cada_meses)
   where u.estatus not in ('baja', 'vendida');
   insert into t(rol, consulta, ms, filas) values ('-', 'CARGA mantenimientos', round(extract(epoch from clock_timestamp() - v_t0) * 1000), (select count(*) from public.mantenimientos_unidad where activo));
 end $$;

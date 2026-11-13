@@ -5,7 +5,7 @@ import { ClipboardPlus, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import {
@@ -188,14 +188,19 @@ function MaintenanceDialog({
           alsoUnitIds: [],
         },
   });
-  const everyKm = useWatch({ control: form.control, name: "everyKm" });
+  // Una sola forma (pedido del usuario): por kilometraje o por meses. Sin odómetro, solo meses.
+  const [mode, setMode] = useState<"km" | "meses">(isBox || (item && item.everyKm === null) ? "meses" : "km");
+  const byKm = !isBox && mode === "km";
 
   async function onSubmit(values: MaintenanceInput) {
     if (values.lastDate > today) {
       form.setError("lastDate", { message: "La fecha no puede ser futura" });
       return;
     }
-    const clean = isBox ? { ...values, everyKm: "", lastKm: "" } : values;
+    const clean = byKm ? { ...values, everyMonths: "" } : { ...values, everyKm: "", lastKm: "" };
+    if (byKm && !clean.everyKm.trim()) return void form.setError("everyKm", { message: "Escribe cada cuántos km" });
+    if (!byKm && !clean.everyMonths.trim()) return void form.setError("everyMonths", { message: "Escribe cada cuántos meses" });
+    if (byKm && !clean.lastKm.trim()) return void form.setError("lastKm", { message: "Escribe con cuántos km se hizo la última vez" });
     try {
       if (item) {
         const result = await updateMaintenance(item.id, unitId, clean);
@@ -227,7 +232,7 @@ function MaintenanceDialog({
             <DialogDescription>
               {isBox
                 ? "Esta unidad no tiene odómetro: se programa cada cierto número de meses."
-                : "Cada cuántos km, cada cuántos meses, o ambos (lo que pase primero)."}
+                : "Elige una sola forma: por kilometraje o por meses."}
             </DialogDescription>
           </DialogHeader>
 
@@ -252,29 +257,64 @@ function MaintenanceDialog({
               )}
             />
 
-            <div className={cn("grid grid-cols-1 gap-5", !isBox && "sm:grid-cols-2")}>
-              {!isBox && (
-                <Controller
-                  name="everyKm"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid} className="min-w-0">
-                      <FieldLabel htmlFor="maintenance-km">Cada (km)</FieldLabel>
-                      <Input
-                        {...field}
-                        id="maintenance-km"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder="Ej. 15000"
-                        aria-invalid={fieldState.invalid}
-                        className={`${inputClass} tabular-nums`}
-                      />
-                      <FieldError errors={[fieldState.error]} />
-                    </Field>
-                  )}
-                />
-              )}
+            {!isBox && (
+              <div role="radiogroup" aria-label="Forma de programarlo" className="grid grid-cols-2 gap-2">
+                {(["km", "meses"] as const).map((option) => {
+                  const active = mode === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => {
+                        setMode(option);
+                        // Solo queda lo de la forma elegida (la BD rechaza las dos juntas).
+                        if (option === "km") {
+                          form.setValue("everyMonths", "");
+                          if (!form.getValues("lastKm") && currentKm !== null) form.setValue("lastKm", String(currentKm));
+                        } else {
+                          form.setValue("everyKm", "");
+                          form.setValue("lastKm", "");
+                        }
+                        form.clearErrors(["everyKm", "everyMonths", "lastKm"]);
+                      }}
+                      className={cn(
+                        "min-h-11 min-w-0 rounded-lg border-2 px-3 text-base font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+                        active ? "border-brand-ink bg-brand-ink text-white" : "border-input bg-white hover:border-brand-ink/40",
+                      )}
+                    >
+                      {option === "km" ? "Por kilometraje" : "Por meses"}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {byKm ? (
               <Controller
+                key="everyKm"
+                name="everyKm"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid} className="min-w-0">
+                    <FieldLabel htmlFor="maintenance-km">Cada (km)</FieldLabel>
+                    <Input
+                      {...field}
+                      id="maintenance-km"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="Ej. 15000"
+                      aria-invalid={fieldState.invalid}
+                      className={`${inputClass} tabular-nums`}
+                    />
+                    <FieldError errors={[fieldState.error]} />
+                  </Field>
+                )}
+              />
+            ) : (
+              <Controller
+                key="everyMonths"
                 name="everyMonths"
                 control={form.control}
                 render={({ field, fieldState }) => (
@@ -293,11 +333,11 @@ function MaintenanceDialog({
                   </Field>
                 )}
               />
-            </div>
+            )}
 
             <fieldset className="grid gap-3">
               <legend className="mb-3 text-sm font-medium">Última vez que se hizo</legend>
-              <div className={cn("grid grid-cols-1 gap-5", !isBox && "sm:grid-cols-2")}>
+              <div className={cn("grid grid-cols-1 gap-5", byKm && "sm:grid-cols-2")}>
                 <Controller
                   name="lastDate"
                   control={form.control}
@@ -316,7 +356,7 @@ function MaintenanceDialog({
                     </Field>
                   )}
                 />
-                {!isBox && (
+                {byKm && (
                   <Controller
                     name="lastKm"
                     control={form.control}
@@ -340,7 +380,7 @@ function MaintenanceDialog({
               </div>
               <FieldDescription>
                 Desde aquí se cuenta el siguiente.
-                {!isBox && currentKm !== null && ` Hoy marca ${formatKm(currentKm)}.`}
+                {byKm && currentKm !== null && ` Hoy marca ${formatKm(currentKm)}.`}
               </FieldDescription>
             </fieldset>
 
@@ -358,7 +398,7 @@ function MaintenanceDialog({
                       units={targets}
                       value={field.value}
                       onChange={field.onChange}
-                      byKm={!isBox && everyKm.trim() !== ""}
+                      byKm={byKm}
                     />
                     <FieldError errors={[fieldState.error]} />
                   </fieldset>

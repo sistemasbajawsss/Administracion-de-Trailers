@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, LoaderCircle, X } from "lucide-react";
+import { Check, LoaderCircle, ShieldCheck, ShieldX, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { cn } from "cn";
 
@@ -28,14 +28,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { CurrentUser } from "@/lib/auth/types";
-import { formatDateTime, formatElapsed, todayInTijuana } from "@/lib/utils/format";
-import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
+import { formatDateTime, formatElapsed } from "@/lib/utils/format";
 
 import { acceptTicket, acknowledgeTicket, cancelTicket, rejectTicket } from "../actions";
-import { acceptTicketSchema, rejectTicketSchema, type AcceptTicketInput, type RejectTicketInput } from "../schemas";
+import { acceptTicketSchema, approveTicketSchema, rejectTicketSchema, type RejectTicketInput } from "../schemas";
+
+type ApproveTicketInput = { reason: string };
 import {
   canAttendTickets,
   canCancelTicket,
@@ -77,8 +77,14 @@ export function PriorityChip({ priority }: { priority: TicketPriority }) {
 
 /** Qué pasó con el ticket, en una línea que se lee sola. */
 function outcome(ticket: Ticket) {
+  if (ticket.status === "aceptado" && ticket.attendedAt && ticket.attendedByAdmin) {
+    return `Lo aprobó en ${formatElapsed(ticket.createdAt, ticket.attendedAt)} y entró a taller el ${formatDateTime(ticket.attendedAt)}.`;
+  }
   if (ticket.status === "aceptado" && ticket.attendedAt) {
     return `Lo aceptó ${ticket.attendedName ?? "un capturista"} en ${formatElapsed(ticket.createdAt, ticket.attendedAt)} y entró a taller el ${formatDateTime(ticket.attendedAt)}.`;
+  }
+  if (ticket.status === "rechazado" && ticket.attendedByAdmin) {
+    return `Lo rechazó el ${formatDateTime(ticket.attendedAt!)}.`;
   }
   if (ticket.status === "rechazado") {
     return `Lo rechazó ${ticket.attendedName ?? "un capturista"} el ${formatDateTime(ticket.attendedAt!)}.`;
@@ -137,6 +143,8 @@ export function TicketItem({
         <span className="ml-auto text-sm text-muted-foreground tabular-nums">Ticket {ticket.folio}</span>
       </div>
 
+      <AdminDecisionBand ticket={ticket} />
+
       <p className="mt-2 whitespace-pre-line text-base">{ticket.fault}</p>
 
       <p className="mt-1 text-sm text-muted-foreground">
@@ -157,10 +165,43 @@ export function TicketItem({
   );
 }
 
+/**
+ * Franja destacada cuando un administrador decidió el ticket (pedido del usuario):
+ * "TICKET APROBADO POR …" con su motivo, o "TICKET RECHAZADO POR …".
+ */
+export function AdminDecisionBand({
+  ticket,
+}: {
+  ticket: Pick<Ticket, "status" | "attendedByAdmin" | "attendedName" | "approvalReason">;
+}) {
+  if (!ticket.attendedByAdmin || (ticket.status !== "aceptado" && ticket.status !== "rechazado")) return null;
+  const approved = ticket.status === "aceptado";
+  return (
+    <div className={cn("mt-3 flex min-w-0 items-start gap-3 rounded-lg px-3 py-2 text-white", approved ? "bg-brand-ink" : "bg-red-700")}>
+      {approved ? (
+        <ShieldCheck className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
+      ) : (
+        <ShieldX className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
+      )}
+      <div className="min-w-0">
+        <p className="text-base font-bold tracking-wide">
+          {approved ? "TICKET APROBADO POR" : "TICKET RECHAZADO POR"} {(ticket.attendedName ?? "un administrador").toUpperCase()}
+        </p>
+        {approved && ticket.approvalReason && (
+          <p className="text-sm whitespace-pre-line text-white/90">
+            <span className="font-semibold">Motivo:</span> {ticket.approvalReason}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PendingActions({ ticket, viewer }: { ticket: Ticket | PendingTicket; viewer: Viewer }) {
   const [mode, setMode] = useState<"accept" | "reject" | "cancel" | null>(null);
   const close = () => setMode(null);
-  const attend = canAttendTickets(viewer) && "hasOdometer" in ticket;
+  const attend = canAttendTickets(viewer);
+  const isAdmin = viewer.role === "admin";
   const cancel = canCancelTicket(ticket, viewer);
   if (!attend && !cancel) return null;
 
@@ -170,7 +211,7 @@ function PendingActions({ ticket, viewer }: { ticket: Ticket | PendingTicket; vi
         <>
           <Button size="touch" onClick={() => setMode("accept")}>
             <Check aria-hidden="true" />
-            Aceptar
+            {isAdmin ? "Aprobar" : "Aceptar"}
           </Button>
           <Button size="touch" variant="outline" onClick={() => setMode("reject")}>
             <X aria-hidden="true" />
@@ -188,7 +229,7 @@ function PendingActions({ ticket, viewer }: { ticket: Ticket | PendingTicket; vi
         <>
           <Dialog open={mode === "accept"} onOpenChange={(open) => !open && close()}>
             <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-              {mode === "accept" && <AcceptForm ticket={ticket as PendingTicket} onDone={close} />}
+              {mode === "accept" && <AcceptForm ticket={ticket} isAdmin={isAdmin} onDone={close} />}
             </DialogContent>
           </Dialog>
           <Dialog open={mode === "reject"} onOpenChange={(open) => !open && close()}>
@@ -203,28 +244,34 @@ function PendingActions({ ticket, viewer }: { ticket: Ticket | PendingTicket; vi
   );
 }
 
-function AcceptForm({ ticket, onDone }: { ticket: PendingTicket; onDone: () => void }) {
+/**
+ * Aceptar (capturista) o aprobar (admin). Ya no pide kilometraje: lo alimenta la
+ * captura semanal. El admin escribe por qué lo aprueba y después confirma; queda
+ * "Ticket aprobado por …" a la vista de todos y los capturistas reciben aviso.
+ */
+function AcceptForm({ ticket, isAdmin, onDone }: { ticket: PendingTicket; isAdmin: boolean; onDone: () => void }) {
   const router = useRouter();
-  const form = useForm<AcceptTicketInput>({ resolver: zodResolver(acceptTicketSchema), defaultValues: { mileage: "" } });
+  const [confirming, setConfirming] = useState(false);
+  const form = useForm<ApproveTicketInput>({
+    resolver: zodResolver(isAdmin ? approveTicketSchema : acceptTicketSchema),
+    defaultValues: { reason: "" },
+  });
 
-  async function onSubmit(values: AcceptTicketInput) {
-    if (ticket.hasOdometer) {
-      const problem = mileageIssue(values.mileage, { required: true, last: ticket.lastMileage, date: todayInTijuana() });
-      if (problem) return void form.setError("mileage", { message: problem });
-    }
+  async function send(values: ApproveTicketInput) {
     try {
-      const result = await acceptTicket(ticket.id, ticket.hasOdometer ? values : { mileage: "" });
+      const result = await acceptTicket(ticket.id, isAdmin ? values : { reason: "" });
       if (!result.ok) {
         // Si otro ya lo aceptó o lo rechazó, el ticket ya no está pendiente: cerrar y actualizar.
-        if (result.error.startsWith("Este ticket ya")) {
+        if (result.error.startsWith("Este ticket ya") || !isAdmin) {
           toast.error(result.error);
           onDone();
           router.refresh();
           return;
         }
-        return void form.setError("mileage", { message: result.error });
+        setConfirming(false);
+        return void form.setError("reason", { message: result.error });
       }
-      toast.success(`${ticket.economicNumber} entró a taller`);
+      toast.success(isAdmin ? `Aprobaste el ticket de ${ticket.economicNumber}: entró a taller` : `${ticket.economicNumber} entró a taller`);
       onDone();
       router.refresh();
     } catch {
@@ -232,12 +279,45 @@ function AcceptForm({ ticket, onDone }: { ticket: PendingTicket; onDone: () => v
     }
   }
 
+  // El admin primero escribe el motivo y luego confirma; el capturista acepta directo.
+  async function onSubmit(values: ApproveTicketInput) {
+    if (isAdmin && !confirming) return void setConfirming(true);
+    await send(values);
+  }
+
   const isSubmitting = form.formState.isSubmitting;
+  const reason = (useWatch({ control: form.control, name: "reason" }) ?? "").trim();
+
+  if (isAdmin && confirming) {
+    return (
+      <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-xl">¿Aprobar el ticket de {ticket.economicNumber}?</DialogTitle>
+          <DialogDescription>
+            Vas a aprobarlo como administrador. La unidad entra a taller hoy y a todos les va a salir
+            &ldquo;Ticket aprobado por&rdquo; con tu nombre y este motivo. Los capturistas reciben el aviso.
+          </DialogDescription>
+        </DialogHeader>
+        <p className="rounded-lg border-l-4 border-l-brand-ink bg-muted px-3 py-2 text-base whitespace-pre-line">{reason}</p>
+        <DialogFooter>
+          <Button type="button" variant="ghost" size="touch" disabled={isSubmitting} onClick={() => setConfirming(false)}>
+            No todavía
+          </Button>
+          <Button type="submit" size="touch" disabled={isSubmitting}>
+            {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden="true" />}
+            {isSubmitting ? "Aprobando…" : "Aprobar"}
+          </Button>
+        </DialogFooter>
+      </form>
+    );
+  }
 
   return (
     <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
       <DialogHeader>
-        <DialogTitle className="font-heading text-xl">Aceptar el ticket de {ticket.economicNumber}</DialogTitle>
+        <DialogTitle className="font-heading text-xl">
+          {isAdmin ? "Aprobar" : "Aceptar"} el ticket de {ticket.economicNumber}
+        </DialogTitle>
         <DialogDescription>
           La unidad entra a taller hoy con la falla del ticket y desde hoy cuentan sus días en taller.
         </DialogDescription>
@@ -245,42 +325,39 @@ function AcceptForm({ ticket, onDone }: { ticket: PendingTicket; onDone: () => v
 
       <p className="rounded-lg bg-muted px-3 py-2 text-sm whitespace-pre-line">{ticket.fault}</p>
 
-      {ticket.hasOdometer ? (
+      {isAdmin && (
         <FieldGroup>
           <Controller
-            name="mileage"
+            name="reason"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="accept-mileage">Kilometraje</FieldLabel>
-                <Input
+                <FieldLabel htmlFor="approve-reason">¿Por qué lo apruebas tú?</FieldLabel>
+                <Textarea
                   {...field}
-                  id="accept-mileage"
-                  inputMode="numeric"
-                  autoComplete="off"
+                  id="approve-reason"
+                  rows={3}
+                  maxLength={1000}
                   autoFocus
-                  placeholder="Ej. 250000"
+                  placeholder="Ej. Es urgente y no hay capturista en el taller ahorita"
                   aria-invalid={fieldState.invalid}
-                  aria-required
-                  className="h-11 bg-white text-base tabular-nums"
+                  className="bg-white text-base"
                 />
-                {ticket.lastMileage && <FieldDescription>Último registrado: {describeMileage(ticket.lastMileage)}</FieldDescription>}
+                <FieldDescription>Lo verán todos junto a tu nombre.</FieldDescription>
                 <FieldError errors={[fieldState.error]} />
               </Field>
             )}
           />
         </FieldGroup>
-      ) : (
-        <p className="text-sm text-muted-foreground">{ticket.unitTypeName}: no lleva kilometraje.</p>
       )}
 
       <DialogFooter>
         <Button type="button" variant="ghost" size="touch" onClick={onDone}>
-          No aceptar todavía
+          {isAdmin ? "No aprobar todavía" : "No aceptar todavía"}
         </Button>
         <Button type="submit" size="touch" disabled={isSubmitting}>
           {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? "Dando entrada…" : "Aceptar y dar entrada"}
+          {isAdmin ? "Seguir" : isSubmitting ? "Dando entrada…" : "Aceptar y dar entrada"}
         </Button>
       </DialogFooter>
     </form>

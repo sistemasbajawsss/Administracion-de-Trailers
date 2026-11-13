@@ -772,6 +772,7 @@ export type Database = {
       }
       tickets_avisos: {
         Row: {
+          aprobados_admin: number
           creado_por: string | null
           creados: number
           id: number
@@ -782,6 +783,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          aprobados_admin?: number
           creado_por?: string | null
           creados?: number
           id?: number
@@ -792,6 +794,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          aprobados_admin?: number
           creado_por?: string | null
           creados?: number
           id?: number
@@ -808,6 +811,7 @@ export type Database = {
           atendido_at: string | null
           atendido_by: string | null
           atendido_nombre: string | null
+          atendido_por_admin: boolean
           cancelado_at: string | null
           cancelado_by: string | null
           cancelado_nombre: string | null
@@ -820,6 +824,7 @@ export type Database = {
           falla: string
           folio: number
           id: string
+          motivo_aprobacion: string | null
           motivo_cancelacion: string | null
           motivo_rechazo: string | null
           prioridad: Database["public"]["Enums"]["prioridad_ticket"]
@@ -830,6 +835,7 @@ export type Database = {
           atendido_at?: string | null
           atendido_by?: string | null
           atendido_nombre?: string | null
+          atendido_por_admin?: boolean
           cancelado_at?: string | null
           cancelado_by?: string | null
           cancelado_nombre?: string | null
@@ -842,6 +848,7 @@ export type Database = {
           falla: string
           folio?: never
           id?: string
+          motivo_aprobacion?: string | null
           motivo_cancelacion?: string | null
           motivo_rechazo?: string | null
           prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
@@ -852,6 +859,7 @@ export type Database = {
           atendido_at?: string | null
           atendido_by?: string | null
           atendido_nombre?: string | null
+          atendido_por_admin?: boolean
           cancelado_at?: string | null
           cancelado_by?: string | null
           cancelado_nombre?: string | null
@@ -864,6 +872,7 @@ export type Database = {
           falla?: string
           folio?: never
           id?: string
+          motivo_aprobacion?: string | null
           motivo_cancelacion?: string | null
           motivo_rechazo?: string | null
           prioridad?: Database["public"]["Enums"]["prioridad_ticket"]
@@ -1236,7 +1245,7 @@ export type Database = {
     }
     Functions: {
       aceptar_ticket_taller: {
-        Args: { p_kilometraje?: number; p_ticket_id: string }
+        Args: { p_kilometraje?: number; p_motivo?: string; p_ticket_id: string }
         Returns: string
       }
       actualizar_servicio: {
@@ -1613,6 +1622,7 @@ export type Database = {
           atendido_at: string | null
           atendido_by: string | null
           atendido_nombre: string | null
+          atendido_por_admin: boolean
           cancelado_at: string | null
           cancelado_by: string | null
           cancelado_nombre: string | null
@@ -1625,6 +1635,7 @@ export type Database = {
           falla: string
           folio: number
           id: string
+          motivo_aprobacion: string | null
           motivo_cancelacion: string | null
           motivo_rechazo: string | null
           prioridad: Database["public"]["Enums"]["prioridad_ticket"]

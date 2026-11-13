@@ -39,14 +39,14 @@ begin
   perform public.registrar_servicio(p_unidad_id => ua, p_fecha => hoy, p_kilometraje => 100000, p_proveedor_id => null,
     p_descripcion => 'Lectura', p_gastos => g, p_motivo_sin_entrada => 'Mantenimiento en patio', p_tipo => 'servicio');
 
-  -- Aceite: cada 15,000 km o 6 meses, hecho hace 2 meses a 90,000 km -> faltan 5,000 km: al corriente.
-  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, cada_meses, desde_fecha, desde_km)
-  values (ua, '  Cambio   de aceite ', 15000, 6, hoy - 60, 90000) returning id into m;
+  -- Aceite: cada 15,000 km (una sola forma, 5H), hecho hace 2 meses a 90,000 km -> faltan 5,000 km: al corriente.
+  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km)
+  values (ua, '  Cambio   de aceite ', 15000, hoy - 60, 90000) returning id into m;
   insert into x values ('m_aceite', m);
   select * into p from public.mantenimientos_pendientes(ua) where id = m;
   insert into r(caso, ok, detalle) values ('Nombre limpio', p.nombre = 'Cambio de aceite', p.nombre);
   insert into r(caso, ok, detalle) values ('Próximo km y faltan', p.proximo_km = 105000 and p.faltan_km = 5000, p.proximo_km || ' / ' || p.faltan_km);
-  insert into r(caso, ok, detalle) values ('Próxima fecha a 6 meses', p.proxima_fecha = ((hoy - 60) + interval '6 months')::date, p.proxima_fecha::text);
+  insert into r(caso, ok, detalle) values ('Por km no tiene fecha', p.proxima_fecha is null, coalesce(p.proxima_fecha::text, 'sin fecha'));
   insert into r(caso, ok, detalle) values ('Al corriente', p.estado = 'al_corriente', p.estado);
 
   -- Por vencer por km (faltan 800).
@@ -55,11 +55,11 @@ begin
   select * into p from public.mantenimientos_pendientes(ua) where id = m;
   insert into r(caso, ok, detalle) values ('Por vencer por km', p.estado = 'por_vencer' and p.faltan_km = 800, p.estado || ' ' || p.faltan_km);
 
-  -- Vencido por fecha aunque falten km (lo que pase primero).
-  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, cada_meses, desde_fecha, desde_km)
-  values (ua, 'Filtro de aire', 50000, 3, hoy - 120, 99000) returning id into m;
+  -- Vencido por fecha (cada 3 meses, hecho hace 4).
+  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_meses, desde_fecha)
+  values (ua, 'Filtro de aire', 3, hoy - 120) returning id into m;
   select * into p from public.mantenimientos_pendientes(ua) where id = m;
-  insert into r(caso, ok, detalle) values ('Vencido por fecha (lo que pase primero)', p.estado = 'vencido', p.estado || ' ' || p.faltan_dias);
+  insert into r(caso, ok, detalle) values ('Vencido por fecha', p.estado = 'vencido', p.estado || ' ' || p.faltan_dias);
 
   -- Por vencer por fecha (vence en 10 días).
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_meses, desde_fecha)
@@ -72,6 +72,12 @@ begin
   insert into r(caso, ok, detalle) values ('Solo por meses no guarda km', n is null, coalesce(n::text, 'null'));
 
   -- Validaciones.
+  begin
+    insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, cada_meses, desde_fecha, desde_km) values (ua, 'Las dos', 5000, 6, hoy, 100000);
+    insert into r(caso, ok, detalle) values ('Por km y por meses a la vez: rechazado', false, 'pudo');
+  exception when others then
+    insert into r(caso, ok, detalle) values ('Por km y por meses a la vez: rechazado', sqlstate = '23514' and sqlerrm like '%una sola forma%', sqlerrm);
+  end;
   begin
     insert into public.mantenimientos_unidad (unidad_id, nombre, desde_fecha) values (ua, 'Sin intervalo', hoy);
     insert into r(caso, ok, detalle) values ('Sin km ni meses: rechazado', false, 'pudo');
@@ -107,13 +113,13 @@ begin
   update public.mantenimientos_unidad set activo = false where id = (select v from x where k = 'm_aceite');
   select count(*) into n from public.mantenimientos_pendientes(ua) where id = (select v from x where k = 'm_aceite');
   insert into r(caso, ok, detalle) values ('Desactivado no sale en pendientes', n = 0, n::text);
-  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, cada_meses, desde_fecha, desde_km)
-  values (ua, 'Cambio de aceite', 15000, 6, hoy, 100000);
+  insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km)
+  values (ua, 'Cambio de aceite', 15000, hoy, 100000);
   insert into r(caso, ok, detalle) values ('Mismo nombre después de quitarlo', true, '');
 
   -- Copiar a ub (sin km): solo pasan los que tienen meses, sin km.
   n := public.copiar_mantenimientos(ua, ub);
-  insert into r(caso, ok, detalle) values ('Copiar a unidad sin km: solo los de meses', n = 3, n::text);
+  insert into r(caso, ok, detalle) values ('Copiar a unidad sin km: solo los de meses', n = 2, n::text);
   select count(*) into n from public.mantenimientos_unidad where unidad_id = ub and activo and cada_km is not null;
   insert into r(caso, ok, detalle) values ('Copiados sin km', n = 0, n::text);
   n := public.copiar_mantenimientos(ua, ub);
@@ -121,7 +127,7 @@ begin
 
   -- Copiar a caja: solo meses.
   n := public.copiar_mantenimientos(ua, caja);
-  insert into r(caso, ok, detalle) values ('Copiar a caja: solo los de meses', n = 3, n::text);
+  insert into r(caso, ok, detalle) values ('Copiar a caja: solo los de meses', n = 2, n::text);
 
   -- Sin km: estado sin_kilometraje para los de solo km.
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km) values (ub, 'Solo km', 5000, hoy, 0);

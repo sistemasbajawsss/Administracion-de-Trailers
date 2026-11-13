@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useGoBack } from "@/components/shared/go-back";
@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UnitPicker } from "@/features/servicios/components/unit-picker";
 import type { UnitOption } from "@/features/servicios/types";
-import { describeMileage, mileageIssue } from "@/lib/utils/mileage";
 import { useToday } from "@/components/shared/use-today";
 
 import { registerShopEntry } from "../actions";
@@ -37,34 +36,14 @@ function ShopEntryFormBody({ units, today: serverToday, initialUnitId, onSaved }
 
   const form = useForm<ShopEntryInput>({
     resolver: zodResolver(shopEntrySchema),
-    defaultValues: { unitId: initialUnitId, date: today, mileage: "", fault: "" },
+    defaultValues: { unitId: initialUnitId, date: today, fault: "" },
   });
-
-  const unitId = useWatch({ control: form.control, name: "unitId" });
-  const selectedUnit = units.find((u) => u.id === unitId);
-  const isBox = selectedUnit ? !selectedUnit.hasOdometer : false;
-  const lastMileage = selectedUnit?.mileage ?? null;
-
-  /**
-   * Kilometraje (5F): obligatorio salvo en cajas (el servidor y la BD lo revisan otra
-   * vez). Se marca también cuando faltan otros campos, para que salgan todos juntos.
-   */
-  function markMileageProblem(values: Pick<ShopEntryInput, "mileage" | "date">) {
-    const problem = isBox ? null : mileageIssue(values.mileage, { required: true, last: lastMileage, date: values.date });
-    if (problem) form.setError("mileage", { message: problem });
-    return problem;
-  }
 
   async function onSubmit(values: ShopEntryInput) {
     if (values.date > today) {
       form.setError("date", { message: "La fecha de entrada no puede ser futura" });
       return;
     }
-    if (markMileageProblem(values)) {
-      form.setFocus("mileage");
-      return;
-    }
-    if (isBox) values = { ...values, mileage: "" };
     const number = units.find((u) => u.id === values.unitId)?.economicNumber ?? "La unidad";
     try {
       const result = await registerShopEntry(values);
@@ -87,7 +66,7 @@ function ShopEntryFormBody({ units, today: serverToday, initialUnitId, onSaved }
   return (
     <form
       noValidate
-      onSubmit={form.handleSubmit(onSubmit, () => markMileageProblem(form.getValues()))}
+      onSubmit={form.handleSubmit(onSubmit)}
       className="max-w-3xl"
     >
       <FieldGroup className="gap-8">
@@ -129,31 +108,6 @@ function ShopEntryFormBody({ units, today: serverToday, initialUnitId, onSaved }
             )}
           />
 
-          {!isBox && (
-            <Controller
-              name="mileage"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="min-w-0">
-                  <FieldLabel htmlFor="mileage">Kilometraje</FieldLabel>
-                  <Input
-                    {...field}
-                    id="mileage"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="Ej. 250000"
-                    aria-invalid={fieldState.invalid}
-                    aria-required
-                    className="h-11 min-w-0 bg-white text-base tabular-nums"
-                  />
-                  {lastMileage && (
-                    <FieldDescription>Último registrado: {describeMileage(lastMileage)}</FieldDescription>
-                  )}
-                  <FieldError errors={[fieldState.error]} />
-                </Field>
-              )}
-            />
-          )}
         </div>
 
         <Controller

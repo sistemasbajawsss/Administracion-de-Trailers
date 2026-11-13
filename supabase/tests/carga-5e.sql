@@ -4,6 +4,8 @@
 -- "sin entrada a taller". Mide las pantallas de siempre y las nuevas.
 -- Tarda unos minutos; no guarda nada.
 begin;
+-- 5H: los tickets pendientes de verdad bloquean la entrada directa; en esta prueba no cuentan (se deshace al final).
+update public.tickets_taller set estatus = 'cancelado', cancelado_at = now() where estatus = 'pendiente';
 set local statement_timeout = '290s';
 create temp table t (n serial, rol text, consulta text, ms numeric, filas bigint);
 grant all on t to authenticated; grant all on t_n_seq to authenticated;
