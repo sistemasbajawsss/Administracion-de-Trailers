@@ -14,6 +14,14 @@ import { useReloadForm } from "@/components/shared/use-reload-form";
 import { useUnsavedChanges } from "@/components/shared/use-unsaved-changes";
 import type { EditConflict } from "@/lib/action-result";
 import {
+  closedMonthMessage,
+  firstOpenDate,
+  isMonthClosed,
+  monthName,
+  monthStart,
+  type MonthLock,
+} from "@/lib/utils/month-lock";
+import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -166,6 +174,10 @@ type ServiceFormProps = {
   initialMaintenanceIds?: string[];
   /** Lo programado de cada unidad, para "¿Cuenta como un mantenimiento programado?". */
   maintenanceByUnit?: Record<string, Maintenance[]>;
+  /** Cierre de mes (5I): qué meses pasados siguen abiertos. */
+  monthLock: MonthLock;
+  /** El admin cambia meses cerrados (con aviso); los demás no. */
+  isAdmin: boolean;
 };
 
 /** Después de guardar, volver a esta pantalla muestra un formulario nuevo (ver useRemountAfterSave). */
@@ -194,6 +206,8 @@ function ServiceFormBody({
   initialServiceType = "",
   initialMaintenanceIds = [],
   maintenanceByUnit = {},
+  monthLock,
+  isAdmin,
   onSaved,
   onReload,
   reloading,
@@ -386,17 +400,37 @@ function ServiceFormBody({
     return problems[0] ?? null;
   }
 
+  /**
+   * Cierre de mes (5I): quien no es admin no registra ni mueve servicios a un mes
+   * cerrado (la BD lo rechaza igual). El admin sí, después de un aviso.
+   */
+  function markMonthProblem(values: Pick<ServiceEditInput, "date">) {
+    const problem = !isAdmin && isMonthClosed(values.date, monthLock) ? closedMonthMessage(values.date) : null;
+    if (problem) form.setError("date", { message: problem });
+    return problem;
+  }
+
   /** Lo que depende de la unidad o de si es alta: se marca junto con los errores del schema. */
   function markExtraProblems(values: ServiceEditInput) {
     markTypeProblem(values);
     markPlaceProblem(values);
     markMileageProblem(values);
+    markMonthProblem(values);
   }
 
   const onSubmit = (values: ServiceEditInput) => submit(values, false);
 
-  /** skipSimilar: ya confirmó que es otro gasto (aviso de posible duplicado). */
-  async function submit(values: ServiceEditInput, skipSimilar: boolean) {
+  /** Meses cerrados que el admin ya aceptó cambiar en este formulario (aviso de una vez). */
+  const [confirmedClosed, setConfirmedClosed] = useState<string[]>([]);
+  const [closedWarning, setClosedWarning] = useState<{ values: ServiceEditInput; skipSimilar: boolean; months: string[] } | null>(
+    null,
+  );
+
+  /**
+   * skipSimilar: ya confirmó que es otro gasto (aviso de posible duplicado).
+   * justConfirmed: meses cerrados que el admin acaba de aceptar (el estado aún no se actualiza).
+   */
+  async function submit(values: ServiceEditInput, skipSimilar: boolean, justConfirmed: string[] = []) {
     // "Otros (especificar)" exige concepto (la BD también lo valida).
     let missingConcept = false;
     values.expenses.forEach((expense, index) => {
@@ -423,6 +457,19 @@ function ServiceFormBody({
     if (kmProblem) {
       form.setFocus("mileage");
       return void toast.error(kmProblem);
+    }
+
+    const monthProblem = markMonthProblem(values);
+    if (monthProblem) {
+      form.setFocus("date");
+      return void toast.error(monthProblem);
+    }
+
+    // Admin y mes cerrado (5I): avisar una vez antes de guardar.
+    if (isAdmin) {
+      const months = [...new Set([values.date, service?.date ?? ""].filter((d) => d && isMonthClosed(d, monthLock)).map(monthStart))];
+      const pending = months.filter((m) => !confirmedClosed.includes(m) && !justConfirmed.includes(m));
+      if (pending.length) return void setClosedWarning({ values, skipSimilar, months: pending });
     }
 
     // Taller (5E, D13): motivo o datos de la entrada olvidada (el servidor vuelve a revisarlo).
@@ -706,13 +753,21 @@ function ServiceFormBody({
                     onChange={(event) => {
                       field.onChange(event);
                       if (event.target.value) refreshSuggestedRates(event.target.value);
+                      // Cierre de mes (5I): avisar en cuanto se elige un mes cerrado.
+                      if (!markMonthProblem({ date: event.target.value })) form.clearErrors("date");
                     }}
                     id="date"
                     type="date"
+                    min={isAdmin ? undefined : firstOpenDate(monthLock)}
                     max={today}
                     aria-invalid={fieldState.invalid}
                     className={inputClass}
                   />
+                  {!isAdmin && (
+                    <FieldDescription>
+                      Desde el {formatDate(firstOpenDate(monthLock))}: los meses anteriores ya están cerrados.
+                    </FieldDescription>
+                  )}
                   <FieldError errors={[fieldState.error]} />
                 </Field>
               )}
@@ -1068,6 +1123,38 @@ function ServiceFormBody({
         </div>
       </div>
       {leaveDialog}
+      <AlertDialog open={closedWarning !== null} onOpenChange={(open) => !open && setClosedWarning(null)}>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading text-xl">
+              {closedWarning
+                ? `${closedWarning.months.map((m) => monthName(m)).join(" y ")} ${closedWarning.months.length === 1 ? "ya está cerrado" : "ya están cerrados"}`
+                    .replace(/^./, (c) => c.toUpperCase())
+                : ""}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Este cambio mueve el reporte de un mes que ya se cerró. El capturista no puede hacerlo; tú sí, y queda en la
+              línea de cambios del servicio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel size="touch">Revisar</AlertDialogCancel>
+            <Button
+              type="button"
+              size="touch"
+              onClick={() => {
+                const pending = closedWarning;
+                if (!pending) return;
+                setConfirmedClosed((current) => [...current, ...pending.months]);
+                setClosedWarning(null);
+                void submit(pending.values, pending.skipSimilar, pending.months);
+              }}
+            >
+              Guardar de todos modos
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <EditConflictDialog
         conflict={conflict}
         subject="Este servicio"

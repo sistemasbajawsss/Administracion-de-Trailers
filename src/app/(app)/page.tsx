@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import { MonthCloseBanner } from "@/features/cierres/components/month-close-banner";
 import {
   HomePanelSkeleton,
   NoShopEntryPanel,
@@ -37,6 +38,10 @@ async function Welcome() {
         {/* En los días de registro del kilometraje, mientras falten unidades (5H): arriba de la cuadrícula, sin moverla. */}
         <Suspense fallback={null}>
           <WeeklyMileageBanner />
+        </Suspense>
+        {/* Cierre de mes (5I): del día 1 al 4, el mes pasado todavía se puede completar. */}
+        <Suspense fallback={null}>
+          <MonthCloseBanner />
         </Suspense>
         {/* Cuadrícula de 2 x 2 sin scroll en la computadora (lo pidió el usuario):
             lo suyo (facturas y últimos) a la izquierda; a la derecha, Tickets de

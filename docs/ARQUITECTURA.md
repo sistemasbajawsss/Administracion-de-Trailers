@@ -37,6 +37,7 @@ src/
 │   ├── taller/                  # entradas a taller: entrada, salida, lista (5E)
 │   ├── mantenimientos/          # mantenimientos programados por unidad y lo pendiente (5F)
 │   ├── usuarios/                # alta, rol, desactivar, contraseña (solo admin)
+│   ├── cierres/                 # cierre de mes: estado, cerrar, reabrir, día de cierre, aviso del Inicio (5I)
 │   └── dashboard/
 │       ├── components/          # Componentes propios del feature
 │       ├── queries.ts           # Lecturas (solo servidor)
@@ -59,10 +60,11 @@ src/
 │   │   ├── admin.ts             # Cliente service_role (server-only): Auth Admin API para usuarios
 │   │   └── database.types.ts    # GENERADO. Nunca editar a mano
 │   ├── auth/                    # getCurrentUser(), requireRole()
+│   ├── action-result.ts         # ActionResult; conflict (ediciones simultáneas, 5I), versionSchema
 │   ├── banxico.ts               # Tipo de cambio FIX de Banxico (server-only, BANXICO_TOKEN)
 │   ├── env.ts                   # Variables de entorno validadas con Zod
 │   ├── action-result.ts         # Tipo de respuesta común de las actions
-│   └── utils/                   # formatMoney, formatDate, cn; files.ts (tipos de archivo, firma de bytes, reducir fotos)
+│   └── utils/                   # formatMoney, formatDate, cn; files.ts (tipos de archivo, firma de bytes, reducir fotos); month-lock.ts (cierre de mes en pantalla, 5I)
 │
 ├── mock/                        # Datos de ejemplo temporales (se borra al conectar BD)
 └── proxy.ts                     # Protección de rutas (en Next.js 16 `middleware` se renombró a `proxy`)

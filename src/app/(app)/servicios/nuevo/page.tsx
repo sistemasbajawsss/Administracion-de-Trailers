@@ -5,6 +5,7 @@ import { z } from "zod";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { listActiveCategories, listActiveSuppliers, listActiveWorkshops } from "@/features/catalogos/queries";
+import { getMonthLock } from "@/features/cierres/queries";
 import { ServiceForm } from "@/features/servicios/components/service-form";
 import { listMaintenanceByUnit } from "@/features/mantenimientos/queries";
 import { listUnitOptions } from "@/features/servicios/queries";
@@ -16,7 +17,7 @@ import { todayInTijuana } from "@/lib/utils/format";
 export const metadata: Metadata = { title: "Registrar servicio" };
 
 async function NewService({ searchParams }: { searchParams: PageProps<"/servicios/nuevo">["searchParams"] }) {
-  const [, params, units, categories, suppliers, workshops, maintenanceByUnit] = await Promise.all([
+  const [user, params, units, categories, suppliers, workshops, maintenanceByUnit, monthLock] = await Promise.all([
     requireRole(CAPTURE_ROLES),
     searchParams,
     listUnitOptions(),
@@ -24,6 +25,7 @@ async function NewService({ searchParams }: { searchParams: PageProps<"/servicio
     listActiveSuppliers(),
     listActiveWorkshops(),
     listMaintenanceByUnit(),
+    getMonthLock(),
   ]);
 
   if (units.length === 0) {
@@ -60,6 +62,8 @@ async function NewService({ searchParams }: { searchParams: PageProps<"/servicio
       initialServiceType={initialServiceType}
       initialMaintenanceIds={initialMaintenanceIds}
       maintenanceByUnit={maintenanceByUnit}
+      monthLock={monthLock}
+      isAdmin={user.role === "admin"}
     />
   );
 }

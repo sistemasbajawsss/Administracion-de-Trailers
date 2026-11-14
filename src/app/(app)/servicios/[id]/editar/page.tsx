@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { getMonthLock } from "@/features/cierres/queries";
 import { listActiveCategories, listActiveSuppliers, listActiveWorkshops } from "@/features/catalogos/queries";
 import { listMaintenanceByUnit } from "@/features/mantenimientos/queries";
 import { ServiceForm } from "@/features/servicios/components/service-form";
@@ -11,6 +13,7 @@ import { getService, listUnitOptions } from "@/features/servicios/queries";
 import { requireRole } from "@/lib/auth/get-current-user";
 import { CAPTURE_ROLES } from "@/lib/auth/types";
 import { formatDate, todayInTijuana } from "@/lib/utils/format";
+import { closedMonthMessage, isMonthClosed } from "@/lib/utils/month-lock";
 
 export const metadata: Metadata = { title: "Editar servicio" };
 
@@ -18,7 +21,7 @@ async function EditService({ params }: { params: PageProps<"/servicios/[id]/edit
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [, service, units, categories, suppliers, workshops, maintenanceByUnit] = await Promise.all([
+  const [user, service, units, categories, suppliers, workshops, maintenanceByUnit, monthLock] = await Promise.all([
     requireRole(CAPTURE_ROLES),
     getService(id),
     listUnitOptions(),
@@ -26,8 +29,23 @@ async function EditService({ params }: { params: PageProps<"/servicios/[id]/edit
     listActiveSuppliers(),
     listActiveWorkshops(),
     listMaintenanceByUnit(),
+    getMonthLock(),
   ]);
   if (!service) notFound();
+
+  // Cierre de mes (5I): el capturista ya no edita servicios de un mes cerrado (la BD lo rechaza igual).
+  const isAdmin = user.role === "admin";
+  if (!isAdmin && isMonthClosed(service.date, monthLock)) {
+    return (
+      <>
+        <PageHeader title={`Editar servicio de ${service.unit.economicNumber}`} />
+        <EmptyState
+          title="Este servicio ya no se puede editar"
+          description={`Es del ${formatDate(service.date)}. ${closedMonthMessage(service.date)}`}
+        />
+      </>
+    );
+  }
 
   // Categorías, proveedores o talleres desactivados después de capturar: se conservan en el formulario.
   const missingCategories = service.expenses
@@ -56,6 +74,8 @@ async function EditService({ params }: { params: PageProps<"/servicios/[id]/edit
         workshops={allWorkshops}
         today={todayInTijuana()}
         maintenanceByUnit={maintenanceByUnit}
+        monthLock={monthLock}
+        isAdmin={isAdmin}
       />
     </>
   );

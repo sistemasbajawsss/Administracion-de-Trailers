@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { Lock, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,7 +6,8 @@ import { Suspense } from "react";
 import { z } from "zod";
 
 import { BackButton } from "@/components/shared/back-button";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { getMonthLock } from "@/features/cierres/queries";
 import { ReceiptsSection, ReceiptsSectionSkeleton } from "@/features/comprobantes/components/receipts-section";
 import { ChangeHistory, ChangeHistorySkeleton } from "@/features/servicios/components/change-history";
 import { DeleteServiceDialog } from "@/features/servicios/components/delete-service-dialog";
@@ -14,6 +15,7 @@ import { ServiceDetailView } from "@/features/servicios/components/service-detai
 import { getService } from "@/features/servicios/queries";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { formatDate } from "@/lib/utils/format";
+import { closedMonthMessage, isMonthClosed } from "@/lib/utils/month-lock";
 
 export const metadata: Metadata = { title: "Servicio" };
 
@@ -22,12 +24,14 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
   if (!z.uuid().safeParse(id).success) notFound();
 
   // RLS: si el servicio no es del capturista, no llega y se muestra 404.
-  const [user, service] = await Promise.all([getCurrentUser(), getService(id)]);
+  const [user, service, monthLock] = await Promise.all([getCurrentUser(), getService(id), getMonthLock()]);
   if (!service) notFound();
 
   const isAdmin = user.role === "admin";
   // RLS ya limita al capturista a sus servicios; el gerente solo ve.
   const canEdit = user.role !== "gerente";
+  // Cierre de mes (5I): con el mes cerrado, el capturista solo agrega facturas.
+  const lockedForMe = canEdit && !isAdmin && isMonthClosed(service.date, monthLock);
 
   return (
     // data-wide: en pantallas anchas esta página usa más ancho que el resto (layout).
@@ -35,11 +39,17 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 xl:mb-4">
         <BackButton fallback="/servicios" />
         <div className="flex gap-2">
-          {canEdit && (
+          {canEdit && !lockedForMe && (
             <Link href={`/servicios/${service.id}/editar`} className={buttonVariants({ variant: "outline", size: "touch" })}>
               <Pencil aria-hidden="true" />
               Editar
             </Link>
+          )}
+          {lockedForMe && (
+            <Button variant="outline" size="touch" disabled aria-describedby="mes-cerrado">
+              <Lock aria-hidden="true" />
+              Editar
+            </Button>
           )}
           {isAdmin && (
             <DeleteServiceDialog
@@ -50,6 +60,14 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
           )}
         </div>
       </div>
+      {lockedForMe && (
+        <p id="mes-cerrado" className="-mt-3 mb-6 flex items-start gap-2 text-sm text-muted-foreground xl:mt-0 xl:mb-4">
+          <Lock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0">
+            {closedMonthMessage(service.date)} Sí puedes agregarle facturas.
+          </span>
+        </p>
+      )}
 
       {/*
         Pantallas anchas: ticket y, debajo, comprobantes a la izquierda. La línea de
@@ -68,6 +86,7 @@ async function Service({ params }: { params: PageProps<"/servicios/[id]">["param
               serviceId={service.id}
               title={`${service.unit.economicNumber} · ${formatDate(service.date)}`}
               canEdit={canEdit}
+              canRemove={canEdit && !lockedForMe}
               className="mt-10 xl:mt-6"
             />
           </Suspense>

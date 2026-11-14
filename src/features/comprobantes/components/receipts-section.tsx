@@ -10,13 +10,17 @@ export async function ReceiptsSection({
   serviceId,
   title,
   canEdit,
+  canRemove = canEdit,
   className = "mt-10",
 }: {
   serviceId: string;
   className?: string;
   /** "T-17 · 12/10/2026" (título del visor). */
   title: string;
+  /** Agregar comprobantes. */
   canEdit: boolean;
+  /** Quitar comprobantes (5I: con el mes cerrado, solo el admin). */
+  canRemove?: boolean;
 }) {
   const receipts = await listReceipts(serviceId);
 
@@ -31,7 +35,7 @@ export async function ReceiptsSection({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <div className="min-w-0 flex-1">
           {receipts.length > 0 ? (
-            <ReceiptGallery receipts={receipts} serviceId={serviceId} title={title} canEdit={canEdit} />
+            <ReceiptGallery receipts={receipts} serviceId={serviceId} title={title} canEdit={canRemove} />
           ) : (
             <p className="text-muted-foreground">
               {canEdit ? "Este servicio no tiene comprobante. Toma una foto del ticket o sube el PDF." : "Sin comprobantes."}

@@ -21,6 +21,14 @@ export async function listReportUnitTypes(): Promise<{ key: string; name: string
   return data.map((t) => ({ key: t.clave, name: t.nombre }));
 }
 
+/** Meses pasados que siguen abiertos (5I), para la nota del PDF. "aaaa-mm-01". */
+export async function listOpenMonths(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("meses_abiertos");
+  if (error) throw new Error("No se pudo revisar el cierre de mes");
+  return data.map((m) => m.slice(0, 10));
+}
+
 /**
  * Todos los agrupados de Reportes en una consulta (reporte_gastos). Las sumas
  * se hacen en Postgres; aquí solo se renombran campos. Solo admin y gerente.

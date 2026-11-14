@@ -34,7 +34,17 @@ function Panel({ title, description, children, className = "" }: {
 }
 
 /** Encabezado que solo sale en papel / PDF: qué es, de cuándo y con qué filtros. */
-function PrintHeader({ period, filters, typeNames }: { period: ResolvedPeriod; filters: ReportFilters; typeNames: Record<string, string> }) {
+function PrintHeader({
+  period,
+  filters,
+  typeNames,
+  monthNote,
+}: {
+  period: ResolvedPeriod;
+  filters: ReportFilters;
+  typeNames: Record<string, string>;
+  monthNote: string;
+}) {
   const details = [
     `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`,
     filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos los grupos",
@@ -45,6 +55,7 @@ function PrintHeader({ period, filters, typeNames }: { period: ResolvedPeriod; f
       <div>
         <p className="font-heading text-2xl font-bold">Reporte de gastos de la flotilla</p>
         <p className="text-sm">{details.join(" · ")}</p>
+        <p className="text-xs">{monthNote}</p>
         <p className="text-xs text-muted-foreground">Generado el {formatDateTime(new Date().toISOString())}</p>
       </div>
       <Image src="/brand/logo.png" alt="Baja Wastewater Solutions" width={397} height={141} className="h-auto w-36" />
@@ -55,7 +66,16 @@ function PrintHeader({ period, filters, typeNames }: { period: ResolvedPeriod; f
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** Reportes del periodo: cifras clave, gasto por mes y los agrupados, todo de una consulta. */
-export async function ReportView({ period, filters }: { period: ResolvedPeriod; filters: ReportFilters }) {
+/** `monthNote` (5I): qué meses del periodo siguen abiertos; lo arma la página. */
+export async function ReportView({
+  period,
+  filters,
+  monthNote,
+}: {
+  period: ResolvedPeriod;
+  filters: ReportFilters;
+  monthNote: string;
+}) {
   const report = await getReport(period, filters);
   const range = `${formatDate(period.from)} al ${formatDate(period.to)}`;
 
@@ -85,8 +105,9 @@ export async function ReportView({ period, filters }: { period: ResolvedPeriod; 
 
   return (
     <div className="space-y-6 print:space-y-3">
-      <PrintHeader period={period} filters={filters} typeNames={report.typeNames} />
+      <PrintHeader period={period} filters={filters} typeNames={report.typeNames} monthNote={monthNote} />
       <KpiRow report={report} periodLabel={period.label} />
+      <p className="text-sm text-muted-foreground print:hidden">{monthNote}</p>
 
       {/*
         Una cuadrícula de 6 columnas para todo; cada tarjeta dice cuánto ocupa:

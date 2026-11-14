@@ -1,5 +1,6 @@
 import writeXlsxFile, { type Cell, type CellObject, type SheetData } from "write-excel-file/node";
 
+import { getMonthLock } from "@/features/cierres/queries";
 import { getReport, listExportRows } from "@/features/dashboard/queries";
 import { GROUP_LABELS, monthLongLabel, reportFiltersSchema, resolvePeriod } from "@/features/dashboard/schemas";
 import { SERVICE_KIND_LABELS, SERVICE_KINDS } from "@/features/dashboard/types";
@@ -7,6 +8,7 @@ import { NO_PLACE_LABEL, SERVICE_PLACE_LABELS, serviceTypeLabel, type ServiceTyp
 import { requireRole } from "@/lib/auth/get-current-user";
 import { VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { formatDate, formatDateTime, toCents, toRateUnits, todayInTijuana } from "@/lib/utils/format";
+import { openMonthsNote } from "@/lib/utils/month-lock";
 
 /** Renglones de las hojas por unidad y por proveedor (el máximo que da reporte_gastos). */
 const RANKING_LIMIT = 50;
@@ -41,12 +43,17 @@ export async function GET(request: Request) {
   const filters = reportFiltersSchema.parse(Object.fromEntries(new URL(request.url).searchParams));
   const period = resolvePeriod(filters, todayInTijuana());
 
-  const [report, rows] = await Promise.all([getReport(period, filters, RANKING_LIMIT), listExportRows(period, filters)]);
+  const [report, rows, lock] = await Promise.all([
+    getReport(period, filters, RANKING_LIMIT),
+    listExportRows(period, filters),
+    getMonthLock(),
+  ]);
   const totalCents = toCents(report.total) ?? 0;
 
   const summary: SheetData = [
     [{ value: "Reporte de gastos de la flotilla", fontWeight: "bold" }],
     ["Periodo", `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`],
+    ["Cierre de mes", openMonthsNote(period.from, period.to, lock)],
     ["Grupo", filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos"],
     ["Tipo de unidad", filters.tipo ? (report.typeNames[filters.tipo] ?? filters.tipo) : "Todos"],
     ["Total invertido", money(report.total)],

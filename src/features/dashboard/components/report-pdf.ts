@@ -76,7 +76,7 @@ async function loadLogo(): Promise<string | null> {
 
 type Ranked = { label: string; detail?: string; total: string };
 
-export async function buildReportPdf({ report, period, filters }: ReportPdfData): Promise<Blob> {
+export async function buildReportPdf({ report, period, filters, monthNote }: ReportPdfData): Promise<Blob> {
   const doc = new jsPDF({ unit: "mm", format: "letter", orientation: "portrait" });
   const logo = await loadLogo();
   let y = M;
@@ -121,6 +121,8 @@ export async function buildReportPdf({ report, period, filters }: ReportPdfData)
     `${period.label}: ${formatDate(period.from)} al ${formatDate(period.to)}`,
     filters.grupo ? GROUP_LABELS[filters.grupo] : "Todos los grupos",
     filters.tipo ? (report.typeNames[filters.tipo] ?? filters.tipo) : "Todos los tipos",
+    // Cierre de mes (5I): qué meses del periodo todavía pueden cambiar.
+    monthNote,
   ].join(" · ");
   const logoW = 36;
   const titleW = logo ? W - logoW - 6 : W;
