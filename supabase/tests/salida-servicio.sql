@@ -1,6 +1,8 @@
 -- Ajuste de la 5E: servicio que dio la salida y total de cada estancia.
 -- Corre con la migración 20261106233851_salida_con_servicio ya aplicada.
 begin;
+-- 5I: el cierre de mes no cuenta en esta prueba (meses reabiertos dentro de la transacción; se deshace al final).
+insert into public.cierres_mes_eventos (mes, accion, motivo, created_by) select g::date, 'reabrir', 'Prueba: meses abiertos', (select id from public.perfiles where rol = 'admin' order by created_at limit 1) from generate_series(date_trunc('month', now()) - interval '36 months', date_trunc('month', now()) - interval '1 month', interval '1 month') g;
 -- 5H: los tickets pendientes de verdad bloquean la entrada directa; en esta prueba no cuentan (se deshace al final).
 update public.tickets_taller set estatus = 'cancelado', cancelado_at = now() where estatus = 'pendiente';
 set local lock_timeout = '5s';

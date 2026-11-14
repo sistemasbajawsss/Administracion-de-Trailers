@@ -39,6 +39,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajustes_cierre: {
+        Row: {
+          created_at: string
+          dia_cierre: number
+          id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          dia_cierre?: number
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          dia_cierre?: number
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ajustes_kilometraje: {
         Row: {
           created_at: string
@@ -218,6 +242,33 @@ export type Database = {
           nombre?: string
           telefono?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      cierres_mes_eventos: {
+        Row: {
+          accion: string
+          created_at: string
+          created_by: string
+          id: string
+          mes: string
+          motivo: string | null
+        }
+        Insert: {
+          accion: string
+          created_at?: string
+          created_by: string
+          id?: string
+          mes: string
+          motivo?: string | null
+        }
+        Update: {
+          accion?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          mes?: string
+          motivo?: string | null
         }
         Relationships: []
       }
@@ -1333,6 +1384,7 @@ export type Database = {
           servicio_id: string
         }[]
       }
+      cambiar_dia_cierre: { Args: { p_dia: number }; Returns: undefined }
       cambiar_dias_captura_kilometraje: {
         Args: { p_dias: number[] }
         Returns: undefined
@@ -1349,6 +1401,7 @@ export type Database = {
           similitud: number
         }[]
       }
+      cerrar_mes: { Args: { p_mes: string }; Returns: undefined }
       cerrar_sesiones_usuario: { Args: { p_usuario: string }; Returns: number }
       copiar_mantenimientos: {
         Args: { p_destino: string; p_origen: string }
@@ -1388,6 +1441,7 @@ export type Database = {
         Args: { p_motivo: string; p_unidad_id: string }
         Returns: undefined
       }
+      dia_cierre: { Args: never; Returns: number }
       dias_captura_kilometraje: { Args: never; Returns: number[] }
       eliminar_servicio: {
         Args: { p_motivo: string; p_servicio_id: string }
@@ -1470,6 +1524,7 @@ export type Database = {
           unidad_id: string
         }[]
       }
+      hoy_tijuana: { Args: never; Returns: string }
       inicio_semana: { Args: { p_fecha: string }; Returns: string }
       kilometraje_unidades: {
         Args: { p_unidad_id?: string }
@@ -1577,6 +1632,22 @@ export type Database = {
         Args: { p_fecha: string; p_nota?: string; p_unidad_id: string }
         Returns: undefined
       }
+      mes_cerrado: { Args: { p_fecha: string }; Returns: boolean }
+      meses_abiertos: { Args: never; Returns: string[] }
+      meses_cierre: {
+        Args: { p_meses?: number }
+        Returns: {
+          at: string
+          cerrado: boolean
+          cierra_solo: string
+          en_curso: boolean
+          mes: string
+          motivo: string
+          por: string
+          ultima_accion: string
+        }[]
+      }
+      nombre_mes: { Args: { p_fecha: string }; Returns: string }
       nombre_usuario: { Args: { p_id: string }; Returns: string }
       normalizar_nombre_catalogo: {
         Args: { p_nombre: string }
@@ -1584,6 +1655,7 @@ export type Database = {
       }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
       puede_cambiar_lectura: { Args: { p_lectura_id: string }; Returns: string }
+      puede_cambiar_mes_cerrado: { Args: never; Returns: boolean }
       puede_capturar: { Args: never; Returns: boolean }
       puede_ver_todo: { Args: never; Returns: boolean }
       quitar_comprobante: {
@@ -1592,6 +1664,10 @@ export type Database = {
       }
       quitar_lectura_kilometraje: {
         Args: { p_lectura_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      reabrir_mes: {
+        Args: { p_mes: string; p_motivo: string }
         Returns: undefined
       }
       rechazar_ticket_taller: {

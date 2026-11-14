@@ -6,6 +6,8 @@
 -- La captura del capturista depende del día: lunes y martes se guarda; los demás
 -- días se rechaza (las dos ramas se revisan según el día en que se corra).
 begin;
+-- 5I: el cierre de mes no cuenta en esta prueba (meses reabiertos dentro de la transacción; se deshace al final).
+insert into public.cierres_mes_eventos (mes, accion, motivo, created_by) select g::date, 'reabrir', 'Prueba: meses abiertos', (select id from public.perfiles where rol = 'admin' order by created_at limit 1) from generate_series(date_trunc('month', now()) - interval '36 months', date_trunc('month', now()) - interval '1 month', interval '1 month') g;
 set local lock_timeout = '5s';
 create temp table r (n serial, caso text, ok boolean, detalle text);
 grant all on r to authenticated, anon; grant all on r_n_seq to authenticated, anon;

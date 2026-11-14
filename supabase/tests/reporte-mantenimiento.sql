@@ -2,6 +2,8 @@
 -- trae lo de cada tipo de servicio y cuadra con el total y con por_tipo_servicio.
 -- Corre con la migración 20261110005952_reporte_mantenimiento aplicada.
 begin;
+-- 5I: el cierre de mes no cuenta en esta prueba (meses reabiertos dentro de la transacción; se deshace al final).
+insert into public.cierres_mes_eventos (mes, accion, motivo, created_by) select g::date, 'reabrir', 'Prueba: meses abiertos', (select id from public.perfiles where rol = 'admin' order by created_at limit 1) from generate_series(date_trunc('month', now()) - interval '36 months', date_trunc('month', now()) - interval '1 month', interval '1 month') g;
 set local lock_timeout = '5s';
 create temp table r (n serial, caso text, ok boolean, detalle text);
 grant all on r to authenticated; grant all on r_n_seq to authenticated;

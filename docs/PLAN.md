@@ -419,6 +419,17 @@ Salió de la revisión de riesgos del 2026-11-13 (puntos 5, 6 y 7). Decisiones d
 **Etapas** (mismas reglas de la 5E-5H: BD compatible con la app publicada, ensayo en `begin … rollback`, regresión de `supabase/tests`, revisión en navegador y celular)
 - **Etapa 1 — Ediciones simultáneas:** `actualizar_servicio()` recibe el `updated_at` con que se abrió el formulario; si cambió, rechaza con quién y cuándo lo cambió. El formulario lo explica en un diálogo ("Edgar guardó este servicio a las 10:42 mientras lo editabas") con "Ver sus cambios" (recarga y se pierde lo escrito, y lo dice) o "Seguir editando". Lo mismo en Editar unidad.
 - **Etapa 2 — Proveedores y talleres repetidos:** al dar de alta uno nuevo (servicio y Catálogos) se muestran los parecidos que ya existen (sin acentos, mayúsculas ni puntos; similitud con `pg_trgm`) para elegir uno de ellos. En Catálogos, "Unir con…" (solo admin): función `unir_proveedores()` / `unir_talleres()` en una transacción, con bitácora `uniones_catalogo`; los servicios cambiados entran al historial con el motivo "Unión de proveedores". Reportes suma todo en el que se queda.
+- **Detalle del cierre de mes acordado con el usuario (2026-11-13, "sí a todo lo que recomiendas"):**
+  - Se cierra solo el día 5 del mes siguiente (00:00 de Tijuana) o antes si el admin lo cierra. Solo se cierra un mes que ya terminó.
+  - Cerrado, el capturista no registra, no edita, no cambia la fecha hacia ni desde ese mes y no quita facturas; sí agrega facturas. El admin todo, con motivo. Unir proveedores y talleres sí mueve servicios de meses cerrados.
+  - No se cierra lo que no es dinero: entradas y salidas de taller, tickets, kilometraje semanal, mantenimientos.
+  - Un mes reabierto queda abierto hasta que el admin lo vuelva a cerrar (no vuelve a cerrarse solo).
+  - El admin ve un aviso antes de guardar un cambio en un mes cerrado ("Octubre ya está cerrado: este cambio mueve su reporte").
+  - La sección "Cierre de mes" va en Reportes: admin cierra, reabre (con motivo) y cambia el día; el gerente solo ve el estado. El PDF y el Excel dicen qué meses del periodo siguen abiertos.
+  - Del día 1 al 4, renglón en el Inicio del capturista: "Octubre se cierra el día 5: sube lo que falte".
+  - Si el capturista choca con un mes cerrado, el mensaje dice que se lo pida al administrador (sin botón de solicitud por ahora).
+  - Al publicar, todos los meses que ya pasaron de su día 5 quedan cerrados.
+  - Lo hace cumplir la BD (triggers en `servicios`, `gastos` y `comprobantes`), no solo la pantalla. Lo que corre sin usuario (SQL del administrador del sistema) no se frena.
 - **Etapa 3 — Cierre de mes:** tabla `cierres_mes` (mes, cerrado o reabierto, quién, cuándo, motivo) y ajuste del día automático; función `mes_cerrado(fecha)` usada por `preparar_servicio()` y las de gastos y comprobantes (también por API directa). Pantallas: estado de cada mes con "Cerrar" / "Reabrir" (admin); en el formulario del capturista la fecha no acepta meses cerrados y lo explica; "Editar" deshabilitado con la explicación en servicios de meses cerrados.
 
 **Terminado cuando**
