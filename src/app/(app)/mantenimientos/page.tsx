@@ -5,8 +5,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { FleetMaintenanceList } from "@/features/mantenimientos/components/fleet-maintenance";
 import { MaintenanceTabs } from "@/features/mantenimientos/components/maintenance-tabs";
-import { listFleetMaintenance } from "@/features/mantenimientos/queries";
-import { maintenanceFiltersSchema, type MaintenanceFilters } from "@/features/mantenimientos/schemas";
+import { getMaintenanceWarnings, listFleetMaintenance } from "@/features/mantenimientos/queries";
+import { maintenanceFiltersSchema } from "@/features/mantenimientos/schemas";
 import { ServiceBriefFeed } from "@/features/servicios/components/service-brief-feed";
 import { listServicesOfType, SERVICES_BY_TYPE_BATCH_SIZE } from "@/features/servicios/queries";
 import { requireRole } from "@/lib/auth/get-current-user";
@@ -17,12 +17,12 @@ export const metadata: Metadata = { title: "Mantenimientos" };
 const includes = (roles: readonly string[], role: string) => roles.includes(role);
 
 /** Correctivos: lo que le toca a cada unidad (los tres roles ven lo mismo). */
-async function Correctives({ filters }: { filters: MaintenanceFilters }) {
-  const [user, items] = await Promise.all([requireRole(ROLES), listFleetMaintenance()]);
+async function Correctives() {
+  const [user, items, warnings] = await Promise.all([requireRole(ROLES), listFleetMaintenance(), getMaintenanceWarnings()]);
   return (
     <FleetMaintenanceList
       items={items}
-      status={filters.estado}
+      warnings={warnings}
       canRegister={includes(CAPTURE_ROLES, user.role)}
       canOpenUnits={includes(VIEW_ALL_ROLES, user.role)}
       canEdit={user.role === "admin"}
@@ -57,7 +57,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/mantenimien
   return (
     <>
       <MaintenanceTabs current={filters.vista} />
-      {filters.vista === "preventivos" ? <Preventives /> : <Correctives filters={filters} />}
+      {filters.vista === "preventivos" ? <Preventives /> : <Correctives />}
     </>
   );
 }
@@ -67,7 +67,7 @@ export default function MantenimientosPage({ searchParams }: PageProps<"/manteni
     <>
       <PageHeader
         title="Mantenimientos"
-        description="Lo que le toca a cada unidad y cuánto le falta, y el historial de preventivos."
+        description="Qué hay que hacer ahora, qué conviene programar antes del próximo viaje y lo que le toca a cada unidad."
       />
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" aria-busy="true" />}>
         <Content searchParams={searchParams} />

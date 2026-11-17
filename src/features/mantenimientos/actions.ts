@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/utils/ids";
 import { parseKm } from "@/lib/utils/mileage";
 
-import { maintenanceSchema, type MaintenanceInput } from "./schemas";
+import { generalWarningSchema, maintenanceSchema, unitWarningSchema, type MaintenanceInput } from "./schemas";
 import { APPLY_RESULTS, type ApplyOutcome, type ApplyResult } from "./types";
 
 /** Del formulario a columnas de la BD (lo que no aplica va en null). */
@@ -114,5 +114,70 @@ export async function removeMaintenance(id: string, unitId: string): Promise<Act
   if (!data.length) return fail("No se encontró el mantenimiento.");
 
   revalidateMaintenance(unitId);
+  return ok();
+}
+
+/* ---------------------------------------------------------------------------
+ * Aviso de kilometraje (5J): cuántos km antes se marca "Programar servicio".
+ * Solo admin; la BD lo vuelve a revisar (rol, rango, unidades con odómetro).
+ * ------------------------------------------------------------------------- */
+
+function warningError(error: { code?: string; message?: string }, fallback: string) {
+  if (error.code === "42501") return "Solo un administrador puede cambiar el aviso de kilometraje.";
+  if (error.code === "23503") return "Una de las unidades ya no existe. Recarga la página.";
+  if (error.code === "23514" && error.message && !error.message.includes("violates")) return error.message;
+  return fallback;
+}
+
+/** El aviso cambia lo que sale en Mantenimientos, en el Inicio y en cada ficha. */
+function revalidateWarnings() {
+  revalidatePath("/mantenimientos");
+  revalidatePath("/");
+  revalidatePath("/unidades/[id]", "page");
+}
+
+/** Cambia el aviso general (todas las unidades sin aviso propio). */
+export async function setGeneralWarning(input: unknown): Promise<ActionResult<{ km: number }>> {
+  const parsed = generalWarningSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa el aviso.");
+
+  await requireRole("admin");
+
+  const km = parseKm(parsed.data.km)!;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cambiar_aviso_mantenimiento", { p_aviso_km: km });
+  if (error) return fail(warningError(error, "No se pudo guardar el aviso. Inténtalo de nuevo."));
+
+  revalidateWarnings();
+  return ok({ km });
+}
+
+/** Pone (o cambia) el aviso propio de una o varias unidades. Todo o nada. */
+export async function setUnitWarning(input: unknown): Promise<ActionResult<{ count: number; km: number }>> {
+  const parsed = unitWarningSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Revisa el aviso.");
+
+  await requireRole("admin");
+
+  const km = parseKm(parsed.data.km)!;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("poner_aviso_mantenimiento", { p_unidades: parsed.data.unitIds, p_aviso_km: km });
+  if (error) return fail(warningError(error, "No se pudo guardar el aviso. Inténtalo de nuevo."));
+
+  revalidateWarnings();
+  return ok({ count: data, km });
+}
+
+/** Quita el aviso propio de una unidad: vuelve al general. */
+export async function removeUnitWarning(unitId: string): Promise<ActionResult> {
+  if (!isUuid(unitId)) return fail("Unidad no válida.");
+
+  await requireRole("admin");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("quitar_aviso_mantenimiento", { p_unidades: [unitId] });
+  if (error) return fail(warningError(error, "No se pudo quitar el aviso. Inténtalo de nuevo."));
+
+  revalidateWarnings();
   return ok();
 }

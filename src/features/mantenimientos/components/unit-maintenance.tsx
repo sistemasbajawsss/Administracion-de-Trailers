@@ -108,7 +108,17 @@ export function UnitMaintenance(props: UnitMaintenanceProps) {
               <p className="text-base">
                 {describeNext(m)}
                 {describeNext(m) ? ". " : ""}
-                <span className={m.status === "vencido" ? "font-medium text-red-800" : undefined}>{describeLeft(m)}.</span>
+                <span
+                  className={
+                    m.status === "realizar_ahora"
+                      ? "font-medium text-red-800"
+                      : m.status === "programar"
+                        ? "font-medium text-amber-800"
+                        : undefined
+                  }
+                >
+                  {describeLeft(m)}.
+                </span>
               </p>
               <MaintenanceLastTime item={m} linkService />
               {(canRegister || canEdit) && (

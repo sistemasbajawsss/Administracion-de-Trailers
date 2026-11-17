@@ -1,21 +1,25 @@
 import type { UnitOperation } from "@/features/unidades/types";
 import { formatDate, formatKm } from "@/lib/utils/format";
 
-/** Estado de un mantenimiento programado (mantenimientos_pendientes en la BD). */
-export const MAINTENANCE_STATUSES = ["vencido", "por_vencer", "al_corriente", "sin_kilometraje"] as const;
+/**
+ * Nivel de un mantenimiento programado (mantenimientos_estado en la BD, 5J):
+ * realizar_ahora = ya se pasó o le faltan 1,000 km / 15 días o menos;
+ * programar = le faltan el aviso de km (4,000 por omisión) / 30 días o menos.
+ */
+export const MAINTENANCE_STATUSES = ["realizar_ahora", "programar", "al_corriente", "sin_kilometraje"] as const;
 export type MaintenanceStatus = (typeof MAINTENANCE_STATUSES)[number];
 
 export const MAINTENANCE_STATUS_LABELS: Record<MaintenanceStatus, string> = {
-  vencido: "Vencido",
-  por_vencer: "Por vencer",
+  realizar_ahora: "Realizar ahora",
+  programar: "Programar servicio",
   al_corriente: "Al corriente",
   sin_kilometraje: "Sin kilometraje",
 };
 
 /** Orden en pantalla: lo urgente primero. */
 export const MAINTENANCE_STATUS_ORDER: Record<MaintenanceStatus, number> = {
-  vencido: 0,
-  por_vencer: 1,
+  realizar_ahora: 0,
+  programar: 1,
   sin_kilometraje: 2,
   al_corriente: 3,
 };
@@ -41,6 +45,21 @@ export type Maintenance = {
   kmLeft: number | null;
   daysLeft: number | null;
   status: MaintenanceStatus;
+  /** Cuántos km antes avisa "Programar servicio" (el general o el propio de la unidad). */
+  warningKm: number;
+  /** La unidad tiene su propio aviso (no el general). */
+  ownWarning: boolean;
+};
+
+/** Una unidad con su propio aviso de km. */
+export type UnitWarning = { unitId: string; economicNumber: string; typeName: string; km: number };
+
+/** Aviso de kilometraje (5J): el general y el de ciertas unidades. Lo cambia el admin. */
+export type MaintenanceWarnings = {
+  generalKm: number;
+  units: UnitWarning[];
+  /** Unidades a las que se les puede poner aviso propio: con odómetro y sin baja ni venta. */
+  targets: MaintenanceTarget[];
 };
 
 /** Un mantenimiento en la página Mantenimientos (todas las unidades). */

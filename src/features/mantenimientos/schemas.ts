@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isRealDate } from "@/lib/utils/format";
 import { parseKm } from "@/lib/utils/mileage";
 
-import { MAINTENANCE_STATUSES, MAINTENANCE_VIEWS } from "./types";
+import { MAINTENANCE_VIEWS } from "./types";
 
 /** Texto vacío, o un número entero (con o sin comas) dentro del rango. */
 const optionalWhole = (min: number, max: number, message: string) =>
@@ -46,10 +46,32 @@ export const maintenanceSchema = z
 
 export type MaintenanceInput = z.infer<typeof maintenanceSchema>;
 
-/** Pestaña y estado elegidos en la página Mantenimientos (?vista=, ?estado=). Lo que no se entiende, se ignora. */
+/** Pestaña elegida en la página Mantenimientos (?vista=). Lo que no se entiende, se ignora. */
 export const maintenanceFiltersSchema = z.object({
   vista: z.enum(MAINTENANCE_VIEWS).catch("correctivos"),
-  estado: z.enum(MAINTENANCE_STATUSES).optional().catch(undefined),
 });
+
+/** Límites del aviso de kilometraje (los mismos que la BD): de 1,000 para abajo ya es "Realizar ahora". */
+export const WARNING_KM_MIN = 1001;
+export const WARNING_KM_MAX = 100_000;
+
+const warningKm = z
+  .string()
+  .trim()
+  .refine((value) => {
+    const n = parseKm(value);
+    return n !== null && n >= WARNING_KM_MIN && n <= WARNING_KM_MAX;
+  }, "Escribe un aviso de más de 1,000 km y hasta 100,000 km");
+
+/** Aviso general (solo admin). */
+export const generalWarningSchema = z.object({ km: warningKm });
+export type GeneralWarningInput = z.infer<typeof generalWarningSchema>;
+
+/** Aviso propio para ciertas unidades (solo admin). */
+export const unitWarningSchema = z.object({
+  km: warningKm,
+  unitIds: z.array(z.uuid()).min(1, "Elige al menos una unidad").max(500, "Demasiadas unidades a la vez"),
+});
+export type UnitWarningInput = z.infer<typeof unitWarningSchema>;
 
 export type MaintenanceFilters = z.infer<typeof maintenanceFiltersSchema>;

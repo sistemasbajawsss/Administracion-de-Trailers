@@ -10,9 +10,13 @@ import {
   type Maintenance,
   type MaintenanceTarget,
   type MaintenanceStatus,
+  type MaintenanceWarnings,
 } from "./types";
 
-type PendingRow = Database["public"]["Functions"]["mantenimientos_pendientes"]["Returns"][number];
+type PendingRow = Database["public"]["Functions"]["mantenimientos_estado"]["Returns"][number];
+
+/** Aviso general si la fila no se pudiera leer (el mismo valor por omisión que la BD). */
+const DEFAULT_WARNING_KM = 4000;
 
 const toMaintenance = (m: PendingRow): Maintenance => ({
   id: m.id,
@@ -29,16 +33,17 @@ const toMaintenance = (m: PendingRow): Maintenance => ({
   kmLeft: m.faltan_km,
   daysLeft: m.faltan_dias,
   status: m.estado as MaintenanceStatus,
+  warningKm: m.aviso_km,
+  ownWarning: m.aviso_propio,
 });
 
-
 /**
- * Mantenimientos activos de una unidad con lo que les falta (mantenimientos_pendientes:
+ * Mantenimientos activos de una unidad con lo que les falta (mantenimientos_estado:
  * el cálculo se hace en Postgres). Lo urgente primero.
  */
 export async function listUnitMaintenance(unitId: string): Promise<Maintenance[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("mantenimientos_pendientes", { p_unidad_id: unitId });
+  const { data, error } = await supabase.rpc("mantenimientos_estado", { p_unidad_id: unitId });
   if (error) throw new Error("No se pudieron cargar los mantenimientos");
   return data.map(toMaintenance).sort(byUrgency);
 }
@@ -51,7 +56,7 @@ export async function listUnitMaintenance(unitId: string): Promise<Maintenance[]
 export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
   const supabase = await createClient();
   const [pending, units] = await Promise.all([
-    supabase.rpc("mantenimientos_pendientes"),
+    supabase.rpc("mantenimientos_estado"),
     // Mismo orden que la lista de unidades: por tipo (orden del catálogo) y número.
     supabase
       .from("unidades")
@@ -77,6 +82,45 @@ export async function listFleetMaintenance(): Promise<FleetMaintenance[]> {
     })
     .sort((a, b) => a.order - b.order || byUrgency(a.item, b.item))
     .map(({ item }) => item);
+}
+
+/**
+ * Aviso de kilometraje (5J): el general, las unidades con aviso propio (en el
+ * orden de la lista de unidades) y a cuáles se les puede poner. Los tres roles
+ * leen; solo el admin cambia (funciones de la BD).
+ */
+export async function getMaintenanceWarnings(): Promise<MaintenanceWarnings> {
+  const supabase = await createClient();
+  const [general, own, units] = await Promise.all([
+    supabase.from("ajustes_mantenimiento").select("aviso_km").eq("id", 1).maybeSingle(),
+    supabase.from("avisos_mantenimiento_unidad").select("unidad_id, aviso_km"),
+    supabase
+      .from("unidades")
+      .select("id, numero_economico, tipo, operacion, estatus, tipo_info:tipos_unidad(nombre, lleva_kilometraje)")
+      .order("orden_tipo")
+      .order("numero_orden"),
+  ]);
+  if (general.error || own.error || units.error) throw new Error("No se pudo cargar el aviso de kilometraje");
+
+  const ownKm = new Map(own.data.map((a) => [a.unidad_id, a.aviso_km]));
+  const targets: MaintenanceTarget[] = units.data
+    .filter((u) => !isRetired(u.estatus) && (u.tipo_info?.lleva_kilometraje ?? true))
+    .map((u) => ({
+      id: u.id,
+      economicNumber: u.numero_economico,
+      typeName: u.tipo_info?.nombre ?? u.tipo,
+      operation: u.operacion,
+      hasOdometer: true,
+      hasKm: true,
+    }));
+
+  return {
+    generalKm: general.data?.aviso_km ?? DEFAULT_WARNING_KM,
+    units: targets
+      .filter((t) => ownKm.has(t.id))
+      .map((t) => ({ unitId: t.id, economicNumber: t.economicNumber, typeName: t.typeName, km: ownKm.get(t.id)! })),
+    targets,
+  };
 }
 
 /** Lo programado de cada unidad, para el "¿Cuenta como…?" del formulario de servicio. */
