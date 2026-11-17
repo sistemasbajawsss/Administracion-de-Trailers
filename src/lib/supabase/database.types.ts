@@ -87,6 +87,65 @@ export type Database = {
         }
         Relationships: []
       }
+      ajustes_mantenimiento: {
+        Row: {
+          aviso_km: number
+          created_at: string
+          id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          aviso_km?: number
+          created_at?: string
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          aviso_km?: number
+          created_at?: string
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      avisos_mantenimiento_unidad: {
+        Row: {
+          aviso_km: number
+          created_at: string
+          created_by: string | null
+          unidad_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          aviso_km: number
+          created_at?: string
+          created_by?: string | null
+          unidad_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          aviso_km?: number
+          created_at?: string
+          created_by?: string | null
+          unidad_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_mantenimiento_unidad_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bitacora_eliminaciones: {
         Row: {
           autor_nombre: string | null
@@ -1384,6 +1443,10 @@ export type Database = {
           servicio_id: string
         }[]
       }
+      cambiar_aviso_mantenimiento: {
+        Args: { p_aviso_km: number }
+        Returns: undefined
+      }
       cambiar_dia_cierre: { Args: { p_dia: number }; Returns: undefined }
       cambiar_dias_captura_kilometraje: {
         Args: { p_dias: number[] }
@@ -1603,6 +1666,29 @@ export type Database = {
           ultimo_acceso: string
         }[]
       }
+      mantenimientos_estado: {
+        Args: { p_unidad_id?: string }
+        Returns: {
+          aviso_km: number
+          aviso_propio: boolean
+          cada_km: number
+          cada_meses: number
+          desde_fecha: string
+          desde_km: number
+          estado: string
+          faltan_dias: number
+          faltan_km: number
+          id: string
+          km_actual: number
+          nombre: string
+          proxima_fecha: string
+          proximo_km: number
+          ultima_fecha: string
+          ultimo_km: number
+          ultimo_servicio_id: string
+          unidad_id: string
+        }[]
+      }
       mantenimientos_pendientes: {
         Args: { p_unidad_id?: string }
         Returns: {
@@ -1654,10 +1740,18 @@ export type Database = {
         Returns: string
       }
       patron_busqueda: { Args: { p_texto: string }; Returns: string }
+      poner_aviso_mantenimiento: {
+        Args: { p_aviso_km: number; p_unidades: string[] }
+        Returns: number
+      }
       puede_cambiar_lectura: { Args: { p_lectura_id: string }; Returns: string }
       puede_cambiar_mes_cerrado: { Args: never; Returns: boolean }
       puede_capturar: { Args: never; Returns: boolean }
       puede_ver_todo: { Args: never; Returns: boolean }
+      quitar_aviso_mantenimiento: {
+        Args: { p_unidades: string[] }
+        Returns: number
+      }
       quitar_comprobante: {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: string
