@@ -51,6 +51,9 @@ export type Maintenance = {
   ownWarning: boolean;
 };
 
+/** El aviso de km que usa una unidad: el suyo (own) o el general. */
+export type UnitWarningInfo = { km: number; own: boolean };
+
 /** Una unidad con su propio aviso de km. */
 export type UnitWarning = { unitId: string; economicNumber: string; typeName: string; km: number };
 

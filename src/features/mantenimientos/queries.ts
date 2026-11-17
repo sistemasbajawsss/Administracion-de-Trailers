@@ -11,6 +11,7 @@ import {
   type MaintenanceTarget,
   type MaintenanceStatus,
   type MaintenanceWarnings,
+  type UnitWarningInfo,
 } from "./types";
 
 type PendingRow = Database["public"]["Functions"]["mantenimientos_estado"]["Returns"][number];
@@ -121,6 +122,19 @@ export async function getMaintenanceWarnings(): Promise<MaintenanceWarnings> {
       .map((t) => ({ unitId: t.id, economicNumber: t.economicNumber, typeName: t.typeName, km: ownKm.get(t.id)! })),
     targets,
   };
+}
+
+/** El aviso de km que usa una unidad (ficha): el propio si tiene, si no el general. */
+export async function getUnitWarning(unitId: string): Promise<UnitWarningInfo> {
+  const supabase = await createClient();
+  const [general, own] = await Promise.all([
+    supabase.from("ajustes_mantenimiento").select("aviso_km").eq("id", 1).maybeSingle(),
+    supabase.from("avisos_mantenimiento_unidad").select("aviso_km").eq("unidad_id", unitId).maybeSingle(),
+  ]);
+  if (general.error || own.error) throw new Error("No se pudo cargar el aviso de kilometraje");
+  return own.data
+    ? { km: own.data.aviso_km, own: true }
+    : { km: general.data?.aviso_km ?? DEFAULT_WARNING_KM, own: false };
 }
 
 /** Lo programado de cada unidad, para el "¿Cuenta como…?" del formulario de servicio. */

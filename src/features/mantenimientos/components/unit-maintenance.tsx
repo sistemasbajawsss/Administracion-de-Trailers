@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ClipboardPlus, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { ClipboardPlus, Gauge, LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -42,6 +42,7 @@ import {
   type ApplyOutcome,
   type Maintenance,
   type MaintenanceTarget,
+  type UnitWarningInfo,
 } from "../types";
 
 import { MaintenanceLastTime } from "./maintenance-last-time";
@@ -54,6 +55,8 @@ type UnitMaintenanceProps = {
   /** Sin odómetro (cajas, dollys, góndolas…): solo mantenimientos por meses. */
   isBox: boolean;
   currentKm: number | null;
+  /** Cuántos km antes avisa "Programar servicio" (5J): el propio de la unidad o el general. */
+  warning: UnitWarningInfo;
   items: Maintenance[];
   /** Las demás unidades, para "Aplicar también a" al agregar. */
   targets: MaintenanceTarget[];
@@ -86,6 +89,28 @@ export function UnitMaintenance(props: UnitMaintenanceProps) {
               : canEdit
                 ? `${economicNumber} no tiene mantenimientos programados. Al agregar uno puedes aplicarlo también a otras unidades.`
                 : `${economicNumber} no tiene mantenimientos programados.`}
+          </p>
+          <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+            <Gauge className="size-4 shrink-0 text-brand-ink" aria-hidden="true" />
+            <span className="min-w-0">
+              {props.isBox ? (
+                "Sin odómetro: avisa “Programar servicio” 30 días antes de la fecha."
+              ) : (
+                <>
+                  Avisa “Programar servicio”{" "}
+                  <span className="font-medium whitespace-nowrap text-foreground">{formatKm(props.warning.km)}</span> antes
+                  {props.warning.own ? " (aviso propio de esta unidad)" : " (aviso general)"}, o 30 días antes si va por meses.
+                </>
+              )}
+            </span>
+            {canEdit && !props.isBox && (
+              <Link
+                href="/mantenimientos"
+                className="inline-flex min-h-11 items-center font-medium text-brand-ink underline underline-offset-4 hover:text-brand-cyan"
+              >
+                Cambiar en Mantenimientos
+              </Link>
+            )}
           </p>
         </div>
         {canEdit && (

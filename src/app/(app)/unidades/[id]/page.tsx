@@ -19,7 +19,7 @@ import { UnitStatusBadge } from "@/features/unidades/components/unit-status-badg
 import { UnitReadings } from "@/features/kilometraje/components/unit-readings";
 import { listRemovedReadings, listUnitReadings, UNIT_READINGS_BATCH_SIZE } from "@/features/kilometraje/queries";
 import { UnitMaintenance } from "@/features/mantenimientos/components/unit-maintenance";
-import { listMaintenanceTargets, listUnitMaintenance } from "@/features/mantenimientos/queries";
+import { getUnitWarning, listMaintenanceTargets, listUnitMaintenance } from "@/features/mantenimientos/queries";
 import { UnitMileageActions } from "@/features/unidades/components/unit-mileage";
 import {
   getUnit,
@@ -49,7 +49,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
   const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [user, unit, totals, sale, shopStays, mileage, maintenance, maintenanceTargets, types, readings, removedReadings] = await Promise.all([
+  const [user, unit, totals, sale, shopStays, mileage, maintenance, maintenanceTargets, maintenanceWarning, types, readings, removedReadings] = await Promise.all([
     getCurrentUser(),
     getUnit(id),
     getUnitTotals(id),
@@ -58,6 +58,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
     getUnitMileage(id),
     listUnitMaintenance(id),
     listMaintenanceTargets(id),
+    getUnitWarning(id),
     getUnitTypes(),
     listUnitReadings(id),
     listRemovedReadings(id),
@@ -175,6 +176,7 @@ async function UnitSheet({ params, searchParams }: Pick<Props, "params" | "searc
         economicNumber={unit.economicNumber}
         isBox={!hasOdometer}
         currentKm={mileage.last?.km ?? null}
+        warning={maintenanceWarning}
         items={maintenance}
         targets={maintenanceTargets}
         // Una unidad de baja o vendida ya no se programa; lo que tenía se sigue viendo.
