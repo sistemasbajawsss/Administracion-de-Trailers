@@ -27,12 +27,18 @@ export function UnitMultiPicker({
   value,
   onChange,
   byKm,
+  standalone = false,
 }: {
   units: MaintenanceTarget[];
   value: string[];
   onChange: (ids: string[]) => void;
   /** El mantenimiento lleva km: a las cajas y a las que no tienen kilometraje solo pasa lo de meses. */
   byKm: boolean;
+  /**
+   * Se eligen unidades sueltas (aviso de kilometraje), no "otras además de esta":
+   * los textos dicen "unidades" en lugar de "más" o "solo esta unidad".
+   */
+  standalone?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -72,11 +78,17 @@ export function UnitMultiPicker({
     <>
       <div className="flex min-w-0 flex-col gap-3 rounded-xl border bg-white p-4">
         {selected.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Solo a esta unidad.</p>
+          <p className="text-sm text-muted-foreground">{standalone ? "Ninguna unidad elegida." : "Solo a esta unidad."}</p>
         ) : (
           <div className="min-w-0">
             <p className="mb-2 text-sm font-medium">
-              {selected.length === units.length ? `Todas las demás (${unitsLabel(selected.length)})` : `${unitsLabel(selected.length)} más`}
+              {standalone
+                ? selected.length === units.length
+                  ? `Todas (${unitsLabel(selected.length)})`
+                  : unitsLabel(selected.length)
+                : selected.length === units.length
+                  ? `Todas las demás (${unitsLabel(selected.length)})`
+                  : `${unitsLabel(selected.length)} más`}
             </p>
             <ul className="flex flex-wrap gap-1.5">
               {selected.map((u) => (
@@ -119,7 +131,9 @@ export function UnitMultiPicker({
           className="mx-auto flex max-h-[88dvh] max-w-3xl flex-col gap-0 rounded-t-2xl p-0"
         >
           <SheetHeader className="border-b pb-4">
-            <SheetTitle className="font-heading text-2xl font-semibold">¿A qué otras unidades se aplica?</SheetTitle>
+            <SheetTitle className="font-heading text-2xl font-semibold">
+              {standalone ? "¿A qué unidades se aplica?" : "¿A qué otras unidades se aplica?"}
+            </SheetTitle>
             <SheetDescription>Toca las unidades para marcarlas o desmarcarlas.</SheetDescription>
             <div className="relative mt-3">
               <Search
@@ -212,7 +226,13 @@ export function UnitMultiPicker({
 
           <SheetFooter className="border-t p-4">
             <Button type="button" size="touch" className="w-full" onClick={() => setOpen(false)}>
-              {selected.length ? `Listo: ${unitsLabel(selected.length)} más` : "Listo: solo esta unidad"}
+              {standalone
+                ? selected.length
+                  ? `Listo: ${unitsLabel(selected.length)}`
+                  : "Listo"
+                : selected.length
+                  ? `Listo: ${unitsLabel(selected.length)} más`
+                  : "Listo: solo esta unidad"}
             </Button>
           </SheetFooter>
         </SheetContent>

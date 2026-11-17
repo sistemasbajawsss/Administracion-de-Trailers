@@ -438,6 +438,22 @@ Salió de la revisión de riesgos del 2026-11-13 (puntos 5, 6 y 7). Decisiones d
 - El capturista no puede agregar, editar ni mover servicios a un mes cerrado, ni por API; el admin sí, con motivo; reabrir queda registrado.
 - Las baterías anteriores siguen pasando.
 
+### 5J — Avisos de mantenimiento (acordada 2026-11-17, el usuario dijo "empieza")
+Pedido del usuario: avisar con tiempo que a una unidad le toca su mantenimiento (4,000 km antes), porque si sale de viaje regresa ya pasada; en Mantenimientos, tarjetas de "Realizar mantenimiento ahora" separadas de lo demás y mejor orden. Decisiones del usuario (2026-11-17):
+- **D19 — Tres niveles:** **Realizar ahora** (ya se pasó, o le faltan 1,000 km o menos / 15 días o menos), **Programar servicio** (le faltan el aviso de km o menos / 30 días o menos), **Al corriente** (más). Los 1,000 km, 15 y 30 días son fijos.
+- **D20 — Aviso de km lo decide el admin:** uno general (empieza en 4,000 km, para todas) y uno propio para ciertas unidades (las demás usan el general; se puede quitar y vuelve al general). Debe ser mayor a 1,000 km. Solo unidades con kilometraje (las demás se avisan por días). El aviso es cuántos km antes de llegar al intervalo que el usuario capturó (p. ej. cada 30,000 km: avisa a los 26,000).
+- Las tarjetas de "Realizar ahora" y "Programar" se ven abiertas, con Registrar a la vista; las de "Todas las unidades" siguen cerradas.
+
+**Etapas** (mismas reglas: BD compatible con la app publicada, ensayo en `begin … rollback`, regresión, revisión en navegador y celular)
+- **Etapa 1 — Base de datos:** tablas `ajustes_mantenimiento` (aviso general) y `avisos_mantenimiento_unidad` (aviso propio; aparte de `unidades` para no mover su `updated_at` ni disparar el aviso de ediciones simultáneas); funciones `cambiar_aviso_mantenimiento()`, `poner_aviso_mantenimiento()` (todo o nada), `quitar_aviso_mantenimiento()` (solo admin) y `mantenimientos_estado()` (los tres niveles, con el aviso que usó). `mantenimientos_pendientes()` se queda igual mientras la app publicada la use; se quita después de publicar.
+- **Etapa 2 — Pantalla de Mantenimientos:** resumen con los tres conteos (llevan a su sección), "Realizar mantenimiento ahora" (tarjetas rojas abiertas por mantenimiento, lo más atrasado primero, Registrar), "Programar servicio" (ámbar, de menos a más km), "Todas las unidades" (la lista de hoy, cerrada) y "Aviso de kilometraje" (solo admin: general y por unidades con el selector de unidades).
+- **Etapa 3 — Inicio y ficha:** nombres y colores nuevos; la ficha dice qué aviso tiene la unidad (general o propio). Revisión con los tres roles en 360 px y escritorio.
+
+**Terminado cuando**
+- A una unidad con 30,000 km de intervalo le aparece "Programar servicio" cuando le faltan 4,000 (o el aviso que tenga) y "Realizar ahora" a los 1,000.
+- El admin cambia el aviso general y el de ciertas unidades; capturista y gerente no pueden (ni por API).
+- Las baterías anteriores siguen pasando.
+
 ### Fase 2 — Almacén (a futuro, cuando el almacén físico esté ordenado)
 Decisiones del usuario (2026-11-06):
 - Un solo almacén, con ubicaciones (pasillo / anaquel).

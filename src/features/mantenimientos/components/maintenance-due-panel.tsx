@@ -12,7 +12,7 @@ import { MaintenanceStatusBadge } from "./maintenance-status-badge";
 
 
 /**
- * Aviso de Inicio (5F): mantenimientos vencidos y por vencer de toda la flotilla,
+ * Aviso de Inicio (5F; niveles de la 5J): lo que hay que realizar ahora y lo que conviene programar en toda la flotilla,
  * lo más urgente primero (lo que más se pasó, aunque sea de una unidad de número alto). El admin y el gerente abren la ficha de la unidad; el
  * capturista, el servicio ya preparado para registrarlo.
  */
@@ -27,10 +27,10 @@ export async function MaintenanceDuePanel({
   className?: string;
 }) {
   const due = (await listFleetMaintenance())
-    .filter((m) => m.status === "vencido" || m.status === "por_vencer")
+    .filter((m) => m.status === "realizar_ahora" || m.status === "programar")
     // Antes solo por estado: con más de 8 vencidos se quedaba fuera el más atrasado (auditoría 2026-11-10).
     .sort(byUrgency);
-  const overdue = due.filter((m) => m.status === "vencido").length;
+  const now = due.filter((m) => m.status === "realizar_ahora").length;
 
   return (
     <HomePanel
@@ -46,12 +46,12 @@ export async function MaintenanceDuePanel({
       }
       description={
         due.length
-          ? `${overdue === 1 ? "1 vencido" : `${overdue} vencidos`} y ${due.length - overdue} por vencer.`
+          ? `${now} para realizar ahora y ${due.length - now} por programar.`
           : undefined
       }
     >
       {due.length === 0 ? (
-        <HomePanelEmpty>Ningún mantenimiento vencido ni por vencer.</HomePanelEmpty>
+        <HomePanelEmpty>Nada para realizar ahora ni por programar.</HomePanelEmpty>
       ) : (
         <>
           <ul className="divide-y">
@@ -67,7 +67,7 @@ export async function MaintenanceDuePanel({
                   <span className="min-w-0 flex-1 text-sm">
                     <span className="block font-medium">{m.name}</span>
                     <span
-                      className={cn("block", m.status === "vencido" ? "text-red-800" : "text-amber-800")}
+                      className={cn("block", m.status === "realizar_ahora" ? "text-red-800" : "text-amber-800")}
                     >
                       {describeLeft(m)}
                     </span>
