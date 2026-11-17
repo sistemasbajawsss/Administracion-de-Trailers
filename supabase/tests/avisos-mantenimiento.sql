@@ -1,6 +1,6 @@
 -- Sección 5J, Etapa 1: avisos de mantenimiento (tres niveles, aviso general y
 -- aviso propio de ciertas unidades, permisos).
--- Corre con la migración 20261117193935_avisos_mantenimiento aplicada.
+-- Corre con las migraciones 20261117193935_avisos_mantenimiento y 20261117203357_quitar_mantenimientos_pendientes aplicadas.
 begin;
 -- 5I: el cierre de mes no cuenta en esta prueba (meses reabiertos dentro de la transacción; se deshace al final).
 insert into public.cierres_mes_eventos (mes, accion, motivo, created_by) select g::date, 'reabrir', 'Prueba: meses abiertos', (select id from public.perfiles where rol = 'admin' order by created_at limit 1) from generate_series(date_trunc('month', now()) - interval '36 months', date_trunc('month', now()) - interval '1 month', interval '1 month') g;
@@ -78,11 +78,11 @@ begin
   insert into r(caso, ok, detalle) values ('Niveles por meses (30 y 15 días)',
     t = 'Meses 15=realizar_ahora, Meses 16=programar, Meses 20=programar, Meses 30=programar, Meses 40=al_corriente, Meses vencido=realizar_ahora', t);
 
-  -- La función de antes sigue igual (la usa la app publicada).
-  select estado into t from public.mantenimientos_pendientes(ua) where nombre = 'Falta 3000';
-  insert into r(caso, ok, detalle) values ('mantenimientos_pendientes sin cambios', t = 'al_corriente', t);
-  select estado into t from public.mantenimientos_pendientes(ua) where nombre = 'Se paso 2000';
-  insert into r(caso, ok, detalle) values ('mantenimientos_pendientes: vencido igual', t = 'vencido', t);
+  -- La función de antes ya no existe (20261117203357).
+  select count(*) into n from pg_proc where proname = 'mantenimientos_pendientes' and pronamespace = 'public'::regnamespace;
+  insert into r(caso, ok, detalle) values ('mantenimientos_pendientes ya no existe', n = 0, n::text);
+  select faltan_dias into n from public.mantenimientos_estado(ua) where nombre = 'Se paso 2000';
+  insert into r(caso, ok, detalle) values ('Por km no tiene días', n is null, coalesce(n::text, 'null'));
 
   -- Aviso propio de 6,000 km para ua.
   n := public.poner_aviso_mantenimiento(array[ua], 6000);

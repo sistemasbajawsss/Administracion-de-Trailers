@@ -118,7 +118,7 @@ begin
   end;
 
   -- Lo pendiente de las otras sale bien.
-  select * into p from public.mantenimientos_pendientes(ub) where nombre = 'Cambio de aceite';
+  select * into p from public.mantenimientos_estado(ub) where nombre = 'Cambio de aceite';
   insert into r(caso, ok, detalle) values ('Pendiente de otra: al corriente, faltan 15,000', p.estado = 'al_corriente' and p.faltan_km = 15000, p.estado || ' ' || p.faltan_km);
 exception when others then
   insert into r(caso, ok, detalle) values ('Bloque admin', false, sqlerrm);

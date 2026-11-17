@@ -117,7 +117,7 @@ begin
     for i in 1..3 loop
       -- Página Mantenimientos (Correctivos), aviso de Inicio y formulario: lo pendiente de todas.
       v_t0 := clock_timestamp();
-      select count(*) into v_n from public.mantenimientos_pendientes();
+      select count(*) into v_n from public.mantenimientos_estado();
       perform count(*) from public.unidades;
       insert into m values (r.rol, 'Mantenimientos / Inicio: lo pendiente de todas', extract(epoch from clock_timestamp() - v_t0) * 1000, v_n);
 
@@ -137,7 +137,7 @@ begin
 
       if r.rol <> 'capturista' then
         v_t0 := clock_timestamp();
-        select count(*) into v_n from public.mantenimientos_pendientes(v_u);
+        select count(*) into v_n from public.mantenimientos_estado(v_u);
         perform count(*) from public.kilometraje_unidades(v_u);
         insert into m values (r.rol, 'Ficha: mantenimientos y kilometraje', extract(epoch from clock_timestamp() - v_t0) * 1000, v_n);
       end if;

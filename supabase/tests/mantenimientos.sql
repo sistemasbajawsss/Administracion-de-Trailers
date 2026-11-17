@@ -45,29 +45,29 @@ begin
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km)
   values (ua, '  Cambio   de aceite ', 15000, hoy - 60, 90000) returning id into m;
   insert into x values ('m_aceite', m);
-  select * into p from public.mantenimientos_pendientes(ua) where id = m;
+  select * into p from public.mantenimientos_estado(ua) where id = m;
   insert into r(caso, ok, detalle) values ('Nombre limpio', p.nombre = 'Cambio de aceite', p.nombre);
   insert into r(caso, ok, detalle) values ('Próximo km y faltan', p.proximo_km = 105000 and p.faltan_km = 5000, p.proximo_km || ' / ' || p.faltan_km);
   insert into r(caso, ok, detalle) values ('Por km no tiene fecha', p.proxima_fecha is null, coalesce(p.proxima_fecha::text, 'sin fecha'));
   insert into r(caso, ok, detalle) values ('Al corriente', p.estado = 'al_corriente', p.estado);
 
-  -- Por vencer por km (faltan 800).
+  -- Realizar ahora por km (faltan 800; antes "por vencer", 5J).
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km)
   values (ua, 'Engrasado', 10000, hoy - 10, 90800) returning id into m;
-  select * into p from public.mantenimientos_pendientes(ua) where id = m;
-  insert into r(caso, ok, detalle) values ('Por vencer por km', p.estado = 'por_vencer' and p.faltan_km = 800, p.estado || ' ' || p.faltan_km);
+  select * into p from public.mantenimientos_estado(ua) where id = m;
+  insert into r(caso, ok, detalle) values ('Realizar ahora por km (faltan 800)', p.estado = 'realizar_ahora' and p.faltan_km = 800, p.estado || ' ' || p.faltan_km);
 
   -- Vencido por fecha (cada 3 meses, hecho hace 4).
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_meses, desde_fecha)
   values (ua, 'Filtro de aire', 3, hoy - 120) returning id into m;
-  select * into p from public.mantenimientos_pendientes(ua) where id = m;
-  insert into r(caso, ok, detalle) values ('Vencido por fecha', p.estado = 'vencido', p.estado || ' ' || p.faltan_dias);
+  select * into p from public.mantenimientos_estado(ua) where id = m;
+  insert into r(caso, ok, detalle) values ('Vencido por fecha: realizar ahora', p.estado = 'realizar_ahora' and p.faltan_dias < 0, p.estado || ' ' || p.faltan_dias);
 
-  -- Por vencer por fecha (vence en 10 días).
+  -- Realizar ahora por fecha (vence en 10 días; antes "por vencer", 5J).
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_meses, desde_fecha)
   values (ua, 'Revisión de luces', 1, (hoy + 10 - interval '1 month')::date) returning id into m;
-  select * into p from public.mantenimientos_pendientes(ua) where id = m;
-  insert into r(caso, ok, detalle) values ('Por vencer por fecha', p.estado = 'por_vencer', p.estado || ' ' || p.faltan_dias);
+  select * into p from public.mantenimientos_estado(ua) where id = m;
+  insert into r(caso, ok, detalle) values ('Realizar ahora por fecha (10 días)', p.estado = 'realizar_ahora', p.estado || ' ' || p.faltan_dias);
 
   -- Solo meses: no guarda km de partida.
   select desde_km into n from public.mantenimientos_unidad where id = m;
@@ -113,7 +113,7 @@ begin
 
   -- Quitar = desactivar; ya no sale en lo pendiente y se puede volver a crear con el mismo nombre.
   update public.mantenimientos_unidad set activo = false where id = (select v from x where k = 'm_aceite');
-  select count(*) into n from public.mantenimientos_pendientes(ua) where id = (select v from x where k = 'm_aceite');
+  select count(*) into n from public.mantenimientos_estado(ua) where id = (select v from x where k = 'm_aceite');
   insert into r(caso, ok, detalle) values ('Desactivado no sale en pendientes', n = 0, n::text);
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km)
   values (ua, 'Cambio de aceite', 15000, hoy, 100000);
@@ -133,7 +133,7 @@ begin
 
   -- Sin km: estado sin_kilometraje para los de solo km.
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_km, desde_fecha, desde_km) values (ub, 'Solo km', 5000, hoy, 0);
-  select * into p from public.mantenimientos_pendientes(ub) where nombre = 'Solo km';
+  select * into p from public.mantenimientos_estado(ub) where nombre = 'Solo km';
   insert into r(caso, ok, detalle) values ('Unidad sin km: sin_kilometraje', p.estado = 'sin_kilometraje', p.estado);
 exception when others then
   insert into r(caso, ok, detalle) values ('Bloque admin', false, sqlerrm);
@@ -144,7 +144,7 @@ reset role;
 select set_config('request.jwt.claims', json_build_object('sub', (select v from x where k = 'capt'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 insert into r(caso, ok, detalle)
-select 'Capturista ve lo pendiente', count(*) >= 4, count(*)::text from public.mantenimientos_pendientes((select v from x where k = 'ua'));
+select 'Capturista ve lo pendiente', count(*) >= 4, count(*)::text from public.mantenimientos_estado((select v from x where k = 'ua'));
 do $$
 begin
   insert into public.mantenimientos_unidad (unidad_id, nombre, cada_meses, desde_fecha)
@@ -172,7 +172,7 @@ reset role;
 select set_config('request.jwt.claims', json_build_object('sub', (select v from x where k = 'ger'), 'role', 'authenticated')::text, true);
 set local role authenticated;
 insert into r(caso, ok, detalle)
-select 'Gerente ve lo pendiente de todas', count(*) >= 8, count(*)::text from public.mantenimientos_pendientes();
+select 'Gerente ve lo pendiente de todas', count(*) >= 8, count(*)::text from public.mantenimientos_estado();
 do $$
 declare n integer;
 begin
@@ -187,7 +187,7 @@ reset role;
 set local role anon;
 do $$
 begin
-  perform public.mantenimientos_pendientes();
+  perform public.mantenimientos_estado();
   insert into r(caso, ok, detalle) values ('Anónimo no ve', false, 'pudo');
 exception when others then
   insert into r(caso, ok, detalle) values ('Anónimo no ve', true, sqlerrm);

@@ -1689,27 +1689,6 @@ export type Database = {
           unidad_id: string
         }[]
       }
-      mantenimientos_pendientes: {
-        Args: { p_unidad_id?: string }
-        Returns: {
-          cada_km: number
-          cada_meses: number
-          desde_fecha: string
-          desde_km: number
-          estado: string
-          faltan_dias: number
-          faltan_km: number
-          id: string
-          km_actual: number
-          nombre: string
-          proxima_fecha: string
-          proximo_km: number
-          ultima_fecha: string
-          ultimo_km: number
-          ultimo_servicio_id: string
-          unidad_id: string
-        }[]
-      }
       marcar_ticket_enterado: {
         Args: { p_ticket_id: string }
         Returns: undefined
