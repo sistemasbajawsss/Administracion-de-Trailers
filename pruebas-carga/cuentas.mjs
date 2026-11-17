@@ -66,7 +66,7 @@ async function crear() {
   for (const a of ACCOUNTS) {
     // La política de contraseñas de Supabase pide minúscula, mayúscula, número y símbolo.
     const password = `${randomBytes(24).toString("base64url")}aZ7.`;
-    const { error } = await admin.auth.admin.createUser({
+    const { data, error } = await admin.auth.admin.createUser({
       email: a.email,
       password,
       email_confirm: true,
@@ -74,6 +74,10 @@ async function crear() {
       app_metadata: { rol: a.role },
     });
     if (error) throw new Error(`No se pudo crear ${a.email}: ${error.message}`);
+    // Supabase Auth guarda app_metadata después de crear el usuario, así que el
+    // trigger que crea el perfil no alcanza a ver el rol: se pone aquí.
+    const { error: roleError } = await admin.from("perfiles").update({ rol: a.role }).eq("id", data.user.id);
+    if (roleError) throw new Error(`No se pudo poner el rol de ${a.email}: ${roleError.message}`);
     const key = a.role.toUpperCase();
     lines.push(`K6_${key}_EMAIL=${a.email}`, `K6_${key}_PASSWORD=${password}`);
     console.log(`Creada: ${a.name} (${a.email})`);
