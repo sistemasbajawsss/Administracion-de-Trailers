@@ -8,7 +8,7 @@ import { cn } from "cn";
 
 import { createClient } from "@/lib/supabase/client";
 
-import { getLatestAdminApprovals } from "../actions";
+import { getLatestAdminApprovals, refreshAfterTicketChange } from "../actions";
 import type { AdminApproval } from "../types";
 
 type Totals = { created: number; urgent: number };
@@ -60,7 +60,11 @@ export function TicketsLive({
 
     const refreshSoon = () => {
       if (timer.current) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => router.refresh(), 400);
+      // La acción del servidor actualiza la pantalla abierta y borra las ya vistas
+      // (staleTimes de 30 s). Sin conexión, al menos la pantalla abierta.
+      timer.current = window.setTimeout(() => {
+        refreshAfterTicketChange().catch(() => router.refresh());
+      }, 400);
     };
 
     const clearAlert = () => {

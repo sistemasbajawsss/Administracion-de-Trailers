@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireRole } from "@/lib/auth/get-current-user";
@@ -128,6 +128,17 @@ export async function loadMoreTicketHistory(offset: unknown): Promise<ActionResu
   } catch {
     return fail("No se pudieron cargar más tickets. Inténtalo de nuevo.");
   }
+}
+
+/**
+ * Cuando Realtime avisa que un ticket cambió (5K): vuelve a pedir la pantalla
+ * abierta y además borra las pantallas ya vistas que el navegador guarda 30 s
+ * (staleTimes), para que Tickets, Inicio y Taller salgan al día al abrirlas.
+ * router.refresh() solo actualizaría la pantalla abierta.
+ */
+export async function refreshAfterTicketChange(): Promise<void> {
+  await requireRole(ROLES);
+  refresh();
 }
 
 /** Para el aviso de los capturistas: quién aprobó las últimas N (sin las del propio usuario). */
