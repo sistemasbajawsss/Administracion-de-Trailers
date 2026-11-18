@@ -38,7 +38,7 @@ export async function newUser(browser, key) {
   await page.locator('input[type="email"]').fill(env[`K6_${key}_EMAIL`]);
   await page.locator('input[type="password"]').fill(env[`K6_${key}_PASSWORD`]);
   await page.locator('button[type="submit"]').click();
-  await waitUrl(page, (u) => !u.includes("/login"), 30000);
+  await waitUrl(page, (u) => !u.includes("/login"), 90000);
   await idle(page);
   return { context, page };
 }
@@ -64,7 +64,7 @@ export const errorScreens = [];
 
 export async function go(page, path) {
   for (let attempt = 1; attempt <= 2; attempt++) {
-    await page.goto(`${BASE}${path}`);
+    await page.goto(`${BASE}${path}`, { timeout: 90000 });
     await idle(page, 1200);
     let text = "";
     try {
@@ -220,12 +220,13 @@ export function session(browser) {
       if (!context) context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "es-MX", timezoneId: "America/Tijuana" });
       else await context.clearCookies();
       page = await context.newPage();
-      await page.goto(`${BASE}/login`);
+      // Con varios navegadores arrancando a la vez la primera carga tarda más.
+      await page.goto(`${BASE}/login`, { timeout: 90000 });
       await page.locator('input[type="email"]').fill(env[`K6_${key}_EMAIL`]);
       await page.locator('input[type="password"]').fill(env[`K6_${key}_PASSWORD`]);
       await page.locator('button[type="submit"]').click();
       try {
-        await waitUrl(page, (u) => !u.includes("/login"), 30000);
+        await waitUrl(page, (u) => !u.includes("/login"), 90000);
       } catch {
         const text = await safeText(page);
         throw new Error(`No pudo entrar como ${key}; la pantalla de login dice: ${text.slice(0, 300)}`);

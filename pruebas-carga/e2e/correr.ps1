@@ -25,7 +25,7 @@ foreach ($line in $lines) {
   $msg = if ($line -match 'msg="(.*)" source=') { $Matches[1] -replace '\\"', '"' -replace '\\n', "`n" } else { $line }
   if ($msg.StartsWith("LEDGER ")) {
     $msg.Substring(7) | Out-File -Encoding utf8 (Join-Path $here "resultados\$Guion.json")
-  } elseif ($msg -match '^(BIEN|FALLA|avisos al guardar)|casos bien|^\s+FALLA|Uncaught|level=error') {
+  } elseif ($msg -match '^(BIEN|FALLA|avisos al guardar|HORA|CARRERA|AVISO|ADMIN abri|GERENTE abri)|casos bien|^\s+FALLA|Uncaught|level=error') {
     $msg
   }
 }

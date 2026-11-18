@@ -8,29 +8,8 @@
 import { browser } from "k6/browser";
 
 import { get, one, rpc, toCents, unitId, usdToMxnCents } from "./api.js";
-import {
-  BASE,
-  MARK,
-  check,
-  choose,
-  clickButton,
-  attachFile,
-  fill,
-  fillDate,
-  makePdf,
-  formErrors,
-  go,
-  idle,
-  money,
-  session,
-  pageText,
-  report,
-  results,
-  shot,
-  toasts,
-  waitToast,
-  waitUrl,
-} from "./lib.js";
+import { MARK, check, clickButton, fill, fillDate, formErrors, go, idle, money, pageText, report, results, session, shot, waitToast } from "./lib.js";
+import { fillService, pickUnit, radio, saveService } from "./formulario.js";
 
 export const options = {
   scenarios: { capturas: { executor: "shared-iterations", vus: 1, iterations: 1, maxDuration: "30m", options: { browser: { type: "chromium" } } } },
@@ -56,87 +35,17 @@ async function step(name, given, fn) {
   }
 }
 
-async function pickUnit(page, number) {
-  await page.locator("#unitId").click();
-  await idle(page, 500);
-  await fill(page, 'input[aria-label="Buscar unidad por número económico"]', number);
-  await idle(page, 400);
-  await page.locator(`//button[@aria-pressed][.//span[normalize-space(.)="${number}"]]`).first().click();
-  await idle(page, 800);
-}
-
-async function radio(page, name, value) {
-  await page.locator(`//label[.//input[@name="${name}" and @value="${value}"]]`).click();
-  await idle(page, 300);
-}
-
-/** Llena el formulario de servicio nuevo y lo guarda. Regresa el id del servicio. */
+/** Llena y guarda el servicio (formulario.js). Regresa el id del servicio. */
 async function captureService(page, s) {
-  await go(page, "/servicios/nuevo");
-  await pickUnit(page, s.unit);
-  if (s.shopReason) await clickButton(page, s.shopReason);
-  if (s.shopReasonText) await fill(page, "#noEntryReason", s.shopReasonText);
-  await radio(page, "serviceType", s.type);
-  if (s.maintenance) {
-    await page.locator(`//label[.//input[@type="checkbox"]][contains(normalize-space(.), "${s.maintenance}")]`).click();
-    await idle(page, 300);
+  const shownTotal = await fillService(page, s);
+  const r = await saveService(page);
+  if (r.asked) {
+    check(`${s.unit}: la app avisa que ya hay un servicio así ese día`, true);
+    ledger.notes.push(`${s.unit}: la app preguntó por un servicio parecido del mismo día`);
   }
-  await radio(page, "place", s.place);
-  if (s.workshop) await choose(page, "#workshopId", s.workshop);
-  if (s.partsBy) await radio(page, "partsBy", s.partsBy);
-  await fillDate(page, "#date", s.date);
-  if (s.km !== undefined) await fill(page, "#mileage", s.km);
-  await fill(page, "#description", s.description);
-
-  for (let i = 0; i < s.expenses.length; i++) {
-    const e = s.expenses[i];
-    if (i > 0) await clickButton(page, "Agregar otro gasto");
-    await choose(page, `#expense-${i}-category`, e.category);
-    await fill(page, `#expense-${i}-concept`, e.concept);
-    if (e.currency === "USD") {
-      await page.locator(`//*[@aria-label="Moneda del gasto ${i + 1}"]//*[normalize-space(.)="Dólares"]`).click();
-      // La app sugiere el tipo de cambio de Banxico; se espera y se pone el fijo de la prueba.
-      await idle(page, 2500);
-      await fill(page, `#expense-${i}-rate`, e.rate);
-    }
-    await fill(page, `#expense-${i}-amount`, e.amount);
-  }
-
-  if (s.receipt) {
-    await attachFile(page, 'input[type="file"][multiple]', `prueba-e2e-${s.receipt}.pdf`, "application/pdf", makePdf(`PRUEBA E2E ${s.unit}`));
-    await idle(page, 2000);
-    const listed = (await pageText(page)).includes(`prueba-e2e-${s.receipt}.pdf`);
-    check(`${s.unit}: el comprobante aparece en el formulario`, listed, listed ? "" : (await formErrors(page)).join(" | "));
-  }
-
-  const shownTotal = await page.locator('//p[@aria-live="polite"][contains(@class, "text-3xl")]').textContent();
-  await clickButton(page, "Guardar servicio");
-  // Si ya hay un servicio de la unidad ese día, la app pregunta antes de guardar.
-  const end = Date.now() + 40000;
-  let asked = false;
-  const seenToasts = [];
-  const keepToasts = async () => {
-    for (const t of await toasts(page)) if (!seenToasts.includes(t)) seenToasts.push(t);
-  };
-  while (Date.now() < end) {
-    await keepToasts();
-    const path = page.url().replace(BASE, "").split("?")[0];
-    if (/^\/servicios\/[0-9a-f-]{36}$/.test(path)) break;
-    if (!asked && (await page.locator('//button[contains(normalize-space(.), "es otro, guardar")]').count()) > 0) {
-      asked = true;
-      check(`${s.unit}: la app avisa que ya hay un servicio así ese día`, true);
-      ledger.notes.push(`${s.unit}: la app preguntó por un servicio parecido del mismo día`);
-      await clickButton(page, "es otro, guardar");
-    }
-    await page.waitForTimeout(300);
-  }
-  await waitUrl(page, (u) => /^\/servicios\/[0-9a-f-]{36}$/.test(u.split("?")[0]), 1000);
-  const id = page.url().replace(BASE, "").split("?")[0].split("/")[2];
-  await idle(page, 1000);
-  await keepToasts();
-  ledger.notes.push(`${s.unit}: avisos al guardar: ${seenToasts.join(" | ")}`);
-  if (s.receipt) console.log(`avisos al guardar ${s.unit}: ${seenToasts.join(" | ")}`);
-  return { id, shownTotal: shownTotal.trim(), toasts: seenToasts };
+  ledger.notes.push(`${s.unit}: avisos al guardar: ${r.toasts.join(" | ")}`);
+  if (s.receipt) console.log(`avisos al guardar ${s.unit}: ${r.toasts.join(" | ")}`);
+  return { id: r.id, shownTotal, toasts: r.toasts };
 }
 
 /** Lo que la BD guardó del servicio, para compararlo con lo capturado. */

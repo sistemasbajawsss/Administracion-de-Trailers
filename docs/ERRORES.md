@@ -124,6 +124,7 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 - **Ediciones con Perl `s|...|...|` usando `\|` en el patrón corrompieron 4 archivos; ediciones con Perl o sed no aplicaban en archivos CRLF.** — **Regla:** editar con la herramienta Edit (o un script de Node que normalice CRLF y falle si no encuentra el texto). No usar Perl para reemplazos. Revisar con `npx tsc --noEmit` después. — 2026-11-09.
 - **No hay Python en esta máquina; heredocs de Bash con comillas dentro fallaban.** — **Regla:** scripts con Node; textos largos (SQL) se escriben con la herramienta Write y se concatenan. — 2026-11-10.
 - **El CLI de Supabase lee mal rutas con `C:` y detecta a Claude Code como agente.** — **Regla:** rutas relativas desde la carpeta del proyecto; `login`/`link` en CMD aparte con `--agent no`. — memoria, ESTADO.
+- **Prueba de 7 navegadores a la vez en la misma laptop que la app: fallaban los logins y se quedaban comprobantes en "Subiendo".** — Causa: los 7 Edge arrancando juntos dejaron el procesador al 100 % más de 2 minutos y la app tardó hasta 19 s en contestar; no era falla de la app (con los navegadores ya abiertos contestó en menos de 140 ms con todos guardando). — **Regla:** en pruebas con varios navegadores en la misma máquina, escalonar la entrada (uno cada 20 s) y medir procesador y tiempo de respuesta durante la corrida antes de culpar a la app. — 5L etapa 4, 2026-11-18.
 - **`npm audit` marca `deepmerge` por `shadcn`.** — **Regla:** `shadcn` en devDependencies; no bajar versiones como sugiere npm. — ESTADO 5B.
 
 ## 10. Forma de trabajar
