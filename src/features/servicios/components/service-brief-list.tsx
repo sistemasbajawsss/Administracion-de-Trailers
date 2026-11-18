@@ -28,7 +28,7 @@ export function ServiceBriefList({
     <ul className="divide-y">
       {services.map((service) => (
         <li key={service.id}>
-          <Link
+          <Link prefetch={false}
             href={`/servicios/${service.id}`}
             className="flex min-h-14 items-center gap-3 px-1 py-2 outline-none hover:bg-muted/50 focus-visible:bg-muted"
           >

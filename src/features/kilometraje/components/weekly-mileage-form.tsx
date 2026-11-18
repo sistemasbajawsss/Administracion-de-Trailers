@@ -432,7 +432,7 @@ function MileageRow({
   const permission = row.reading ? readingPermission(row.reading, user, today) : null;
 
   const number = canOpenUnits ? (
-    <Link
+    <Link prefetch={false}
       href={`/unidades/${row.unitId}`}
       className="rounded-sm font-heading text-2xl leading-none font-bold tracking-wide text-brand-ink tabular-nums underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
     >

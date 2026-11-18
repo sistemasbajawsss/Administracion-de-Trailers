@@ -108,7 +108,7 @@ export function ShopBoard({
 
             {canCapture && (
               <div className="mt-auto flex flex-col gap-2 border-t p-4 pt-4 sm:flex-row sm:p-5 sm:pt-4">
-                <Link
+                <Link prefetch={false}
                   href={`/servicios/nuevo?unidad=${entry.unitId}`}
                   className={buttonVariants({ size: "touch", className: "w-full sm:w-auto" })}
                 >

@@ -57,7 +57,7 @@ export async function MaintenanceDuePanel({
           <ul className="divide-y">
             {due.slice(0, rows).map((m) => (
               <li key={m.id}>
-                <Link
+                <Link prefetch={false}
                   href={openUnits ? `/unidades/${m.unitId}` : registerMaintenanceHref(m)}
                   className="flex min-h-14 items-center gap-3 px-1 py-2 outline-none hover:bg-muted/50 focus-visible:bg-muted"
                 >

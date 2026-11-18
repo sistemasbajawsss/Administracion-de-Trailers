@@ -147,7 +147,7 @@ export function ShopStays({
                         const releasedIt = service.id === stay.exitServiceId;
                         return (
                           <li key={service.id}>
-                            <Link
+                            <Link prefetch={false}
                               href={`/servicios/${service.id}`}
                               className="flex min-h-12 items-start gap-3 py-2 outline-none hover:bg-muted/50 focus-visible:bg-muted"
                             >
