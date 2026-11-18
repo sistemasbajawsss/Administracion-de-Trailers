@@ -174,6 +174,11 @@ export async function prepareReceiptFile(file: File): Promise<PreparedReceipt> {
     throw new ReceiptFileError(`El archivo pesa ${formatFileSize(blob.size)}; el máximo es 10 MB.`);
   }
 
+  // Storage toma el tipo del archivo, no el que se le dice: algunos celulares
+  // (archivos de WhatsApp o Drive en Android) lo mandan vacío y se rechazaba
+  // como application/octet-stream. Se sube con el tipo que se detectó (5L).
+  if (blob.type !== mimeType) blob = new Blob([blob], { type: mimeType });
+
   return {
     blob,
     mimeType,

@@ -60,3 +60,28 @@ K6_BROWSER_EXECUTABLE_PATH="C:/Program Files (x86)/Microsoft/Edge/Application/ms
   el perfil no ve el rol y lo deja en capturista. `cuentas.mjs` pone el rol después.
 - La capturista de prueba no tiene servicios propios: sus pantallas pesan menos que las
   de una capturista real. El admin y el gerente sí ven todos los datos `[PRUEBA]`.
+
+## Pruebas de punta a punta (5L)
+
+Usuarios simulados que usan la app como personas (k6 browser con Edge aislado):
+capturan servicios, mantenimientos, tickets y kilometraje, y se comprueba que los
+totales cuadren en todas las pantallas. Todo lo que capturan lleva `[PRUEBA E2E]`
+y se borra en la limpieza. Plan en `docs/PLAN.md` › 5L.
+
+```
+node pruebas-carga/cuentas.mjs crear          # admin, gerente y 5 capturistas
+cd pruebas-carga
+k6 run e2e/preparar.js                        # unidades T-901, T-902, R-901, C-901
+```
+
+Cada guion se corre con `powershell -ExecutionPolicy Bypass -File e2e/correr.ps1 <guion>`
+(deja el resultado en `e2e/resultados/<guion>.json`):
+
+- `capturas`: etapa 2, un usuario a la vez (servicios, kilometraje, taller, tickets, editar, eliminar, mes cerrado).
+- `numeros` y `node e2e/excel.mjs`: etapa 3, Reportes, ficha, Gastos y Excel contra un cálculo aparte.
+- `android`: comprobante PDF sin tipo, como llega de algunos celulares.
+- `simultaneo`: etapa 4, siete navegadores a la vez (unos 15 minutos). Entran uno cada
+  20 s: si arrancan juntos, el procesador de la laptop se satura y la app, que corre
+  en la misma laptop, tarda en contestar. Conviene cerrar los programas pesados.
+
+Las capturas de pantalla de las fallas quedan en `e2e/capturas/` (no se suben a git).

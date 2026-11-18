@@ -473,6 +473,26 @@ Pedido del usuario: que no se vuelva a consultar lo que ya se vio al regresar a 
 - La proyección de 20 usuarios al mes queda con margen dentro de las 4 h de procesador de Vercel Hobby.
 - `npm run build` y `npm run lint` pasan; las baterías de `supabase/tests` siguen en verde; las cuentas de prueba están borradas.
 
+### 5L — Pruebas de punta a punta con usuarios simulados (acordada 2026-11-18, pendiente de que el usuario diga "empieza")
+Pedido del usuario (2026-11-18), antes de capturar datos reales: usuarios simulados trabajando como personas (capturar servicios, mantenimientos, preventivos, reparaciones en camino) y revisar que todo cae donde debe, que las gráficas calculan bien, que pesos y dólares cuadran y que no hay diferencias entre pantallas.
+- **D24 — En el proyecto actual, antes de la limpieza (el usuario eligió la opción B):** todavía no hay datos reales. Todo lo que se capture lleva la marca `[PRUEBA E2E]` y se borra en la limpieza final, junto con los `[PRUEBA]` de antes. Sin costo: app compilada en la computadora del usuario (no se toca Vercel), k6 ya instalado.
+- **D25 — Unidades propias de la prueba (decisión propia):** para no cambiar kilometraje, taller ni avisos de las 41 unidades, la prueba da de alta las suyas (`T-901`, `T-902` con odómetro, una caja sin odómetro y una camioneta) con la nota `[PRUEBA E2E]`. Las cuentas: admin, gerente y dos capturistas `[PRUEBA K6]` (se borran al final). El cierre de mes se prueba cerrando y reabriendo un mes pasado (afecta a todos mientras dura; nadie usa la app).
+- **D26 — Comprobación independiente:** el guion sabe lo que capturó y calcula aparte, en centavos, cuánto debe salir (dólares por su tipo de cambio guardado). Compara contra lo que muestra la app (ficha, Gastos, Inicio, Reportes con sus gráficas y ranking, Excel) y contra la base. Como ya hay 1,230 servicios `[PRUEBA]`, los totales generales se comprueban como "cuánto subió" (antes y después). Se revisan los números de las gráficas, no su aspecto (capturas para que el usuario las vea).
+- **D27 — Scripts en `pruebas-carga/e2e/`** (dentro de la carpeta ya aprobada en D23), con k6 browser (Edge aislado: no toca la sesión del usuario).
+
+**Etapas**
+- **Etapa 1 — Preparar:** cuentas, unidades `[PRUEBA E2E]`, mantenimientos programados de esas unidades, build de producción en una copia aparte.
+- **Etapa 2 — Guiones de captura, un usuario a la vez:** servicios en los tres lugares (Taller Realso, Taller de fuera, En camino) con gastos en pesos y en dólares, kilometraje y comprobante; preventivo que cumple un mantenimiento (se reinicia), correctivo y servicio; ticket → aceptar → entrada y salida de taller; kilometraje semanal y avisos; el admin edita, elimina y restaura; mes cerrado que ya no deja capturar.
+- **Etapa 3 — Comprobar números:** cada pantalla contra lo esperado; la lista de diferencias con pantalla, valor esperado y valor que salió.
+- **Etapa 4 — Varios usuarios a la vez:** dos capturistas y el admin capturando y corrigiendo al mismo tiempo; que no se pierda ni se duplique nada y que los totales sigan cuadrando.
+- **Etapa 5 — Informe:** lo que pasó y lo que no. Cada error se corrige en su propia etapa, con el visto bueno del usuario, y se anota en `docs/ERRORES.md`.
+
+**Terminado cuando**
+- Cada caso de las etapas 2 y 4 tiene su resultado (bien o la diferencia encontrada), y los errores encontrados están corregidos o anotados con el usuario.
+- Los totales de ficha, Gastos, Inicio, Reportes y Excel coinciden con el cálculo aparte, al centavo.
+- `npm run build` y `npm run lint` pasan.
+- Lo `[PRUEBA E2E]` queda listo para borrarse en la limpieza (lista de lo creado).
+
 ### Fase 2 — Almacén (a futuro, cuando el almacén físico esté ordenado)
 Decisiones del usuario (2026-11-06):
 - Un solo almacén, con ubicaciones (pasillo / anaquel).
