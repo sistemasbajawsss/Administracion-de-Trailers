@@ -66,7 +66,7 @@ export function TicketsLive({
     const refreshSoon = () => {
       if (timer.current) window.clearTimeout(timer.current);
       // La acción del servidor actualiza la pantalla abierta y borra las ya vistas
-      // (staleTimes de 30 s). Sin conexión, al menos la pantalla abierta.
+      // (staleTimes de 60 s). Sin conexión, al menos la pantalla abierta.
       timer.current = window.setTimeout(() => {
         refreshAfterTicketChange().catch(() => router.refresh());
       }, 400);

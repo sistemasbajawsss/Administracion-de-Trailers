@@ -132,7 +132,7 @@ export async function loadMoreTicketHistory(offset: unknown): Promise<ActionResu
 
 /**
  * Cuando Realtime avisa que un ticket cambió (5K): vuelve a pedir la pantalla
- * abierta y además borra las pantallas ya vistas que el navegador guarda 30 s
+ * abierta y además borra las pantallas ya vistas que el navegador guarda 60 s
  * (staleTimes), para que Tickets, Inicio y Taller salgan al día al abrirlas.
  * router.refresh() solo actualizaría la pantalla abierta.
  */
