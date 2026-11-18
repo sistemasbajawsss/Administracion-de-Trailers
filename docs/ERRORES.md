@@ -25,6 +25,8 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 - **Salida de taller sin servicios y sin explicación.** — **Regla:** sin servicios, la salida exige motivo (BD y diálogo). — commit ce7d1da.
 - **Fechas inexistentes en filtros, sin pantalla de error, `T17` no encontraba `T-17`, faltaban topes en Zod.** — **Regla:** descartar fechas inexistentes; ids uuid; topes en Zod; `src/app/(app)/error.tsx`; `T17` = `T-17`. — commit 6a0bc04.
 
+- **Un comprobante PDF que el navegador entrega sin tipo (archivos de WhatsApp o Drive en algunos Android) se rechazaba al subirlo: "No se pudo subir el archivo".** — Causa: la app detecta que es PDF por su contenido, pero Storage toma el tipo del propio archivo (vacío, `application/octet-stream`) y el bucket solo acepta PDF y fotos (`invalid_mime_type`); el `contentType` que se le pasa no cuenta cuando se sube un Blob. — **Regla:** el archivo que se sube lleva el tipo detectado (`prepareReceiptFile` lo rearma con `new Blob([blob], { type })`). Para probarlo: `pruebas-carga/e2e/android.js` (k6 `setInputFiles` entrega el archivo sin tipo). — Pruebas 5L, 2026-11-18.
+
 ## 2. Pantallas que ofrecen algo que después se rechaza
 
 - **El admin podía intentar cambiarse su propio rol y al guardar marcaba error.** — Causa: la BD lo prohíbe (`proteger_perfil`) pero el diálogo ofrecía el selector. — **Regla:** si la BD o el servidor siempre rechazan algo, la pantalla no lo ofrece: se deshabilita con la explicación, y el servidor da el mismo mensaje claro. El propio rol queda bloqueado (decisión del usuario, 2026-11-10). — Usuario, 2026-11-10.
