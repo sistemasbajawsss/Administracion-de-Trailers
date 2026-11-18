@@ -401,7 +401,7 @@ function DueCard({ item: m, canRegister, canOpenUnits }: { item: FleetMaintenanc
       {(canRegister || canOpenUnits) && (
         <div className="flex flex-col gap-2 sm:items-end">
           {canRegister && (
-            <Link
+            <Link prefetch={false}
               href={registerMaintenanceHref(m)}
               className={cn(buttonVariants({ variant: "default", size: "touch" }), "w-full sm:w-auto")}
             >
@@ -410,7 +410,7 @@ function DueCard({ item: m, canRegister, canOpenUnits }: { item: FleetMaintenanc
             </Link>
           )}
           {canOpenUnits && (
-            <Link
+            <Link prefetch={false}
               href={`/unidades/${m.unitId}`}
               className="inline-flex min-h-11 items-center justify-center text-sm font-medium text-brand-ink underline-offset-4 hover:underline"
             >
@@ -459,7 +459,7 @@ function UnitCard({ unit, canRegister, canOpenUnits }: { unit: Unit; canRegister
         <div className="border-t">
           {canOpenUnits && (
             <div className="border-b bg-muted/30 px-4 py-2 sm:px-5">
-              <Link
+              <Link prefetch={false}
                 href={`/unidades/${unit.unitId}`}
                 className="inline-flex min-h-11 items-center text-sm font-medium text-brand-ink underline-offset-4 hover:underline"
               >
@@ -486,7 +486,7 @@ function UnitCard({ unit, canRegister, canOpenUnits }: { unit: Unit; canRegister
                     <MaintenanceLastTime item={m} linkService={canOpenUnits} />
                   </div>
                   {canRegister && (
-                    <Link
+                    <Link prefetch={false}
                       href={registerMaintenanceHref(m)}
                       className={cn(buttonVariants({ variant: "outline", size: "touch" }), "w-full sm:w-auto")}
                     >

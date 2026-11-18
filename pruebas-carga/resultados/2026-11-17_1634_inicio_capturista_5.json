@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "inicio_capturista",
+    "peticiones":  85,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "inicio_capturista",
+                          "veces":  85,
+                          "tipica_ms":  1724,
+                          "lenta_p95_ms":  8448,
+                          "max_ms":  8781
+                      }
+                  ],
+    "cpu_segundos":  16.4,
+    "cpu_ms_por_peticion":  193.2
+}

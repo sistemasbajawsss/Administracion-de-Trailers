@@ -56,6 +56,15 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // 5K: una pantalla ya vista se reusa 60 s al volver a ella desde el menú, sin
+    // pedirla otra vez al servidor (cada petición gasta procesador de Vercel). Lo
+    // que guarda el propio usuario la borra al momento (las acciones revalidan),
+    // los avisos de tickets también, y jalar hacia abajo o volver a la app después
+    // de 30 s la pide de nuevo. 60 s lo eligió el usuario (2026-11-18): un cambio
+    // de otra persona tarda a lo más un minuto en verse.
+    staleTimes: { dynamic: 60 },
+  },
   // No anunciar con qué está hecha la app.
   poweredByHeader: false,
   // El indicador de desarrollo tapaba el menú de usuario (abajo a la izquierda).

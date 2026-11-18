@@ -17,7 +17,7 @@ export function MaintenanceLastTime({ item, linkService }: { item: Maintenance; 
       {item.lastServiceId && linkService && (
         <>
           {" · "}
-          <Link
+          <Link prefetch={false}
             href={`/servicios/${item.lastServiceId}`}
             className="font-medium whitespace-nowrap text-brand-ink underline underline-offset-4 hover:text-brand-cyan"
           >

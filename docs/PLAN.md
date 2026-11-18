@@ -454,6 +454,25 @@ Pedido del usuario: avisar con tiempo que a una unidad le toca su mantenimiento 
 - El admin cambia el aviso general y el de ciertas unidades; capturista y gerente no pueden (ni por API).
 - Las baterías anteriores siguen pasando.
 
+### 5K — Medición de carga y optimización (acordada 2026-11-17, pendiente de que el usuario diga "empieza")
+Pedido del usuario: que no se vuelva a consultar lo que ya se vio al regresar a una pantalla, y saber cómo no saturar la API con 20 usuarios a la vez. Su uso de Vercel (30 días de pruebas, 2026-11-17): procesador 8 min 16 s de 4 h (3.4 %, ~66 ms por llamada), el límite de Hobby más cercano; si se pasa, Vercel pausa la app hasta el siguiente periodo. Decisiones del usuario (2026-11-17):
+- **D21 — Sin pagar nada:** nada de proyecto extra de Supabase ni herramientas de pago. Como nadie usa la app todavía (está en desarrollo), se mide contra el proyecto actual, con la app compilada en modo producción en la computadora del usuario (no se toca Vercel ni su cuota). k6 es libre.
+- **D22 — Solo lectura y escalones de 5, 20 y 50 usuarios simulados:** los usuarios simulados solo abren pantallas; se usan los datos `[PRUEBA]` que ya existen (no se carga volumen nuevo). Lo único que se escribe son 3 cuentas `[PRUEBA K6]` (admin, capturista, gerente), que se borran al terminar. Nada de buscar "dónde se rompe" con cientos de usuarios.
+- **D23 — Carpeta `pruebas-carga/`** en la raíz del proyecto, fuera de `src` (no entra en la app), con su README.
+
+**Etapas**
+- **Etapa 0 — Preparar:** instalar k6 (`winget install GrafanaLabs.k6`, con permiso del usuario); crear las 3 cuentas `[PRUEBA K6]` con contraseñas largas al azar en `pruebas-carga/.env` (no se sube a git; `.env*` ya está en `.gitignore`); build de producción en una copia aparte (`next build` + `next start`, no el modo dev).
+- **Etapa 1 — Scripts k6:** cada cuenta inicia sesión una sola vez con la API de Supabase y los usuarios simulados de su rol comparten la sesión (para no disparar el límite de intentos). Recorridos con pausas de 5 a 15 s: capturista 70 % (Inicio, Servicios, ficha, servicio nuevo, Kilometraje), admin 20 % (Inicio, Mantenimientos, Taller, Tickets, Reportes), gerente 10 % (Reportes 12 meses, Excel). Pedidas como las hace el navegador al moverse por la app. Además, k6 browser con 1 o 2 usuarios en Chrome real para contar las peticiones al regresar a una pantalla ya vista (atrás y desde el menú).
+- **Etapa 2 — Medir y reportar:** por pantalla, tiempo típico y del 5 % más lento, errores y milisegundos de procesador de la app (proyectados contra las 4 h de Vercel); en Supabase, las consultas que más suman (`pg_stat_statements`). Resultado: lista de pantallas de más a menos costosa y la proyección para 20 usuarios al mes.
+- **Etapa 3 — Optimizar solo lo que la medición marque.** Candidatas (hoy la app no usa ningún caché propio): `staleTimes` de Next para que las pantallas ya vistas no se pidan otra vez por unos segundos (después de guardar sí se actualizan); catálogos (unidades, categorías, proveedores, talleres, tipos) guardados en el servidor y renovados al editarlos; revisar la sesión una vez por pantalla; investigar por qué ISR Writes (5,008) es el doble de ISR Reads (2,473).
+- **Etapa 4 — Volver a medir:** mismas pruebas, tabla de antes y después; el usuario revisa que nada se vea desactualizado; se borran las cuentas `[PRUEBA K6]`.
+
+**Terminado cuando**
+- Hay una tabla con el costo de cada pantalla con 5, 20 y 50 usuarios, antes y después.
+- Regresar a una pantalla ya vista no vuelve a pedir datos (o se sabe y se explica por qué sí).
+- La proyección de 20 usuarios al mes queda con margen dentro de las 4 h de procesador de Vercel Hobby.
+- `npm run build` y `npm run lint` pasan; las baterías de `supabase/tests` siguen en verde; las cuentas de prueba están borradas.
+
 ### Fase 2 — Almacén (a futuro, cuando el almacén físico esté ordenado)
 Decisiones del usuario (2026-11-06):
 - Un solo almacén, con ubicaciones (pasillo / anaquel).

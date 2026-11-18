@@ -1,0 +1,130 @@
+﻿{
+    "usuarios":  20,
+    "duracion":  "8m",
+    "pagina":  null,
+    "peticiones":  944,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "ficha_unidad_gerente",
+                          "veces":  22,
+                          "tipica_ms":  1103,
+                          "lenta_p95_ms":  1838,
+                          "max_ms":  2308
+                      },
+                      {
+                          "pantalla":  "excel",
+                          "veces":  22,
+                          "tipica_ms":  968,
+                          "lenta_p95_ms":  1821,
+                          "max_ms":  4300
+                      },
+                      {
+                          "pantalla":  "reportes_gerente",
+                          "veces":  22,
+                          "tipica_ms":  807,
+                          "lenta_p95_ms":  1181,
+                          "max_ms":  2233
+                      },
+                      {
+                          "pantalla":  "detalle_servicio",
+                          "veces":  26,
+                          "tipica_ms":  799,
+                          "lenta_p95_ms":  1146,
+                          "max_ms":  1356
+                      },
+                      {
+                          "pantalla":  "inicio_admin",
+                          "veces":  28,
+                          "tipica_ms":  787,
+                          "lenta_p95_ms":  2593,
+                          "max_ms":  2653
+                      },
+                      {
+                          "pantalla":  "reportes_admin",
+                          "veces":  25,
+                          "tipica_ms":  780,
+                          "lenta_p95_ms":  1335,
+                          "max_ms":  1605
+                      },
+                      {
+                          "pantalla":  "inicio_gerente",
+                          "veces":  22,
+                          "tipica_ms":  717,
+                          "lenta_p95_ms":  2457,
+                          "max_ms":  2488
+                      },
+                      {
+                          "pantalla":  "inicio_capturista",
+                          "veces":  112,
+                          "tipica_ms":  572,
+                          "lenta_p95_ms":  2452,
+                          "max_ms":  3041
+                      },
+                      {
+                          "pantalla":  "tickets",
+                          "veces":  28,
+                          "tipica_ms":  515,
+                          "lenta_p95_ms":  708,
+                          "max_ms":  1527
+                      },
+                      {
+                          "pantalla":  "servicios_admin",
+                          "veces":  27,
+                          "tipica_ms":  463,
+                          "lenta_p95_ms":  671,
+                          "max_ms":  801
+                      },
+                      {
+                          "pantalla":  "servicios_capturista",
+                          "veces":  112,
+                          "tipica_ms":  455,
+                          "lenta_p95_ms":  735,
+                          "max_ms":  1077
+                      },
+                      {
+                          "pantalla":  "taller",
+                          "veces":  28,
+                          "tipica_ms":  444,
+                          "lenta_p95_ms":  909,
+                          "max_ms":  1940
+                      },
+                      {
+                          "pantalla":  "servicio_nuevo",
+                          "veces":  112,
+                          "tipica_ms":  441,
+                          "lenta_p95_ms":  1126,
+                          "max_ms":  2743
+                      },
+                      {
+                          "pantalla":  "mantenimientos_capturista",
+                          "veces":  107,
+                          "tipica_ms":  423,
+                          "lenta_p95_ms":  926,
+                          "max_ms":  1390
+                      },
+                      {
+                          "pantalla":  "ficha_unidad",
+                          "veces":  112,
+                          "tipica_ms":  413,
+                          "lenta_p95_ms":  642,
+                          "max_ms":  1591
+                      },
+                      {
+                          "pantalla":  "mantenimientos",
+                          "veces":  28,
+                          "tipica_ms":  408,
+                          "lenta_p95_ms":  550,
+                          "max_ms":  1458
+                      },
+                      {
+                          "pantalla":  "kilometraje",
+                          "veces":  111,
+                          "tipica_ms":  374,
+                          "lenta_p95_ms":  862,
+                          "max_ms":  1977
+                      }
+                  ],
+    "cpu_segundos":  106.2,
+    "cpu_ms_por_peticion":  112.5
+}

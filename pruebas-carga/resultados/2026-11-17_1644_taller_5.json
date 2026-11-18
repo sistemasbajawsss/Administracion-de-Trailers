@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "taller",
+    "peticiones":  196,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "taller",
+                          "veces":  196,
+                          "tipica_ms":  542,
+                          "lenta_p95_ms":  674,
+                          "max_ms":  826
+                      }
+                  ],
+    "cpu_segundos":  15.5,
+    "cpu_ms_por_peticion":  79.3
+}

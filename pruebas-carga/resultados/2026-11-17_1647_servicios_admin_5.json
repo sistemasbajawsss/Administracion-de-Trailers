@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "servicios_admin",
+    "peticiones":  189,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "servicios_admin",
+                          "veces":  189,
+                          "tipica_ms":  602,
+                          "lenta_p95_ms":  740,
+                          "max_ms":  837
+                      }
+                  ],
+    "cpu_segundos":  14.9,
+    "cpu_ms_por_peticion":  78.9
+}

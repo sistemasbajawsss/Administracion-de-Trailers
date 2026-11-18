@@ -88,7 +88,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
             {units.map((unit) => (
               <TableRow key={unit.id}>
                 <TableCell className="py-3 pl-5">
-                  <Link
+                  <Link prefetch={false}
                     href={sheetHref(unit.id)}
                     className="rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
                     aria-label={`Ficha de ${unit.economicNumber}`}
@@ -110,7 +110,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
                 </TableCell>
                 <TableCell className="pr-5 text-right">
                   {canEdit && (
-                    <Link
+                    <Link prefetch={false}
                       href={editHref(unit.id)}
                       className={buttonVariants({ variant: "ghost", size: "icon-touch" })}
                       aria-label={`Editar ${unit.economicNumber}`}
@@ -129,7 +129,7 @@ export async function UnitList({ filters, canEdit }: { filters: UnitFilters; can
       <ul className="divide-y overflow-hidden rounded-lg border bg-white md:hidden">
         {units.map((unit) => (
           <li key={unit.id}>
-            <Link
+            <Link prefetch={false}
               href={sheetHref(unit.id)}
               className="flex min-h-16 items-center gap-4 px-4 py-3 outline-none focus-visible:bg-muted active:bg-muted"
             >

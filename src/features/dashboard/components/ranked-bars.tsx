@@ -81,7 +81,7 @@ function Rows({
       {items.map((item) => {
         const cents = toCents(item.total) ?? 0;
         const label = item.href ? (
-          <Link href={item.href} className="font-medium underline-offset-2 hover:underline focus-visible:underline">
+          <Link prefetch={false} href={item.href} className="font-medium underline-offset-2 hover:underline focus-visible:underline">
             {item.label}
           </Link>
         ) : (

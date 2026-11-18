@@ -130,7 +130,7 @@ export function ExpenseFeed({
             )}
             <span className="col-start-1 row-start-2 min-w-0 md:col-start-auto md:row-start-auto">
               {/* El enlace cubre todo el renglón; el botón de factura queda encima. */}
-              <Link
+              <Link prefetch={false}
                 href={`/servicios/${item.serviceId}`}
                 className="block font-medium outline-none after:absolute after:inset-0 focus-visible:underline"
               >

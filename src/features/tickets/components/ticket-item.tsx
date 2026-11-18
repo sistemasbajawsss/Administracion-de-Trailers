@@ -132,7 +132,7 @@ export function TicketItem({
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {linkUnit ? (
-          <Link href={`/unidades/${ticket.unitId}`} className="rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
+          <Link prefetch={false} href={`/unidades/${ticket.unitId}`} className="rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">
             {number}
           </Link>
         ) : (
