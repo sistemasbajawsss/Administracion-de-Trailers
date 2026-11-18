@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "servicios_capturista",
+    "peticiones":  168,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "servicios_capturista",
+                          "veces":  168,
+                          "tipica_ms":  739,
+                          "lenta_p95_ms":  1344,
+                          "max_ms":  1841
+                      }
+                  ],
+    "cpu_segundos":  18.3,
+    "cpu_ms_por_peticion":  108.9
+}

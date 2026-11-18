@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "excel",
+    "peticiones":  132,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "excel",
+                          "veces":  132,
+                          "tipica_ms":  1284,
+                          "lenta_p95_ms":  1613,
+                          "max_ms":  2612
+                      }
+                  ],
+    "cpu_segundos":  70.8,
+    "cpu_ms_por_peticion":  536.6
+}

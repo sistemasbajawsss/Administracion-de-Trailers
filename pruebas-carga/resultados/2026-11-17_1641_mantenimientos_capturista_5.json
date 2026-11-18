@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "mantenimientos_capturista",
+    "peticiones":  211,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "mantenimientos_capturista",
+                          "veces":  211,
+                          "tipica_ms":  393,
+                          "lenta_p95_ms":  656,
+                          "max_ms":  1492
+                      }
+                  ],
+    "cpu_segundos":  19.1,
+    "cpu_ms_por_peticion":  90.5
+}

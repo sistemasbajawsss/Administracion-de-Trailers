@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "reportes_gerente",
+    "peticiones":  176,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "reportes_gerente",
+                          "veces":  176,
+                          "tipica_ms":  707,
+                          "lenta_p95_ms":  978,
+                          "max_ms":  1378
+                      }
+                  ],
+    "cpu_segundos":  21.7,
+    "cpu_ms_por_peticion":  123.2
+}

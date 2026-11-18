@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "servicio_nuevo",
+    "peticiones":  115,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "servicio_nuevo",
+                          "veces":  115,
+                          "tipica_ms":  1709,
+                          "lenta_p95_ms":  2935,
+                          "max_ms":  3944
+                      }
+                  ],
+    "cpu_segundos":  20.6,
+    "cpu_ms_por_peticion":  179.2
+}

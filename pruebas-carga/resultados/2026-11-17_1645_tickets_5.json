@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "tickets",
+    "peticiones":  189,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "tickets",
+                          "veces":  189,
+                          "tipica_ms":  606,
+                          "lenta_p95_ms":  787,
+                          "max_ms":  909
+                      }
+                  ],
+    "cpu_segundos":  15.9,
+    "cpu_ms_por_peticion":  84
+}

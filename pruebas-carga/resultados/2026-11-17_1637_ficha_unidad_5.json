@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "ficha_unidad",
+    "peticiones":  165,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "ficha_unidad",
+                          "veces":  165,
+                          "tipica_ms":  800,
+                          "lenta_p95_ms":  1311,
+                          "max_ms":  1541
+                      }
+                  ],
+    "cpu_segundos":  15.3,
+    "cpu_ms_por_peticion":  92.8
+}

@@ -1,0 +1,18 @@
+﻿{
+    "usuarios":  5,
+    "duracion":  "1m",
+    "pagina":  "mantenimientos",
+    "peticiones":  199,
+    "errores":  0,
+    "pantallas":  [
+                      {
+                          "pantalla":  "mantenimientos",
+                          "veces":  199,
+                          "tipica_ms":  488,
+                          "lenta_p95_ms":  773,
+                          "max_ms":  1226
+                      }
+                  ],
+    "cpu_segundos":  19.6,
+    "cpu_ms_por_peticion":  98.3
+}
