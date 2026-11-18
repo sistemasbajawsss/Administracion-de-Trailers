@@ -26,3 +26,6 @@ supabase/.branches/
 *.pem
 npm-debug.log*
 /coverage
+
+# Capturas de las pruebas de punta a punta (5L)
+pruebas-carga/e2e/capturas/

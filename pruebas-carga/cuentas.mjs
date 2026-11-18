@@ -1,6 +1,7 @@
 // Cuentas [PRUEBA K6] para las pruebas de carga (5K, D22).
 //
-//   node pruebas-carga/cuentas.mjs crear   -> crea admin, capturista y gerente
+//   node pruebas-carga/cuentas.mjs crear   -> crea admin, gerente y 5 capturistas (la carga usa
+//                                             el primero; las pruebas de punta a punta, los 5)
 //                                             y guarda sus contraseñas en pruebas-carga/.env.k6
 //   node pruebas-carga/cuentas.mjs borrar  -> las borra (su perfil se va con ellas)
 //
@@ -19,9 +20,16 @@ const root = join(here, "..");
 const envFile = join(here, ".env.k6");
 
 const ACCOUNTS = [
-  { role: "admin", email: "k6.admin@example.com", name: "[PRUEBA K6] Admin" },
-  { role: "capturista", email: "k6.capturista@example.com", name: "[PRUEBA K6] Capturista" },
-  { role: "gerente", email: "k6.gerente@example.com", name: "[PRUEBA K6] Gerente" },
+  { role: "admin", key: "ADMIN", email: "k6.admin@example.com", name: "[PRUEBA K6] Admin" },
+  { role: "capturista", key: "CAPTURISTA", email: "k6.capturista@example.com", name: "[PRUEBA K6] Capturista" },
+  { role: "gerente", key: "GERENTE", email: "k6.gerente@example.com", name: "[PRUEBA K6] Gerente" },
+  // 5L: cuatro capturistas más para probar capturas al mismo tiempo.
+  ...[2, 3, 4, 5].map((n) => ({
+    role: "capturista",
+    key: `CAPTURISTA${n}`,
+    email: `k6.capturista${n}@example.com`,
+    name: `[PRUEBA K6] Capturista ${n}`,
+  })),
 ];
 
 function readEnv(path) {
@@ -78,8 +86,7 @@ async function crear() {
     // trigger que crea el perfil no alcanza a ver el rol: se pone aquí.
     const { error: roleError } = await admin.from("perfiles").update({ rol: a.role }).eq("id", data.user.id);
     if (roleError) throw new Error(`No se pudo poner el rol de ${a.email}: ${roleError.message}`);
-    const key = a.role.toUpperCase();
-    lines.push(`K6_${key}_EMAIL=${a.email}`, `K6_${key}_PASSWORD=${password}`);
+    lines.push(`K6_${a.key}_EMAIL=${a.email}`, `K6_${a.key}_PASSWORD=${password}`);
     console.log(`Creada: ${a.name} (${a.email})`);
   }
   writeFileSync(envFile, lines.join("\n") + "\n");

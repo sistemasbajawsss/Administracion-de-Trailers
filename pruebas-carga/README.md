@@ -60,3 +60,18 @@ K6_BROWSER_EXECUTABLE_PATH="C:/Program Files (x86)/Microsoft/Edge/Application/ms
   el perfil no ve el rol y lo deja en capturista. `cuentas.mjs` pone el rol después.
 - La capturista de prueba no tiene servicios propios: sus pantallas pesan menos que las
   de una capturista real. El admin y el gerente sí ven todos los datos `[PRUEBA]`.
+
+## Pruebas de punta a punta (5L)
+
+Usuarios simulados que usan la app como personas (k6 browser con Edge aislado):
+capturan servicios, mantenimientos, tickets y kilometraje, y se comprueba que los
+totales cuadren en todas las pantallas. Todo lo que capturan lleva `[PRUEBA E2E]`
+y se borra en la limpieza. Plan en `docs/PLAN.md` › 5L.
+
+```
+node pruebas-carga/cuentas.mjs crear          # admin, gerente y 5 capturistas
+cd pruebas-carga
+k6 run e2e/preparar.js                        # unidades T-901, T-902, R-901, C-901
+```
+
+Las capturas de pantalla de las fallas quedan en `e2e/capturas/` (no se suben a git).
