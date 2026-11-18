@@ -8,7 +8,7 @@ import { CAPTURE_ROLES, ROLES, VIEW_ALL_ROLES } from "@/lib/auth/types";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/utils/ids";
 
-import { listLatestAdminApprovals, listTicketHistory } from "./queries";
+import { listLatestAdminApprovals, listPendingTickets, listTicketHistory } from "./queries";
 import { acceptTicketSchema, approveTicketSchema, createTicketSchema, rejectTicketSchema } from "./schemas";
 import type { AdminApproval, Ticket } from "./types";
 
@@ -139,6 +139,24 @@ export async function loadMoreTicketHistory(offset: unknown): Promise<ActionResu
 export async function refreshAfterTicketChange(): Promise<void> {
   await requireRole(ROLES);
   refresh();
+}
+
+/**
+ * Para el aviso de tickets nuevos: cuántos tickets de otros, levantados desde
+ * `since`, siguen pendientes (y cuántos urgentes). Si ya no queda ninguno, el
+ * aviso se quita solo.
+ */
+export async function countNewPendingTickets(since: unknown): Promise<ActionResult<{ created: number; urgent: number }>> {
+  if (typeof since !== "string" || since.length > 40 || Number.isNaN(Date.parse(since))) return fail("Fecha no válida.");
+  const user = await requireRole(ROLES);
+  try {
+    const recent = (await listPendingTickets()).filter(
+      (t) => t.createdBy !== user.id && Date.parse(t.createdAt) >= Date.parse(since),
+    );
+    return ok({ created: recent.length, urgent: recent.filter((t) => t.priority === "urgente").length });
+  } catch {
+    return fail("No se pudieron revisar los tickets.");
+  }
 }
 
 /** Para el aviso de los capturistas: quién aprobó las últimas N (sin las del propio usuario). */

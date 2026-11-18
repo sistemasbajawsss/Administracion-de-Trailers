@@ -8,7 +8,7 @@ import { cn } from "cn";
 
 import { createClient } from "@/lib/supabase/client";
 
-import { getLatestAdminApprovals, refreshAfterTicketChange } from "../actions";
+import { countNewPendingTickets, getLatestAdminApprovals, refreshAfterTicketChange } from "../actions";
 import type { AdminApproval } from "../types";
 
 type Totals = { created: number; urgent: number };
@@ -50,6 +50,11 @@ export function TicketsLive({
   const seen = useRef<Totals | null>(null);
   /** Tickets nuevos que el aviso está mostrando (sin cerrar). */
   const unseen = useRef<Totals>({ created: 0, urgent: 0 });
+  /**
+   * Desde cuándo está el aviso (reloj del aparato, con un minuto de margen por
+   * si va adelantado respecto al servidor).
+   */
+  const alertSince = useRef<number | null>(null);
   /** Aprobaciones de admin: total visto y las que muestra el aviso. */
   const seenApprovals = useRef<number | null>(null);
   const approvals = useRef<AdminApproval[]>([]);
@@ -69,10 +74,11 @@ export function TicketsLive({
 
     const clearAlert = () => {
       unseen.current = { created: 0, urgent: 0 };
+      alertSince.current = null;
       toast.dismiss(ALERT_ID);
     };
 
-    const showAlert = () => {
+    const showAlert = (buzz = true) => {
       const { created, urgent } = unseen.current;
       toast.custom(
         () => (
@@ -86,12 +92,48 @@ export function TicketsLive({
             onClose={clearAlert}
           />
         ),
-        { id: ALERT_ID, duration: Infinity, onDismiss: () => (unseen.current = { created: 0, urgent: 0 }) },
+        {
+          id: ALERT_ID,
+          duration: Infinity,
+          onDismiss: () => {
+            unseen.current = { created: 0, urgent: 0 };
+            alertSince.current = null;
+          },
+        },
       );
+      if (!buzz) return;
       try {
         navigator.vibrate?.(urgent > 0 ? [300, 150, 300, 150, 300] : [300, 150, 300]);
       } catch {
         // Sin vibración (iPhone, computadora): solo el aviso.
+      }
+    };
+
+    /**
+     * Si los tickets del aviso ya no están pendientes (los cancelaron, aceptaron
+     * o rechazaron), el aviso se quita solo; si quedan menos, se ajusta (pedido
+     * del usuario, 2026-11-18). Se cuentan en el servidor los pendientes de
+     * otros levantados desde que salió el aviso.
+     */
+    const recheckAlert = async () => {
+      const since = alertSince.current;
+      if (!since || unseen.current.created === 0) return;
+      let result;
+      try {
+        result = await countNewPendingTickets(new Date(since).toISOString());
+      } catch {
+        return; // Sin conexión: el aviso se queda hasta que lo cierren.
+      }
+      if (!active || !result.ok || alertSince.current !== since) return;
+      const { created, urgent } = result.data;
+      if (created === 0) {
+        clearAlert();
+      } else if (created < unseen.current.created || urgent < unseen.current.urgent) {
+        unseen.current = {
+          created: Math.min(created, unseen.current.created),
+          urgent: Math.min(urgent, unseen.current.urgent),
+        };
+        showAlert(false);
       }
     };
 
@@ -146,6 +188,7 @@ export function TicketsLive({
       .channel("tickets-taller")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "tickets_avisos" }, (payload) => {
         const ping = (payload.new ?? {}) as Ping;
+        let announced = false;
         if (typeof ping.creados === "number" && typeof ping.urgentes === "number") {
           const now: Totals = { created: ping.creados, urgent: ping.urgentes };
           const before = seen.current;
@@ -164,10 +207,14 @@ export function TicketsLive({
                 created: unseen.current.created + created,
                 urgent: unseen.current.urgent + urgent,
               };
+              if (alertSince.current === null) alertSince.current = Date.now() - 60_000;
+              announced = true;
               showAlert();
             }
           }
         }
+        // Un ticket cambió (cancelado, aceptado, rechazado): ¿sigue en pie el aviso?
+        if (!announced) void recheckAlert();
         if (typeof ping.aprobados_admin === "number") {
           const before = seenApprovals.current;
           if (before === null) {
