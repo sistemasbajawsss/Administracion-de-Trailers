@@ -29,3 +29,4 @@ npm-debug.log*
 
 # Capturas de las pruebas de punta a punta (5L)
 pruebas-carga/e2e/capturas/
+pruebas-carga/e2e/resultados/
