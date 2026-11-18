@@ -30,8 +30,8 @@ function authMessage(error: { code?: string; message?: string }, fallback: strin
 
 /**
  * Alta de usuario con contraseña inicial (sin correo de invitación). El trigger
- * al_crear_usuario crea su perfil con el nombre y el rol (el rol va en
- * app_metadata, que el usuario no puede modificar).
+ * al_crear_usuario crea su perfil con el nombre; el rol va en app_metadata (que
+ * el usuario no puede modificar) y además se pone en el perfil aquí mismo.
  */
 export async function createUser(input: unknown): Promise<ActionResult<{ id: string }>> {
   const parsed = createUserSchema.safeParse(input);
@@ -55,6 +55,15 @@ export async function createUser(input: unknown): Promise<ActionResult<{ id: str
     app_metadata: { rol: role },
   });
   if (error || !data.user) return fail(authMessage(error ?? {}, "No se pudo crear el usuario. Inténtalo de nuevo."));
+
+  // Supabase Auth guarda app_metadata después de insertar el usuario, así que el
+  // trigger al_crear_usuario no ve el rol y deja el perfil en capturista. Se pone
+  // aquí; si falla, el usuario se borra para no dejar uno con el rol equivocado.
+  const { error: roleError } = await admin.from("perfiles").update({ rol: role }).eq("id", data.user.id);
+  if (roleError) {
+    await admin.auth.admin.deleteUser(data.user.id);
+    return fail("No se pudo crear el usuario con su rol. Inténtalo de nuevo.");
+  }
 
   revalidatePath("/admin/usuarios");
   return ok({ id: data.user.id });

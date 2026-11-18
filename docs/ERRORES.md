@@ -89,6 +89,7 @@ Formato: **Qué pasó** — Causa — **Regla** — Fuente.
 
 ## 6. Permisos, sesión y roles
 
+- **El alta de un usuario admin o gerente lo dejaba como capturista** (se vio al crear las cuentas de prueba de la 5K, 2026-11-17). — Causa: Supabase Auth inserta el usuario y guarda `app_metadata` después, así que el trigger `crear_perfil_nuevo_usuario` no ve `rol` y usa el valor por omisión (capturista). — **Regla:** no confiar en que un trigger de `auth.users` vea `app_metadata` al crear; `createUser` pone el rol en `perfiles` justo después (y borra el usuario si falla). Revisar el rol real en `perfiles` tras crear un usuario por la Auth Admin API. — 2026-11-17.
 - **Desactivar un usuario no cerraba sus sesiones.** — **Regla:** `cerrar_sesiones_usuario()` al desactivar y al restablecer contraseña. — commit cfc596a.
 - **Al abrir una pestaña sin sesión se alcanzaba a ver la app.** — **Regla (D9):** se oculta antes de pintar. — commit c1ebfed.
 - **El login no explicaba cuando el Firewall de Vercel frenaba intentos.** — commit d41a90d.
