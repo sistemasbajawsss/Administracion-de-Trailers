@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -28,6 +29,14 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
+  // Mientras carga el Inicio, el formulario sigue en "Entrando…" y bloqueado:
+  // si se vaciara o se reactivara, parecería que hay que volver a llenarlo.
+  const [isEntering, startEntering] = useTransition();
+  const { reset } = form;
+
+  // No dejar la contraseña en memoria cuando el login deja de verse
+  // (Next puede conservar la pantalla oculta con su estado).
+  useEffect(() => () => reset(), [reset]);
 
   async function onSubmit(values: LoginInput) {
     try {
@@ -38,17 +47,16 @@ export function LoginForm() {
       }
       markTabSession();
       toast.success("Sesión iniciada");
-      // No dejar la contraseña en memoria si se vuelve a mostrar el login.
-      form.reset();
-      router.replace("/");
-      router.refresh();
+      // Una sola petición del Inicio: signIn ya revalida y borra lo guardado de
+      // antes, así que no hace falta router.refresh() (pedía el Inicio dos veces).
+      startEntering(() => router.replace("/"));
     } catch {
       // También llega aquí cuando el Firewall de Vercel frena el exceso de intentos (429).
       toast.error("No se pudo iniciar sesión. Si hiciste varios intentos, espera un minuto; si no, revisa tu internet.");
     }
   }
 
-  const isSubmitting = form.formState.isSubmitting;
+  const isBusy = form.formState.isSubmitting || isEntering;
 
   return (
     <form
@@ -75,6 +83,7 @@ export function LoginForm() {
                 inputMode="email"
                 autoComplete="email"
                 autoCapitalize="none"
+                disabled={isBusy}
                 aria-invalid={fieldState.invalid}
                 className="h-12 text-base"
               />
@@ -93,6 +102,7 @@ export function LoginForm() {
                 id="password"
                 type="password"
                 autoComplete="current-password"
+                disabled={isBusy}
                 aria-invalid={fieldState.invalid}
                 className="h-12 text-base"
               />
@@ -100,9 +110,9 @@ export function LoginForm() {
             </Field>
           )}
         />
-        <Button type="submit" size="touch" disabled={isSubmitting} className="w-full">
-          {isSubmitting && <LoaderCircle className="animate-spin" aria-hidden="true" />}
-          {isSubmitting ? "Entrando…" : "Entrar"}
+        <Button type="submit" size="touch" disabled={isBusy} className="w-full">
+          {isBusy && <LoaderCircle className="animate-spin" aria-hidden="true" />}
+          {isBusy ? "Entrando…" : "Entrar"}
         </Button>
       </FieldGroup>
     </form>
